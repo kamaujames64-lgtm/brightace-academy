@@ -32,3 +32,7 @@ Never place Meta access tokens or app secrets in the public GitHub frontend. Kee
 3. Connect the frontend chat.js to the Web App URL.
 4. Configure Meta WhatsApp Business Cloud API and webhook.
 5. Implement two-way message mapping and test the supported WhatsApp Business app/API configuration.
+
+
+## SEO v3
+Added page-specific titles/descriptions, canonical URLs, Open Graph/Twitter metadata, favicon links, EducationalOrganization JSON-LD, robots.txt and sitemap.xml.

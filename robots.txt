@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kamaujames64-lgtm.github.io/brightace-academy/sitemap.xml
