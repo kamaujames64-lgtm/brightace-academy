@@ -1,3 +1,7 @@
+## v2 navigation fix
+
+Fixed GitHub Pages relative navigation paths so links from pages inside `pages/` correctly resolve to the site root and sibling pages.
+
 # BrightAce Academy
 ## Your Partner in Academic Success
 
