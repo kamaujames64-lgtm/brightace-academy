@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="BrightAce Academy — Your Partner in Academic Success. Personalized tutoring, homework help and academic support.">
+<title>Live Chat | BrightAce Academy</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="nav"><div class="container nav-inner">
+<a class="brand" href="index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo">
+<div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
+<button class="menu-btn" aria-label="Open menu" onclick="toggleMenu()">☰</button>
+<nav class="nav-links" id="siteNav"><a class="" href="index.html">Home</a>
+<a class="" href="pages/subjects.html">Subjects</a>
+<a class="" href="pages/resources.html">Resources</a>
+<a class="" href="pages/homework-help.html">Homework Help</a>
+<a class="" href="pages/how-it-works.html">How It Works</a>
+<a class="" href="pages/about.html">About</a>
+<a class="" href="pages/faq.html">FAQ</a>
+<a class="active" href="pages/chat.html">Live Chat</a></nav>
+<a class="nav-cta" href="chat.html">💬 LIVE CHAT</a>
+</div></header>
+
+<main><section class="page-hero"><div class="container"><div class="eyebrow">DIRECT SUPPORT</div><h1>BrightAce Live Chat</h1><p>Connect directly with your BrightAce tutor. No student account is required.</p></div></section>
+<section class="section"><div class="container">
+<div class="chat-shell">
+<div class="chat-head"><div><strong>🎓 BrightAce Live Chat</strong><div class="chat-status">● Online • Your Partner in Academic Success</div></div><span class="admin-badge">Secure Session</span></div>
+<div id="chatStart" class="chat-start">
+<h3>Start your conversation</h3><p style="color:var(--muted);margin:5px 0 18px">Please provide your name and WhatsApp number. This is not a student account — it only identifies your live chat session.</p>
+<form id="startForm" class="form">
+<label>Name<input id="studentName" required placeholder="Your name"></label>
+<label>WhatsApp number<input id="studentPhone" required placeholder="+1 555 123 4567"></label>
+<label>What do you need help with?<textarea id="firstMessage" required placeholder="Tell me about your question or assignment..."></textarea></label>
+<label style="display:flex;gap:10px;align-items:flex-start;font-weight:500"><input id="consent" type="checkbox" required style="width:auto;margin-top:5px"> I agree that BrightAce may use the provided contact details to respond to this support request.</label>
+<button class="btn btn-primary" type="submit">START CHAT →</button>
+</form></div>
+<div id="chatArea" style="display:none"><div id="chatBody" class="chat-body"></div><form id="messageForm" class="chat-input"><input id="messageInput" autocomplete="off" placeholder="Type your message..."><button aria-label="Send">➤</button></form></div>
+</div>
+<div class="notice" style="margin-top:20px">The live-chat interface is ready. The next deployment step is connecting its backend to the WhatsApp Business Cloud API so your replies can flow between WhatsApp and this website.</div>
+</div></section></main>
+
+<footer class="footer"><div class="container footer-grid">
+<div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy">
+<div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div>
+<p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div>
+<div><h3>Explore</h3><a href="../pages/subjects.html">Subjects</a><a href="../pages/resources.html">Resources</a><a href="../pages/how-it-works.html">How It Works</a></div>
+<div><h3>Support</h3><a href="../pages/homework-help.html">Homework Help</a><a href="../pages/faq.html">FAQ</a><a href="../pages/chat.html">Live Chat</a></div>
+<div><h3>BrightAce</h3><a href="../pages/about.html">About</a><a href="../pages/contact.html">Contact</a></div>
+</div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
+<script src="../js/app.js"></script>
+<script src="../js/chat.js"></script>
+</body></html>
