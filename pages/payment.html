@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Secure BrightAce Academy payments through Paystack. Never pay a tutor directly outside the official BrightAce payment process.">
+<link rel="canonical" href="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html">
+<title>Secure Payment | BrightAce Academy</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<header class="nav"><div class="container nav-inner">
+<a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
+<button class="menu-btn" aria-label="Open menu" onclick="toggleMenu()">☰</button>
+<nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></nav>
+<a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
+
+<main>
+<section class="page-hero"><div class="container"><div class="eyebrow">SECURE CHECKOUT</div><h1>BrightAce Secure Payment</h1><p>Pay for an agreed BrightAce academic service through the official payment process powered by Paystack.</p></div></section>
+<section class="section"><div class="container"><div class="payment-shell">
+<div class="payment-safety"><div class="payment-safety-icon">🛡️</div><div><h3>Important Payment Safety Notice</h3><p><strong>Never send payment directly to a tutor's personal bank account, mobile-money account, PayPal account, WhatsApp number, or any other personal payment method.</strong> For your security, BrightAce payments must be made through the official BrightAce payment process.</p><p>Where a service is not fully delivered as agreed, BrightAce may review the case and issue a <strong>partial or full refund where appropriate</strong>, subject to the applicable review and payment terms.</p></div></div>
+
+<div id="paymentNotice" class="chat-notice" hidden></div>
+<div id="paymentLoading" class="payment-loading">Preparing secure payment...</div>
+<div id="paymentRequestForm" class="payment-request-form" hidden>
+<h2>Enter your payment request</h2>
+<p class="muted">Your tutor should provide you with a BrightAce payment request ID after you agree on the service, price and delivery expectations.</p>
+<form id="requestForm" class="form"><label>Payment Request ID<input id="requestId" required placeholder="Example: BA-REQ-XXXXXXXX"></label><button class="btn btn-primary" type="submit">VIEW PAYMENT REQUEST →</button></form>
+</div>
+
+<div id="paymentDetails" class="payment-details" hidden>
+<div class="payment-status-pill" id="paymentStatus">Payment request</div>
+<h2 id="serviceName">Academic service</h2>
+<div class="payment-detail-grid"><div><span>Student</span><strong id="studentName">—</strong></div><div><span>Tutor</span><strong id="tutorName">—</strong></div><div><span>Amount</span><strong id="paymentAmount">—</strong></div><div><span>Delivery deadline</span><strong id="deliveryDeadline">—</strong></div></div>
+<div class="payment-protection"><strong>BrightAce Service Protection</strong><p>Only pay when the service, price and expected delivery have been agreed with your tutor. Keep your payment reference and use BrightAce chat if you need support or need to raise a service-delivery concern.</p></div>
+<button id="payButton" class="btn btn-primary payment-pay-btn" type="button">🔒 PAY SECURELY WITH PAYSTACK</button>
+<p class="payment-small">Your payment is processed by Paystack. BrightAce does not receive or store your card details.</p>
+</div>
+
+<div id="paymentResult" class="payment-result" hidden></div>
+</div></div></section>
+</main>
+<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="contact.html">Contact</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
+<script src="../js/app.js"></script>
+<script>
+const PAYMENT_API="https://script.google.com/macros/s/AKfycbz3yb5GmCDcyr1epRauGmPVyPFUcmzGy5s3X4Gs74a5J08kFzHHWKC05MX2hHW1UnWH/exec";
+const notice=document.getElementById("paymentNotice");
+const loading=document.getElementById("paymentLoading");
+const formBox=document.getElementById("paymentRequestForm");
+const details=document.getElementById("paymentDetails");
+const result=document.getElementById("paymentResult");
+let currentRequest=null;
+function setNotice(text,type="info"){notice.textContent=text;notice.className="chat-notice "+type;notice.hidden=!text;}
+function money(amount,currency){return new Intl.NumberFormat(undefined,{style:"currency",currency:currency||"KES"}).format(Number(amount||0));}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
+async function getRequest(id){
+  const r=await fetch(PAYMENT_API+"?action=paymentRequest&requestId="+encodeURIComponent(id));
+  const data=await r.json(); if(!data.ok)throw new Error(data.error||"Payment request could not be loaded."); return data.request;
+}
+async function initialize(id){
+  const body=new URLSearchParams(); body.set("payload",JSON.stringify({action:"initializePayment",requestId:id}));
+  const r=await fetch(PAYMENT_API,{method:"POST",body}); const data=await r.json();
+  if(!data.ok)throw new Error(data.error||"Payment could not be initialized."); return data;
+}
+async function verify(reference){
+  const r=await fetch(PAYMENT_API+"?action=verifyPayment&reference="+encodeURIComponent(reference));
+  const data=await r.json(); if(!data.ok)throw new Error(data.error||"Payment verification failed."); return data;
+}
+function showRequest(p){
+  currentRequest=p; loading.hidden=true; formBox.hidden=true; details.hidden=false;
+  document.getElementById("serviceName").textContent=p.service||"BrightAce academic service";
+  document.getElementById("studentName").textContent=p.studentName||"Student";
+  document.getElementById("tutorName").textContent=p.tutor||"BrightAce Tutor";
+  document.getElementById("paymentAmount").textContent=money(p.amount,p.currency);
+  document.getElementById("deliveryDeadline").textContent=p.deliveryDeadline||"As agreed in chat";
+  const status=String(p.status||"PENDING").toUpperCase();
+  document.getElementById("paymentStatus").textContent=status==="PAID"?"✓ PAID":"PAYMENT REQUEST";
+  document.getElementById("payButton").disabled=status==="PAID";
+  if(status==="PAID")setNotice("This payment request has already been paid.","success");
+}
+async function load(){
+  const params=new URLSearchParams(location.search); const reference=params.get("reference"); const request=params.get("request");
+  try{
+    if(reference){
+      loading.hidden=true; result.hidden=false; result.innerHTML="<h2>Checking your payment…</h2><p>Please wait while BrightAce confirms the transaction with Paystack.</p>";
+      const v=await verify(reference);
+      if(v.status==="success"){
+        result.innerHTML=`<div class="payment-success-icon">✓</div><h2>Payment confirmed</h2><p>Your BrightAce payment was successfully verified.</p><p><strong>Reference:</strong> ${esc(v.reference)}</p><p>Your tutor can now continue with the agreed service.</p>`;
+      }else{
+        result.innerHTML=`<h2>Payment status: ${esc(v.status)}</h2><p>The transaction is not confirmed as successful yet. Keep your reference and contact BrightAce through Live Chat if you need help.</p><p><strong>Reference:</strong> ${esc(v.reference||reference)}</p>`;
+      }
+      return;
+    }
+    if(request){ const p=await getRequest(request); showRequest(p); }
+    else{ loading.hidden=true; formBox.hidden=false; }
+  }catch(err){ loading.hidden=true; formBox.hidden=false; setNotice(err.message||"Unable to load payment request.","error"); }
+}
+document.getElementById("requestForm").addEventListener("submit",async e=>{e.preventDefault();setNotice("Loading payment request…","info");try{showRequest(await getRequest(document.getElementById("requestId").value.trim()));setNotice("Payment request loaded. Review the details before paying.","success");}catch(err){setNotice(err.message||"Payment request could not be loaded.","error");}});
+document.getElementById("payButton").addEventListener("click",async()=>{if(!currentRequest)return;const b=document.getElementById("payButton");b.disabled=true;b.textContent="Preparing Paystack checkout…";try{const p=await initialize(currentRequest.requestId);location.href=p.authorizationUrl;}catch(err){b.disabled=false;b.textContent="🔒 PAY SECURELY WITH PAYSTACK";setNotice(err.message||"Payment could not be started.","error");}});
+load();
+</script>
+</body></html>

@@ -1,6 +1,12 @@
-BrightAce Academy backend Script Properties
 SPREADSHEET_ID=your_google_sheet_id
-META_VERIFY_TOKEN=create_a_secret_value
-META_ACCESS_TOKEN=keep_in_apps_script_only
+CHAT_DRIVE_FOLDER_ID=your_drive_folder_id
+META_ACCESS_TOKEN=your_meta_access_token
 META_PHONE_NUMBER_ID=your_meta_phone_number_id
-META_WABA_ID=your_whatsapp_business_account_id
+META_VERIFY_TOKEN=your_meta_verify_token
+META_GRAPH_VERSION=v24.0
+PAYSTACK_SECRET_KEY=your_paystack_secret_key
+PAYMENT_CALLBACK_URL=https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html
+ADMIN_PASSWORD=choose_a_strong_admin_password
+ADMIN_WHATSAPP_PHONE=2547XXXXXXXX
+PRIMARY_TUTOR_NAME=Your Primary Tutor
+PRIMARY_TUTOR_WHATSAPP=2547XXXXXXXX

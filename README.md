@@ -1,38 +1,24 @@
-## v2 navigation fix
+# BrightAce Academy v15 — Admin Chat + Selection + Notification Fix
 
-Fixed GitHub Pages relative navigation paths so links from pages inside `pages/` correctly resolve to the site root and sibling pages.
+Targeted patch based on v14. Replace only backend/Code.gs, pages/admin.html, and add css/admin-chat.css.
 
-# BrightAce Academy
-## Your Partner in Academic Success
+Fixes:
+- Admin request/tutor selections persist during polling instead of resetting.
+- Admin can open a request and chat with the student before assigning work.
+- Admin messages are stored in MESSAGES and sent to the student's WhatsApp when configured.
+- Selected conversation chat auto-refreshes.
+- Added explicit sound-test control and stronger browser-audio unlock path.
+- Tutor financial privacy remains unchanged.
 
-Version 1 is a responsive, multi-page static website prepared for GitHub Pages.
+The public pages/SEO files are untouched by this patch.
 
-### Pages
-- index.html
-- pages/subjects.html
-- pages/resources.html
-- pages/homework-help.html
-- pages/how-it-works.html
-- pages/about.html
-- pages/faq.html
-- pages/contact.html
-- pages/chat.html
-
-Every page is a separate HTML document and navigation uses normal links.
-
-### Backend
-`backend/Code.gs` is the starter Google Apps Script backend for Google Sheets and the future WhatsApp Business Cloud API webhook.
-
-### Security
-Never place Meta access tokens or app secrets in the public GitHub frontend. Keep them in Apps Script Script Properties.
-
-### Next integration
-1. Create the BrightAce Google Sheet.
-2. Deploy Code.gs as a Web App.
-3. Connect the frontend chat.js to the Web App URL.
-4. Configure Meta WhatsApp Business Cloud API and webhook.
-5. Implement two-way message mapping and test the supported WhatsApp Business app/API configuration.
+The supplied ChatGPT shared link could not be retrieved as an image asset; upload the intended photo before adding it as the global static background.
 
 
-## SEO v3
-Added page-specific titles/descriptions, canonical URLs, Open Graph/Twitter metadata, favicon links, EducationalOrganization JSON-LD, robots.txt and sitemap.xml.
+## v17 additions
+- Hardened student request submission so saved requests are not lost if WhatsApp notification fails.
+- Persists the start form draft until the request is successfully created.
+- Improved Drive attachment links for admin/student viewing and downloading.
+- Added student refund request form with reason and optional amount/payment request ID.
+- Added Admin Refund Requests section with approve/reject workflow; approved KES/USD refunds can be submitted to Paystack when a verified transaction reference is available. EUR requests are recorded for manual review.
+- Made the Admin ↔ Tutor WhatsApp section explicit and visible.

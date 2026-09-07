@@ -1,0 +1,18 @@
+/* BrightAce v15 admin chat additions */
+.admin-chat{margin-top:18px;border-top:1px solid rgba(255,255,255,.08);padding-top:16px}.admin-chat-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px}.admin-chat-head span{font-size:.82rem;color:var(--muted)}.admin-chat-messages{max-height:320px;overflow:auto;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(0,0,0,.12)}.admin-chat-msg{max-width:85%;margin:8px 0;padding:10px 12px;border-radius:12px}.admin-chat-msg.from-student{margin-right:auto;background:rgba(255,255,255,.06)}.admin-chat-msg.from-admin{margin-left:auto;background:rgba(0,170,170,.14)}.admin-chat-msg small{display:block;margin-top:5px;opacity:.65;font-size:.7rem}.admin-chat-compose{display:flex;gap:10px;margin-top:10px}.admin-chat-compose textarea{flex:1;resize:vertical}.admin-chat-compose .btn{white-space:nowrap}@media(max-width:700px){.admin-chat-compose{flex-direction:column}.admin-chat-head{flex-direction:column}}
+
+.admin-attachment{margin-top:8px;padding:8px 10px;border:1px solid rgba(20,120,130,.18);border-radius:10px;background:rgba(255,255,255,.7)}
+.admin-attachment a{font-weight:600;text-decoration:none}
+.admin-attachment small{opacity:.7}
+.tutor-chat-btn{white-space:nowrap}
+#tutorChatPanel{margin-top:18px}
+@media(max-width:700px){.admin-attachment img{max-width:100%!important;height:auto}.tutor-chat-btn{width:100%}}
+
+.refund-chat-card{margin-top:20px;padding:20px;border:1px solid rgba(20,130,150,.25);border-radius:16px;background:rgba(255,255,255,.97)}.refund-chat-card>div:first-child{margin-bottom:14px}.refund-chat-card h3{margin-bottom:6px}.refund-form{display:grid;gap:10px}.refund-form input,.refund-form select,.refund-form textarea{width:100%;padding:11px 12px;border:1px solid #ccd6df;border-radius:10px;font:inherit}.refund-form textarea{resize:vertical}.refund-chat-card .btn{justify-self:start}.refund-approve,.refund-reject{min-width:150px}
+
+/* v18 refund and stable admin chat controls */
+.refund-chat-card{margin-top:20px;padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(8,20,35,.72)}
+.refund-toggle{width:100%;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:transparent;color:inherit;padding:13px 16px;font-weight:800;cursor:pointer;text-align:left}
+.refund-panel{margin-top:14px;padding-top:4px}
+.refund-intro p{margin:7px 0 16px;color:var(--muted);line-height:1.6}
+.refund-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
