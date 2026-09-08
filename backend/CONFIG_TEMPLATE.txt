@@ -10,3 +10,8 @@ ADMIN_PASSWORD=choose_a_strong_admin_password
 ADMIN_WHATSAPP_PHONE=2547XXXXXXXX
 PRIMARY_TUTOR_NAME=Your Primary Tutor
 PRIMARY_TUTOR_WHATSAPP=2547XXXXXXXX
+
+# New production settings for the latest BrightAce workflow
+CONTACT_EMAIL=your-contact-email@example.com
+META_OTP_TEMPLATE_NAME=your_approved_whatsapp_otp_template_name
+META_OTP_TEMPLATE_LANGUAGE=en_US

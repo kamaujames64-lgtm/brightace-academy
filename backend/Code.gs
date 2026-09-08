@@ -19,6 +19,9 @@ const CONFIG = {
   paymentCallbackUrlKey: "PAYMENT_CALLBACK_URL",
   adminPasswordKey: "ADMIN_PASSWORD",
   adminWhatsAppKey: "ADMIN_WHATSAPP_PHONE",
+  contactEmailKey: "CONTACT_EMAIL",
+  otpTemplateNameKey: "META_OTP_TEMPLATE_NAME",
+  otpTemplateLanguageKey: "META_OTP_TEMPLATE_LANGUAGE",
   defaultGraphVersion: "v24.0",
   maxFileBytes: 10 * 1024 * 1024
 };
@@ -40,6 +43,9 @@ function doPost(e){
     if(body.object === "whatsapp_business_account") return handleWhatsAppWebhook_(body);
     if(body.event && body.data) return handlePaystackWebhook_(body);
     if(body.action === "startChat") return startChat_(body);
+    if(body.action === "verifyChat") return verifyChat_(body);
+    if(body.action === "resendVerification") return resendVerification_(body);
+    if(body.action === "sendContactEmail") return sendContactEmail_(body);
     if(body.action === "sendMessage") return saveWebsiteMessage_(body);
     if(body.action === "initializePayment") return initializePayment_(body.requestId);
     if(body.action === "adminLogin") return adminLogin_(body.password);
@@ -53,6 +59,7 @@ function doPost(e){
     if(body.action === "adminCreatePaymentRequest") return adminCreatePaymentRequest_(body);
     if(body.action === "adminMarkWorkCompleted") return adminMarkWorkCompleted_(body);
     if(body.action === "adminRejectWork") return adminRejectWork_(body);
+    if(body.action === "adminRestoreWork") return adminRestoreWork_(body);
     if(body.action === "adminListWorkHistory") return adminListWorkHistory_(body.adminToken);
     if(body.action === "adminSendTutorMessage") return adminSendTutorMessage_(body);
     if(body.action === "adminListTutorBalances") return adminListTutorBalances_(body.adminToken);
@@ -74,7 +81,7 @@ function parseBody_(e){
 }
 
 function conversationHeaders_(){
-  return ["conversationId","studentName","studentPhone","startedAt","lastMessageAt","status","assignedTutor","whatsappPhone","lastMessageId","studentEmail","workDescription","studentBudget","currency","deadline","assignmentStatus","assignedTutorPhone","tutorPayout","brightAceShare","agreedAmount","agreedCurrency","completedAt","rejectedAt","rejectionReason"];
+  return ["conversationId","studentName","studentPhone","startedAt","lastMessageAt","status","assignedTutor","whatsappPhone","lastMessageId","studentEmail","workDescription","studentBudget","currency","deadline","assignmentStatus","assignedTutorPhone","tutorPayout","brightAceShare","agreedAmount","agreedCurrency","completedAt","rejectedAt","rejectionReason","verificationStatus","verificationCodeHash","verificationExpiresAt","verificationAttempts","verificationResendCount","verifiedAt"];
 }
 function ensureColumns_(sh,headers){
   const last=Math.max(sh.getLastColumn(),1);
@@ -94,21 +101,124 @@ function startChat_(d){
   if(!d.name||!d.phone||!d.taskDescription||!(Number(d.studentBudget)>0)) throw new Error("Name, WhatsApp number, task description and student budget are required.");
   const currency=String(d.currency||"KES").toUpperCase();
   if(["KES","USD","EUR"].indexOf(currency)<0) throw new Error("Choose KES, USD or EUR.");
-  const sh=getConversationSheet_(),now=new Date(),id=d.id||("CHAT-"+now.getTime()),phone=normalizePhone_(d.phone);
-  // A new submitted work request must create a new conversation. Reusing an
-  // older open conversation by phone could hide a new request from Admin.
-  // Only reuse when the exact client-generated conversation ID already exists.
+  const phone=normalizePhone_(d.phone);
+  if(phone.length<7) throw new Error("Enter a valid WhatsApp number.");
+  const sh=getConversationSheet_(),now=new Date(),id=d.id||("CHAT-"+now.getTime());
   const existingById=findConversation_(id);
-  if(existingById) return json_({ok:true,conversationId:existingById.conversationId,reused:true});
+  if(existingById) return json_({ok:true,conversationId:existingById.conversationId,verificationRequired:String(existingById.verificationStatus||"").toUpperCase()!=="VERIFIED",verified:String(existingById.verificationStatus||"").toUpperCase()==="VERIFIED"});
   const row=sh.getLastRow()+1; sh.appendRow(new Array(conversationHeaders_().length).fill(""));
-  setByHeader_(sh,row,"conversationId",id); setByHeader_(sh,row,"studentName",d.name); setByHeader_(sh,row,"studentPhone",phone); setByHeader_(sh,row,"startedAt",now); setByHeader_(sh,row,"lastMessageAt",now); setByHeader_(sh,row,"status","open"); setByHeader_(sh,row,"assignedTutor","Unassigned"); setByHeader_(sh,row,"whatsappPhone",phone); setByHeader_(sh,row,"assignmentStatus","NEW_REQUEST"); setByHeader_(sh,row,"workDescription",d.taskDescription); setByHeader_(sh,row,"studentBudget",Number(d.studentBudget)); setByHeader_(sh,row,"currency",currency); setByHeader_(sh,row,"deadline",String(d.deadline||"")); setByHeader_(sh,row,"agreedAmount",Number(d.studentBudget)); setByHeader_(sh,row,"agreedCurrency",currency);
-  const saved=saveMessage_(id,"student",d.taskDescription,"website",null); setByHeader_(sh,row,"lastMessageId",saved.id);
-  // Saving the request is the critical operation. WhatsApp notification must
-  // never make a successfully saved website request appear to have failed.
-  let notification={sent:false};
-  try { notifyAdminOfNewRequest_(id,d.name,phone,d.taskDescription,Number(d.studentBudget),currency,String(d.deadline||"")); notification={sent:true}; }
-  catch(e) { console.error("Admin notification failed after request was saved: "+(e&&e.stack||e)); notification={sent:false,error:String(e&&e.message||e)}; }
-  return json_({ok:true,conversationId:id,requestStatus:"NEW_REQUEST",notification:notification});
+  setByHeader_(sh,row,"conversationId",id); setByHeader_(sh,row,"studentName",String(d.name).trim()); setByHeader_(sh,row,"studentPhone",phone); setByHeader_(sh,row,"startedAt",now); setByHeader_(sh,row,"lastMessageAt",now); setByHeader_(sh,row,"status","open"); setByHeader_(sh,row,"assignedTutor","Unassigned"); setByHeader_(sh,row,"whatsappPhone",phone); setByHeader_(sh,row,"assignmentStatus","PENDING_VERIFICATION"); setByHeader_(sh,row,"workDescription",String(d.taskDescription).trim()); setByHeader_(sh,row,"studentBudget",Number(d.studentBudget)); setByHeader_(sh,row,"currency",currency); setByHeader_(sh,row,"deadline",String(d.deadline||"")); setByHeader_(sh,row,"agreedAmount",Number(d.studentBudget)); setByHeader_(sh,row,"agreedCurrency",currency); setByHeader_(sh,row,"verificationStatus","PENDING"); setByHeader_(sh,row,"verificationAttempts",0); setByHeader_(sh,row,"verificationResendCount",0);
+  const sent=sendVerificationCode_(id,phone);
+  return json_({ok:true,conversationId:id,requestStatus:"PENDING_VERIFICATION",verificationRequired:true,message:"A 6-digit verification code has been sent to your WhatsApp number. Enter it to securely initiate the BrightAce live chat.",delivery:sent});
+}
+function sha256Hex_(text){const bytes=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,String(text),Utilities.Charset.UTF_8);return bytes.map(function(b){const v=(b<0?b+256:b).toString(16);return v.length===1?"0"+v:v}).join("");}
+function generateVerificationCode_(){return String(Math.floor(100000+Math.random()*900000));}
+function sendVerificationCode_(conversationId,phone){
+  const c=findConversation_(conversationId); if(!c) throw new Error("Verification request not found.");
+  const code=generateVerificationCode_(),expires=new Date(Date.now()+10*60*1000),sh=getConversationSheet_();
+  setByHeader_(sh,c.row,"verificationCodeHash",sha256Hex_(code)); setByHeader_(sh,c.row,"verificationExpiresAt",expires); setByHeader_(sh,c.row,"verificationAttempts",0);
+  const props=PropertiesService.getScriptProperties(),template=String(props.getProperty(CONFIG.otpTemplateNameKey)||"").trim(),language=String(props.getProperty(CONFIG.otpTemplateLanguageKey)||"en_US").trim();
+  let result;
+  if(template){result=sendWhatsAppTemplate_(phone,template,language,[code]);}
+  else {result=sendWhatsAppText_(phone,"Your BrightAce Academy verification code is: "+code+"\\n\\nThis code expires in 10 minutes. Do not share this code with anyone.");}
+  if(result&&result.skipped) throw new Error("WhatsApp verification could not be sent because the WhatsApp credentials are not configured. Complete the BrightAce WhatsApp setup first.");
+  return {sent:true,expiresAt:expires.toISOString()};
+}
+function verifyChat_(d){
+  const id=String(d.conversationId||"").trim(),code=String(d.code||"").trim(); if(!id||!/^[0-9]{6}$/.test(code)) throw new Error("Enter the 6-digit verification code sent to WhatsApp.");
+  const c=findConversation_(id); if(!c) throw new Error("Verification request not found.");
+  if(String(c.verificationStatus||"").toUpperCase()==="VERIFIED") return json_({ok:true,verified:true,message:"WhatsApp is already verified. Your BrightAce live chat is connected."});
+  const expiry=c.row?getByHeader_(getConversationSheet_(),c.row,"verificationExpiresAt"):""; if(expiry && new Date(expiry).getTime()<Date.now()) throw new Error("That verification code has expired. Request a new code.");
+  const attempts=Number(c.row?getByHeader_(getConversationSheet_(),c.row,"verificationAttempts"):0)||0; if(attempts>=3) throw new Error("Too many incorrect attempts. Request a new verification code.");
+  const sh=getConversationSheet_(),stored=String(getByHeader_(sh,c.row,"verificationCodeHash")||"");
+  if(stored!==sha256Hex_(code)){setByHeader_(sh,c.row,"verificationAttempts",attempts+1);throw new Error("Incorrect verification code. Please check WhatsApp and try again.");}
+  const now=new Date(); setByHeader_(sh,c.row,"verificationStatus","VERIFIED"); setByHeader_(sh,c.row,"verifiedAt",now); setByHeader_(sh,c.row,"assignmentStatus","NEW_REQUEST"); setByHeader_(sh,c.row,"verificationCodeHash",""); setByHeader_(sh,c.row,"verificationExpiresAt","");
+  const saved=saveMessage_(id,"student",c.workDescription,"website",null); setByHeader_(sh,c.row,"lastMessageId",saved.id); setByHeader_(sh,c.row,"lastMessageAt",now);
+  try{notifyAdminOfNewRequest_(id,c.studentName,c.studentPhone,c.workDescription,c.studentBudget,c.currency,c.deadline)}catch(e){console.error(e)}
+  return json_({ok:true,verified:true,message:"WhatsApp verified successfully. Your BrightAce live chat is now connected."});
+}
+function resendVerification_(d){
+  const id=String(d.conversationId||"").trim(); if(!id) throw new Error("Conversation ID is required."); const c=findConversation_(id); if(!c) throw new Error("Verification request not found."); if(String(c.verificationStatus||"").toUpperCase()==="VERIFIED") return json_({ok:true,verified:true,message:"Your WhatsApp number is already verified."});
+  const sh=getConversationSheet_(),count=Number(getByHeader_(sh,c.row,"verificationResendCount")||0)||0; if(count>=3) throw new Error("The maximum of 3 new verification codes has been reached. Please start a new request."); setByHeader_(sh,c.row,"verificationResendCount",count+1);
+  const sent=sendVerificationCode_(id,c.studentPhone); return json_({ok:true,message:"A new 6-digit verification code has been sent to your WhatsApp number.",remainingResends:Math.max(0,3-(count+1)),delivery:sent});
+}
+function sendContactEmail_(d){
+  const name=String(d.name||"").trim(),email=String(d.email||"").trim(),subject=String(d.subject||"").trim(),message=String(d.message||"").trim();
+  if(!name||!email||!subject||!message) throw new Error("Name, email, subject and message are required.");
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
+  const props=PropertiesService.getScriptProperties(),to=String(props.getProperty(CONFIG.contactEmailKey)||props.getProperty("ADMIN_EMAIL")||Session.getEffectiveUser().getEmail()||"").trim(); if(!to) throw new Error("CONTACT_EMAIL is not configured in Apps Script Script Properties.");
+  MailApp.sendEmail({to:to,replyTo:email,subject:"BrightAce Contact: "+subject,body:"New BrightAce website contact message\\n\\nName: "+name+"\\nEmail: "+email+"\\nSubject: "+subject+"\\n\\nMessage:\\n"+message});
+  return json_({ok:true,sent:true});
+}
+function sendWhatsAppText_(to,text){
+  const target=normalizePhone_(to), body=String(text||"").trim();
+  if(!target) throw new Error("WhatsApp recipient number is missing.");
+  if(!body) return null;
+  const cfg=metaConfig_();
+  if(!cfg.token || !cfg.phoneId) return {skipped:true,reason:"WhatsApp credentials not configured"};
+  const url="https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/messages";
+  const payload={messaging_product:"whatsapp",to:target,type:"text",text:{preview_url:false,body:body.slice(0,4096)}};
+  return graphPost_(url,payload,cfg.token);
+}
+
+function sendWhatsAppMedia_(to,a){
+  const target=normalizePhone_(to);
+  if(!target) throw new Error("WhatsApp recipient number is missing.");
+  if(!a || !a.fileId) throw new Error("Attachment file is missing.");
+  const cfg=metaConfig_();
+  if(!cfg.token || !cfg.phoneId) return {skipped:true,reason:"WhatsApp credentials not configured"};
+  const blob=DriveApp.getFileById(a.fileId).getBlob();
+  const uploadUrl="https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/media";
+  const response=UrlFetchApp.fetch(uploadUrl,{
+    method:"post",
+    headers:{Authorization:"Bearer "+cfg.token},
+    payload:{messaging_product:"whatsapp",file:blob},
+    muteHttpExceptions:true
+  });
+  const raw=String(response.getContentText()||"");
+  const out=safeJson_(raw);
+  if(response.getResponseCode()>=300 || !out || !out.id){
+    throw new Error("WhatsApp media upload failed (HTTP "+response.getResponseCode()+"): "+raw.slice(0,500));
+  }
+  const mime=String(a.mimeType||blob.getContentType()||"application/octet-stream").toLowerCase();
+  let type="document";
+  if(mime.indexOf("image/")===0) type="image";
+  else if(mime.indexOf("video/")===0) type="video";
+  else if(mime.indexOf("audio/")===0) type="audio";
+  const media={id:out.id};
+  if(type==="document") media.filename=String(a.name||blob.getName()||"attachment");
+  const url="https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/messages";
+  return graphPost_(url,{messaging_product:"whatsapp",to:target,type:type,[type]:media},cfg.token);
+}
+
+function downloadWhatsAppMedia_(mediaId,filename,mimeType){
+  const cfg=metaConfig_();
+  if(!cfg.token || !mediaId) return null;
+  const metaResponse=UrlFetchApp.fetch(
+    "https://graph.facebook.com/"+cfg.version+"/"+mediaId,
+    {headers:{Authorization:"Bearer "+cfg.token},muteHttpExceptions:true}
+  );
+  const metaRaw=String(metaResponse.getContentText()||"");
+  const meta=safeJson_(metaRaw);
+  if(metaResponse.getResponseCode()>=300 || !meta || !meta.url){
+    throw new Error("Could not retrieve WhatsApp media.");
+  }
+  const mediaResponse=UrlFetchApp.fetch(
+    meta.url,
+    {headers:{Authorization:"Bearer "+cfg.token},muteHttpExceptions:true}
+  );
+  if(mediaResponse.getResponseCode()>=300){
+    throw new Error("Could not download WhatsApp media.");
+  }
+  const blob=mediaResponse.getBlob().setName(filename||"whatsapp-attachment");
+  return saveBlob_(blob,mimeType||blob.getContentType(),filename||"whatsapp-attachment");
+}
+
+function sendWhatsAppTemplate_(to,templateName,language,params){
+  const cfg=metaConfig_(); if(!cfg.token||!cfg.phoneId)return {skipped:true,reason:"WhatsApp credentials not configured"};
+  const parameters=(params||[]).map(function(x){return {type:"text",text:String(x)}});
+  const payload={messaging_product:"whatsapp",to:to,type:"template",template:{name:templateName,language:{code:language},components:[{type:"body",parameters:parameters}]}};
+  return graphPost_("https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/messages",payload,cfg.token);
 }
 function notifyAdminOfNewRequest_(id,name,phone,task,budget,currency,deadline){
   const props=PropertiesService.getScriptProperties(),adminPhone=normalizePhone_(props.getProperty(CONFIG.adminWhatsAppKey)||"");
@@ -117,40 +227,34 @@ function notifyAdminOfNewRequest_(id,name,phone,task,budget,currency,deadline){
 }
 
 function saveWebsiteMessage_(d){
-  if(!d.sessionId) throw new Error("sessionId is required.");
-  const c=findConversation_(d.sessionId);
-  if(!c) throw new Error("Conversation not found.");
-  let attachment=null;
-  if(d.attachment && d.attachment.dataUrl) attachment=saveAttachment_(d.sessionId,d.attachment);
-  if(!d.text && !attachment) throw new Error("Message or attachment is required.");
-  const saved=saveMessage_(d.sessionId,"student",d.text||"","website",attachment);
+  if(!d.sessionId) throw new Error("Session ID is required.");
+  const c=findConversation_(d.sessionId); if(!c) throw new Error("Conversation not found.");
+  if(String(c.verificationStatus||"").trim() && String(c.verificationStatus||"").toUpperCase()!=="VERIFIED") throw new Error("Verify your WhatsApp number before sending chat messages.");
+  const raw=Array.isArray(d.attachments)?d.attachments:(d.attachment?[d.attachment]:[]),attachments=[];
+  if(raw.length>5) throw new Error("You can attach up to 5 files per message.");
+  let total=0;
+  raw.forEach(a=>{if(!a||!a.dataUrl)return; total+=Number(a.size||0); if(total>30*1024*1024) throw new Error("Combined attachments are too large. Please send 30 MB or less at a time."); attachments.push(saveAttachment_(d.sessionId,a));});
+  if(!String(d.text||"").trim()&&!attachments.length) throw new Error("Message or attachment is required.");
+  const saved=saveMessage_(d.sessionId,"student",String(d.text||""),"website",attachments);
   updateConversation_(d.sessionId,new Date(),saved.id);
-  let whatsapp=null;
-  try {
-    whatsapp=sendStudentMessageToWhatsApp_(c, d.text||"", attachment);
-  } catch(err) {
-    console.error("WhatsApp delivery failed after message was saved: "+(err && err.stack ? err.stack : err));
-    whatsapp={skipped:true,error:String(err && err.message || err)};
-  }
-  return json_({ok:true,messageId:saved.id,attachment:attachment,whatsapp:whatsapp});
+  let whatsapp=null; try{whatsapp=sendStudentMessageToWhatsApp_(c,String(d.text||""),attachments);}catch(err){console.error("WhatsApp delivery failed after message was saved: "+(err&&err.stack?err.stack:err));whatsapp={skipped:true,error:String(err&&err.message||err)}}
+  return json_({ok:true,messageId:saved.id,attachment:attachments,attachments:attachments,whatsapp:whatsapp});
 }
 
 function saveMessage_(id,sender,text,source,attachment){
   const sh=getSheet_("MESSAGES",["messageId","conversationId","sender","text","source","timestamp","status","attachmentJson"]);
   const messageId=Utilities.getUuid();
-  sh.appendRow([messageId,id,sender,text||"",source,new Date(),"received",attachment?JSON.stringify(attachment):""]);
+  sh.appendRow([messageId,id,sender,text||"",source,new Date(),"received",attachment&&((Array.isArray(attachment)&&attachment.length)||!Array.isArray(attachment))?JSON.stringify(attachment):""]);
   return {id:messageId};
 }
 
 function getMessages_(id){
   if(!id) return json_({ok:false,error:"sessionId required"});
-  const sh=getSheet_("MESSAGES",["messageId","conversationId","sender","text","source","timestamp","status","attachmentJson"]);
-  const rows=sh.getDataRange().getValues();
+  const c=findConversation_(id); if(!c) return json_({ok:false,error:"Conversation not found."});
+  if(String(c.verificationStatus||"").trim() && String(c.verificationStatus||"").toUpperCase()!=="VERIFIED") return json_({ok:false,error:"WhatsApp verification is required before accessing this chat."});
+  const sh=getSheet_("MESSAGES",["messageId","conversationId","sender","text","source","timestamp","status","attachmentJson"]),rows=sh.getDataRange().getValues();
   if(rows.length<2) return json_({ok:true,messages:[]});
-  const messages=rows.slice(1).filter(r=>String(r[1])===String(id)).map(r=>({
-    id:String(r[0]),sessionId:String(r[1]),sender:String(r[2]),text:String(r[3]||""),source:String(r[4]),timestamp:r[5],status:String(r[6]||"received"),
-    attachment:r[7]?safeJson_(r[7]):null
-  }));
+  const messages=rows.slice(1).filter(r=>String(r[1])===String(id)).map(r=>({id:String(r[0]),sessionId:String(r[1]),sender:String(r[2]),text:String(r[3]||""),source:String(r[4]),timestamp:r[5],status:String(r[6]||"received"),attachment:r[7]?safeJson_(r[7]):null}));
   return json_({ok:true,messages:messages});
 }
 
@@ -185,11 +289,11 @@ function initializePayment_(requestId){
   const callback=PropertiesService.getScriptProperties().getProperty(CONFIG.paymentCallbackUrlKey)||"https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html";
   const payload={email:p.email,amount:String(amountMinor),currency:p.currency,reference:reference,callback_url:callback,metadata:JSON.stringify({paymentRequestId:p.requestId,conversationId:p.conversationId,service:p.service,description:p.description||""})};
   let response=UrlFetchApp.fetch("https://api.paystack.co/transaction/initialize",{method:"post",contentType:"application/json",headers:{Authorization:"Bearer "+secret},payload:JSON.stringify(payload),muteHttpExceptions:true});
-  let data=JSON.parse(response.getContentText()||"{}");
+  let data=safeJson_(response.getContentText()||"")||{};
   if((response.getResponseCode()>=300 || !data.status || !data.data || !data.data.authorization_url) && /no active channel/i.test(String(data.message||""))){
     const cardPayload=Object.assign({},payload,{channels:["card"]});
     response=UrlFetchApp.fetch("https://api.paystack.co/transaction/initialize",{method:"post",contentType:"application/json",headers:{Authorization:"Bearer "+secret},payload:JSON.stringify(cardPayload),muteHttpExceptions:true});
-    data=JSON.parse(response.getContentText()||"{}");
+    data=safeJson_(response.getContentText()||"")||{};
   }
   if(response.getResponseCode()>=300 || !data.status || !data.data || !data.data.authorization_url){
     const msg=String(data.message||response.getContentText()||"Unknown Paystack error");
@@ -207,7 +311,7 @@ function verifyPayment_(reference){
   const secret=PropertiesService.getScriptProperties().getProperty(CONFIG.paystackSecretKey)||"";
   if(!secret) return json_({ok:false,error:"Paystack is not configured yet."});
   const response=UrlFetchApp.fetch("https://api.paystack.co/transaction/verify/"+encodeURIComponent(reference),{headers:{Authorization:"Bearer "+secret},muteHttpExceptions:true});
-  const data=JSON.parse(response.getContentText()||"{}");
+  const data=safeJson_(response.getContentText()||"")||{};
   if(response.getResponseCode()>=300 || !data.status || !data.data) return json_({ok:false,error:data.message||"Unable to verify payment."});
   const tx=data.data;
   const p=findPaymentByReference_(reference);
@@ -297,21 +401,19 @@ function requireAdmin_(token){if(!token||CacheService.getScriptCache().get("BA_A
 function getTutorSheet_(){return ensureColumns_(getSheet_("TUTORS",["tutorId","tutorName","tutorDisplayName","tutorPhone","whatsappType","status","createdAt"]),["tutorId","tutorName","tutorDisplayName","tutorPhone","whatsappType","status","createdAt"])}
 function adminListTutors_(token){requireAdmin_(token);const sh=getTutorSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];for(let i=1;i<rows.length;i++)if(rows[i][m.tutorId-1])out.push({tutorId:String(rows[i][m.tutorId-1]),tutorName:String(rows[i][m.tutorName-1]||""),tutorDisplayName:String(rows[i][m.tutorDisplayName-1]||rows[i][m.tutorName-1]||""),tutorPhone:String(rows[i][m.tutorPhone-1]||""),whatsappType:String(rows[i][m.whatsappType-1]||"NONE").toUpperCase(),status:String(rows[i][m.status-1]||"ACTIVE")});if(!out.length){const props=PropertiesService.getScriptProperties();const n=props.getProperty("PRIMARY_TUTOR_NAME")||"BrightAce Tutor",p=props.getProperty("PRIMARY_TUTOR_WHATSAPP")||"";if(n)out.push({tutorId:"PRIMARY",tutorName:n,tutorDisplayName:n,tutorPhone:p,whatsappType:p?"WHATSAPP":"NONE",status:"ACTIVE"})}return json_({ok:true,tutors:out})}
 function adminAddTutor_(d){requireAdmin_(d.adminToken);if(!d.tutorName)throw new Error("Tutor name is required.");const sh=getTutorSheet_(),id="TUT-"+Utilities.getUuid().replace(/-/g,"").slice(0,8).toUpperCase(),name=String(d.tutorName).trim(),display=String(d.tutorDisplayName||name).trim(),phone=normalizePhone_(d.tutorPhone||""),type=String(d.whatsappType||"NONE").toUpperCase();if(!["BUSINESS","WHATSAPP","NONE"].includes(type))throw new Error("Invalid WhatsApp type.");if(type!=="NONE"&&!phone)throw new Error("A WhatsApp number is required for the selected WhatsApp type.");sh.appendRow([id,name,display,phone,type,"ACTIVE",new Date()]);return json_({ok:true,tutor:{tutorId:id,tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,status:"ACTIVE"}})}
-function adminListConversations_(token){requireAdmin_(token);const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];for(let i=rows.length-1;i>=1;i--){const c=rowConversation_(rows[i],i+1,sh,m);const st=String(c.assignmentStatus||"").toUpperCase();if(c.status!=="closed" && st!=="COMPLETED" && st!=="REJECTED"){const paid=findPaidPaymentForConversation_(c.conversationId);out.push({...c,paymentStatus:paid?paid.status:"PENDING",startedAt:c.startedAt})}}return json_({ok:true,conversations:out})}
-function adminGetConversation_(token,conversationId){requireAdmin_(token);const c=findConversation_(conversationId);if(!c)throw new Error("Conversation not found.");const sh=getSheet_("MESSAGES",["messageId","conversationId","sender","text","source","timestamp","status","attachmentJson"]),rows=sh.getDataRange().getValues(),messages=[];for(let i=1;i<rows.length;i++)if(String(rows[i][1])===String(conversationId))messages.push({id:String(rows[i][0]),sender:String(rows[i][2]||""),text:String(rows[i][3]||""),source:String(rows[i][4]||""),timestamp:rows[i][5],status:String(rows[i][6]||""),attachment:rows[i][7]?safeJson_(rows[i][7]):null});return json_({ok:true,conversation:{...c,messages:messages.slice(-100)}})}
+function adminListConversations_(token){requireAdmin_(token);const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];for(let i=rows.length-1;i>=1;i--){const c=rowConversation_(rows[i],i+1,sh,m);const st=String(c.assignmentStatus||"").toUpperCase();if(c.status!=="closed" && st!=="COMPLETED" && st!=="REJECTED" && (!String(c.verificationStatus||"").trim() || String(c.verificationStatus||"").toUpperCase()==="VERIFIED")){const paid=findPaidPaymentForConversation_(c.conversationId);out.push({...c,paymentStatus:paid?paid.status:"PENDING",startedAt:c.startedAt})}}return json_({ok:true,conversations:out})}
+function adminGetConversation_(token,conversationId){requireAdmin_(token);const c=findConversation_(conversationId);if(!c)throw new Error("Conversation not found.");if(String(c.verificationStatus||"").trim() && String(c.verificationStatus||"").toUpperCase()!=="VERIFIED")throw new Error("Student WhatsApp number has not been verified yet.");const sh=getSheet_("MESSAGES",["messageId","conversationId","sender","text","source","timestamp","status","attachmentJson"]),rows=sh.getDataRange().getValues(),messages=[];for(let i=1;i<rows.length;i++)if(String(rows[i][1])===String(conversationId))messages.push({id:String(rows[i][0]),sender:String(rows[i][2]||""),text:String(rows[i][3]||""),source:String(rows[i][4]||""),timestamp:rows[i][5],status:String(rows[i][6]||""),attachment:rows[i][7]?safeJson_(rows[i][7]):null});return json_({ok:true,conversation:{...c,messages:messages.slice(-100)}})}
 
 function adminSendMessage_(d){
-  requireAdmin_(d.adminToken);
-  const c=findConversation_(d.conversationId);
-  if(!c) throw new Error("Student request not found.");
-  const text=String(d.text||"").trim();
-  if(!text) throw new Error("Message cannot be empty.");
-  const saved=saveMessage_(c.conversationId,"admin",text,"admin",null);
-  updateConversation_(c.conversationId,new Date(),saved.id);
-  let whatsapp=null;
-  try { whatsapp=sendWhatsAppText_(normalizePhone_(c.studentPhone),"BrightAce Admin:\n\n"+text); }
-  catch(err){ whatsapp={skipped:true,error:String(err&&err.message||err)}; }
-  return json_({ok:true,messageId:saved.id,whatsapp:whatsapp});
+  requireAdmin_(d.adminToken); const c=findConversation_(d.conversationId); if(!c) throw new Error("Student request not found.");
+  const text=String(d.text||"").trim(),raw=Array.isArray(d.attachments)?d.attachments:(d.attachment?[d.attachment]:[]),attachments=[];
+  if(raw.length>5) throw new Error("You can attach up to 5 files per message.");
+  let total=0; raw.forEach(a=>{if(!a||!a.dataUrl)return;total+=Number(a.size||0);if(total>30*1024*1024)throw new Error("Combined attachments are too large. Please send 30 MB or less at a time.");attachments.push(saveAttachment_(c.conversationId,a));});
+  if(!text&&!attachments.length) throw new Error("Message or attachment is required.");
+  const saved=saveMessage_(c.conversationId,"admin",text,"admin",attachments); updateConversation_(c.conversationId,new Date(),saved.id);
+  let whatsapp={sent:false}; const target=normalizePhone_(c.studentPhone);
+  try{if(text)whatsapp.text=sendWhatsAppText_(target,"BrightAce Admin:\n\n"+text); if(attachments.length)whatsapp.media=attachments.map(a=>sendWhatsAppMedia_(target,a)); whatsapp.sent=true;}catch(err){whatsapp={skipped:true,error:String(err&&err.message||err)}}
+  return json_({ok:true,messageId:saved.id,attachment:attachments,attachments:attachments,whatsapp:whatsapp});
 }
 function adminAssignWork_(d){
   requireAdmin_(d.adminToken);const c=findConversation_(d.conversationId);if(!c)throw new Error("Student request not found.");const tutorName=String(d.tutorName||"").trim(),tutorPhone=normalizePhone_(d.tutorPhone||"");if(!tutorName)throw new Error("Select or enter a tutor.");if(!c.studentBudget||c.studentBudget<=0)throw new Error("Student budget is missing.");const gross=Number(c.agreedAmount||c.studentBudget),tutorPayout=Math.round(gross*0.60*100)/100,brightAce=Math.round(gross*0.40*100)/100;const sh=getConversationSheet_();setByHeader_(sh,c.row,"assignedTutor",tutorName);setByHeader_(sh,c.row,"assignedTutorPhone",tutorPhone);setByHeader_(sh,c.row,"tutorPayout",tutorPayout);setByHeader_(sh,c.row,"brightAceShare",brightAce);setByHeader_(sh,c.row,"assignmentStatus","ASSIGNED");setByHeader_(sh,c.row,"agreedAmount",gross);setByHeader_(sh,c.row,"agreedCurrency",c.agreedCurrency||c.currency);const tutorMsg="📚 BrightAce work assignment\n\nWork ID: "+c.conversationId+"\nClient: "+c.studentName+"\nDeadline: "+(c.deadline||"As agreed")+"\n\nTask:\n"+c.workDescription+"\n\nYour assigned payout: "+c.currency+" "+tutorPayout.toFixed(2)+"\n\nContinue discussing the assignment with the student through BrightAce.";
@@ -364,6 +466,13 @@ function adminRejectWork_(d){
   const saved=saveMessage_(c.conversationId,"admin",msg,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);
   try{sendWhatsAppText_(normalizePhone_(c.studentPhone),"BrightAce Admin:\n\n"+msg)}catch(e){console.error(e)}
   return json_({ok:true,workId:c.conversationId,status:"REJECTED",reason:reason});
+}
+function adminRestoreWork_(d){
+  requireAdmin_(d.adminToken); const c=findConversation_(d.conversationId); if(!c) throw new Error("Student request not found.");
+  const sh=getConversationSheet_(); setByHeader_(sh,c.row,"status","open"); setByHeader_(sh,c.row,"assignmentStatus","NEW_REQUEST"); setByHeader_(sh,c.row,"completedAt",""); setByHeader_(sh,c.row,"rejectedAt",""); setByHeader_(sh,c.row,"rejectionReason","");
+  const saved=saveMessage_(c.conversationId,"admin","This BrightAce request has been restored to the active work queue.","admin",null); updateConversation_(c.conversationId,new Date(),saved.id);
+  try{sendWhatsAppText_(normalizePhone_(c.studentPhone),"BrightAce Admin:\\n\\nYour BrightAce request has been restored to the active work queue. Admin will review the next step with you.")}catch(e){console.error(e)}
+  return json_({ok:true,workId:c.conversationId,status:"NEW_REQUEST"});
 }
 function adminListWorkHistory_(token){
   requireAdmin_(token); const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];
@@ -496,52 +605,12 @@ function processIncomingWhatsAppMessage_(msg){
   updateConversation_(c.conversationId,new Date(),saved.id);
 }
 
-function sendStudentMessageToWhatsApp_(conversation,text,attachment){
-  const props=PropertiesService.getScriptProperties();
-  const target=normalizePhone_(conversation.assignedTutorPhone||props.getProperty(CONFIG.adminWhatsAppKey)||"");
-  if(!target) return {skipped:true,reason:"No assigned tutor or admin WhatsApp number is configured."};
-  const result={sentTo:target,textSent:false,mediaSent:false};
-  if(text){ const r=sendWhatsAppText_(target,text); result.textSent=!(r&&r.skipped); result.textResult=r; }
-  if(attachment){ const r=sendWhatsAppMedia_(target,attachment); result.mediaSent=!(r&&r.skipped); result.mediaResult=r; }
+function sendStudentMessageToWhatsApp_(c,text,attachments){
+  const target=normalizePhone_(c.studentPhone); let result={sentTo:target};
+  if(text) result.text=sendWhatsAppText_(target,text);
+  const list=Array.isArray(attachments)?attachments:(attachments?[attachments]:[]);
+  if(list.length) result.media=list.map(a=>sendWhatsAppMedia_(target,a));
   return result;
-}
-
-function sendWhatsAppText_(to,text){
-  if(!text)return null;
-  const cfg=metaConfig_();
-  if(!cfg.token || !cfg.phoneId) return {skipped:true,reason:"WhatsApp credentials not configured"};
-  const url="https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/messages";
-  const payload={messaging_product:"whatsapp",to:to,type:"text",text:{preview_url:false,body:String(text).slice(0,4096)}};
-  return graphPost_(url,payload,cfg.token);
-}
-
-function sendWhatsAppMedia_(to,a){
-  const cfg=metaConfig_();
-  if(!cfg.token || !cfg.phoneId) return {skipped:true,reason:"WhatsApp credentials not configured"};
-  const blob=DriveApp.getFileById(a.fileId).getBlob();
-  const uploadUrl="https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/media";
-  const response=UrlFetchApp.fetch(uploadUrl,{method:"post",headers:{Authorization:"Bearer "+cfg.token},payload:{messaging_product:"whatsapp",file:blob},muteHttpExceptions:true});
-  const out=JSON.parse(response.getContentText()||"{}");
-  if(!out.id) throw new Error("WhatsApp media upload failed: "+response.getContentText());
-  const mime=a.mimeType||blob.getContentType();
-  let type="document";
-  if(mime.indexOf("image/")===0) type="image";
-  else if(mime.indexOf("video/")===0) type="video";
-  else if(mime.indexOf("audio/")===0) type="audio";
-  const media={id:out.id};
-  if(type==="document")media.filename=a.name;
-  const url="https://graph.facebook.com/"+cfg.version+"/"+cfg.phoneId+"/messages";
-  return graphPost_(url,{messaging_product:"whatsapp",to:to,type:type,[type]:media},cfg.token);
-}
-
-function downloadWhatsAppMedia_(mediaId,filename,mimeType){
-  const cfg=metaConfig_();
-  if(!cfg.token || !mediaId) return null;
-  const metaUrl="https://graph.facebook.com/"+cfg.version+"/"+mediaId;
-  const meta=JSON.parse(UrlFetchApp.fetch(metaUrl,{headers:{Authorization:"Bearer "+cfg.token},muteHttpExceptions:true}).getContentText()||"{}");
-  if(!meta.url) return null;
-  const blob=UrlFetchApp.fetch(meta.url,{headers:{Authorization:"Bearer "+cfg.token}}).getBlob().setName(filename);
-  return saveBlob_(blob,mimeType||blob.getContentType(),filename);
 }
 
 function saveAttachment_(sessionId,a){
@@ -584,8 +653,12 @@ function metaConfig_(){
 }
 function graphPost_(url,payload,token){
   const r=UrlFetchApp.fetch(url,{method:"post",contentType:"application/json",headers:{Authorization:"Bearer "+token},payload:JSON.stringify(payload),muteHttpExceptions:true});
-  const data=JSON.parse(r.getContentText()||"{}");
-  if(r.getResponseCode()>=300 || data.error) throw new Error("WhatsApp API error: "+r.getContentText());
+  const raw=String(r.getContentText()||"");
+  let data=null;
+  try{data=JSON.parse(raw)}catch(e){
+    throw new Error("WhatsApp API returned an invalid response (HTTP "+r.getResponseCode()+").");
+  }
+  if(r.getResponseCode()>=300 || data.error) throw new Error("WhatsApp API error: "+raw);
   return data;
 }
 function normalizePhone_(phone){return String(phone||"").replace(/[^0-9]/g,"");}
@@ -600,7 +673,7 @@ function findConversationByPhone_(phone){
   for(let i=rows.length-1;i>=1;i--) if(normalizePhone_(rows[i][m.studentPhone-1])===phone&&String(rows[i][m.status-1])!=="closed") return rowConversation_(rows[i],i+1,sh,m);
   return null;
 }
-function rowConversation_(r,row,sh,m){return {row:row,conversationId:String(r[m.conversationId-1]||""),studentName:String(r[m.studentName-1]||""),studentPhone:String(r[m.studentPhone-1]||""),startedAt:r[m.startedAt-1]||"",lastMessageAt:r[m.lastMessageAt-1]||"",status:String(r[m.status-1]||"open"),assignedTutor:String(r[m.assignedTutor-1]||"Unassigned"),whatsappPhone:String(r[m.whatsappPhone-1]||r[m.studentPhone-1]||""),studentEmail:String(m.studentEmail?r[m.studentEmail-1]||"":""),workDescription:String(r[m.workDescription-1]||""),studentBudget:Number(r[m.studentBudget-1]||0),currency:String(r[m.currency-1]||"KES").toUpperCase(),deadline:String(r[m.deadline-1]||""),assignmentStatus:String(r[m.assignmentStatus-1]||"NEW_REQUEST"),assignedTutorPhone:String(r[m.assignedTutorPhone-1]||""),tutorPayout:Number(r[m.tutorPayout-1]||0),brightAceShare:Number(r[m.brightAceShare-1]||0),agreedAmount:Number(r[m.agreedAmount-1]||r[m.studentBudget-1]||0),agreedCurrency:String(r[m.agreedCurrency-1]||r[m.currency-1]||"KES").toUpperCase(),completedAt:m.completedAt?r[m.completedAt-1]:"",rejectedAt:m.rejectedAt?r[m.rejectedAt-1]:"",rejectionReason:m.rejectionReason?String(r[m.rejectionReason-1]||""):""};}
+function rowConversation_(r,row,sh,m){return {row:row,conversationId:String(r[m.conversationId-1]||""),studentName:String(r[m.studentName-1]||""),studentPhone:String(r[m.studentPhone-1]||""),startedAt:r[m.startedAt-1]||"",lastMessageAt:r[m.lastMessageAt-1]||"",status:String(r[m.status-1]||"open"),assignedTutor:String(r[m.assignedTutor-1]||"Unassigned"),whatsappPhone:String(r[m.whatsappPhone-1]||r[m.studentPhone-1]||""),studentEmail:String(m.studentEmail?r[m.studentEmail-1]||"":""),workDescription:String(r[m.workDescription-1]||""),studentBudget:Number(r[m.studentBudget-1]||0),currency:String(r[m.currency-1]||"KES").toUpperCase(),deadline:String(r[m.deadline-1]||""),assignmentStatus:String(r[m.assignmentStatus-1]||"NEW_REQUEST"),assignedTutorPhone:String(r[m.assignedTutorPhone-1]||""),tutorPayout:Number(r[m.tutorPayout-1]||0),brightAceShare:Number(r[m.brightAceShare-1]||0),agreedAmount:Number(r[m.agreedAmount-1]||r[m.studentBudget-1]||0),agreedCurrency:String(r[m.agreedCurrency-1]||r[m.currency-1]||"KES").toUpperCase(),completedAt:m.completedAt?r[m.completedAt-1]:"",rejectedAt:m.rejectedAt?r[m.rejectedAt-1]:"",rejectionReason:m.rejectionReason?String(r[m.rejectionReason-1]||""):"",verificationStatus:m.verificationStatus?String(r[m.verificationStatus-1]||"").toUpperCase():"",verificationCodeHash:m.verificationCodeHash?String(r[m.verificationCodeHash-1]||""):"",verificationExpiresAt:m.verificationExpiresAt?r[m.verificationExpiresAt-1]:"",verificationAttempts:m.verificationAttempts?Number(r[m.verificationAttempts-1]||0):0,verificationResendCount:m.verificationResendCount?Number(r[m.verificationResendCount-1]||0):0,verifiedAt:m.verifiedAt?r[m.verifiedAt-1]:""};}
 function findConversationByTutorPhone_(phone){const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);for(let i=rows.length-1;i>=1;i--) if(normalizePhone_(rows[i][m.assignedTutorPhone-1])===phone && String(rows[i][m.status-1])!=="closed") return rowConversation_(rows[i],i+1,sh,m);return null;}
 function updateConversation_(id,lastTime,lastMessageId){const c=findConversation_(id);if(!c)return;const sh=getConversationSheet_();setByHeader_(sh,c.row,"lastMessageAt",lastTime);setByHeader_(sh,c.row,"lastMessageId",lastMessageId||"")}
 

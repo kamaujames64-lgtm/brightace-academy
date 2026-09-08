@@ -23,14 +23,20 @@
 <a class="nav-cta" href="chat.html">💬 LIVE CHAT</a>
 </div></header>
 
-<main><section class="page-hero"><div class="container"><div class="eyebrow">GET IN TOUCH</div><h1>Contact BrightAce</h1><p>The fastest route to personalized academic support is the BrightAce Live Chat.</p></div></section>
-<section class="section"><div class="container form-wrap"><div class="card"><h2>Start a conversation</h2><p style="margin-bottom:20px;color:var(--muted)">You do not need an account. Enter your details below to prepare your live-chat session.</p>
-<form class="form" onsubmit="event.preventDefault(); window.location.href='chat.html?name='+encodeURIComponent(this.name.value)">
-<label>Your name<input name="name" required placeholder="Your name"></label>
-<label>Subject<select name="subject"><option>General question</option><option>Mathematics</option><option>Statistics</option><option>Physics</option><option>Data Analysis</option><option>Other subject</option></select></label>
-<label>Message<textarea name="message" required placeholder="Tell me briefly what you need help with..."></textarea></label>
-<button class="btn btn-primary" type="submit">💬 CONTINUE TO LIVE CHAT</button>
-</form></div></div></section></main>
+<main><section class="page-hero"><div class="container"><div class="eyebrow">GET IN TOUCH</div><h1>Contact BrightAce</h1><p>Send us a message directly. You do not need a student account.</p></div></section>
+<section class="section"><div class="container form-wrap"><div class="card"><h2>Send us a message</h2><p style="margin-bottom:20px;color:var(--muted)">Use this form for general questions, feedback, or enquiries. Your message will be sent to BrightAce by email.</p>
+<div id="contactNotice" class="chat-notice" hidden></div>
+<form id="contactForm" class="form">
+<label>Your name<input id="contactName" required placeholder="Your name"></label>
+<label>Your email<input id="contactEmail" type="email" required placeholder="you@example.com"></label>
+<label>Subject<input id="contactSubject" required placeholder="What is your message about?"></label>
+<label>Message<textarea id="contactMessage" required rows="7" placeholder="Write your message..."></textarea></label>
+<button id="contactSendBtn" class="btn btn-primary" type="submit">SEND MESSAGE →</button>
+</form></div></div></section>
+<script>
+const CONTACT_API="https://script.google.com/macros/s/AKfycbz3yb5GmCDcyr1epRauGmPVyPFUcmzGy5s3X4Gs74a5J08kFzHHWKC05MX2hHW1UnWH/exec";
+document.getElementById('contactForm')?.addEventListener('submit',async e=>{e.preventDefault();const b=document.getElementById('contactSendBtn'),n=document.getElementById('contactNotice');b.disabled=true;b.textContent='SENDING…';try{const r=await fetch(CONTACT_API,{method:'POST',body:new URLSearchParams({payload:JSON.stringify({action:'sendContactEmail',name:document.getElementById('contactName').value.trim(),email:document.getElementById('contactEmail').value.trim(),subject:document.getElementById('contactSubject').value.trim(),message:document.getElementById('contactMessage').value.trim()})})});const d=await r.json();if(!d.ok)throw new Error(d.error||'Message could not be sent.');n.textContent='Your message has been sent. BrightAce will respond by email.';n.className='chat-notice success';n.hidden=false;e.target.reset()}catch(err){n.textContent=err.message||'Message could not be sent.';n.className='chat-notice error';n.hidden=false}finally{b.disabled=false;b.textContent='SEND MESSAGE →'}});
+</script></main>
 
 <footer class="footer"><div class="container footer-grid">
 <div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy">
@@ -38,7 +44,7 @@
 <p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div>
 <div><h3>Explore</h3><a href="../pages/subjects.html">Subjects</a><a href="../pages/resources.html">Resources</a><a href="../pages/how-it-works.html">How It Works</a></div>
 <div><h3>Support</h3><a href="../pages/homework-help.html">Homework Help</a><a href="../pages/faq.html">FAQ</a><a href="../pages/chat.html">Live Chat</a></div>
-<div><h3>BrightAce</h3><a href="../pages/about.html">About</a><a href="../pages/contact.html">Contact</a></div>
+<div><h3>BrightAce</h3><a href="../pages/about.html">About</a><a href="../pages/contact.html">Contact</a><a href="privacy.html">Privacy Policy</a></div>
 </div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
 <script src="../js/app.js"></script>
 

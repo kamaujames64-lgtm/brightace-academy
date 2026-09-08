@@ -39,7 +39,7 @@
 <div id="paymentResult" class="payment-result" hidden></div>
 </div></div></section>
 </main>
-<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="contact.html">Contact</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
+<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy Policy</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
 <script src="../js/app.js"></script>
 <script>
 const PAYMENT_API="https://script.google.com/macros/s/AKfycbz3yb5GmCDcyr1epRauGmPVyPFUcmzGy5s3X4Gs74a5J08kFzHHWKC05MX2hHW1UnWH/exec";
@@ -52,18 +52,19 @@ let currentRequest=null;
 function setNotice(text,type="info"){notice.textContent=text;notice.className="chat-notice "+type;notice.hidden=!text;}
 function money(amount,currency){return new Intl.NumberFormat(undefined,{style:"currency",currency:currency||"KES"}).format(Number(amount||0));}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
+async function readJson(r){const raw=await r.text();try{return JSON.parse(raw)}catch(e){throw new Error("The BrightAce payment server returned an invalid response. Please refresh and try again.")}}
 async function getRequest(id){
-  const r=await fetch(PAYMENT_API+"?action=paymentRequest&requestId="+encodeURIComponent(id));
-  const data=await r.json(); if(!data.ok)throw new Error(data.error||"Payment request could not be loaded."); return data.request;
+  const r=await fetch(PAYMENT_API+"?action=paymentRequest&requestId="+encodeURIComponent(id),{cache:"no-store"});
+  const data=await readJson(r); if(!data.ok)throw new Error(data.error||"Payment request could not be loaded."); return data.request;
 }
 async function initialize(id){
   const body=new URLSearchParams(); body.set("payload",JSON.stringify({action:"initializePayment",requestId:id}));
-  const r=await fetch(PAYMENT_API,{method:"POST",body}); const data=await r.json();
+  const r=await fetch(PAYMENT_API,{method:"POST",body,cache:"no-store"}); const data=await readJson(r);
   if(!data.ok)throw new Error(data.error||"Payment could not be initialized."); return data;
 }
 async function verify(reference){
-  const r=await fetch(PAYMENT_API+"?action=verifyPayment&reference="+encodeURIComponent(reference));
-  const data=await r.json(); if(!data.ok)throw new Error(data.error||"Payment verification failed."); return data;
+  const r=await fetch(PAYMENT_API+"?action=verifyPayment&reference="+encodeURIComponent(reference),{cache:"no-store"});
+  const data=await readJson(r); if(!data.ok)throw new Error(data.error||"Payment verification failed."); return data;
 }
 function showRequest(p){
   currentRequest=p; loading.hidden=true; formBox.hidden=true; details.hidden=false;
