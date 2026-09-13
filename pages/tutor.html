@@ -1,0 +1,146 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Tutor Dashboard | BrightAce Academy</title><link rel="stylesheet" href="../css/style.css"><style>
+:root{--ink:#10263f;--bg:#f3f6f9;--line:#dce5ec}body{background:var(--bg)}.shell{width:min(1500px,calc(100% - 30px));margin:auto}.grid{display:grid;grid-template-columns:1fr 1.35fr;gap:18px}.panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 8px 28px rgba(16,38,63,.055)}.panel h2{margin:0 0 10px;color:var(--ink)}.work{border:1px solid #dfe7ed;border-radius:14px;padding:15px;margin:10px 0;background:#fbfdfe;cursor:pointer}.work.active{border-color:#0f7f8c;box-shadow:0 0 0 2px rgba(15,127,140,.08)}.meta{color:#718394;font-size:.82rem;line-height:1.5}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef4f7;font-size:.68rem;font-weight:900}.good{background:#e7f7ee;color:#177245}.danger{background:#fff0f0;color:#a33}.form{display:grid;gap:12px}input,textarea,select{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d5e0e8;border-radius:10px}.days{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.day{border:1px solid #e1e8ed;padding:10px;border-radius:10px}.day-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.doc{padding:9px;border:1px solid #e3eaf0;border-radius:10px;margin:7px 0}.login{max-width:520px;margin:35px auto}.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}@media(max-width:850px){.grid{grid-template-columns:1fr}.days{grid-template-columns:1fr}}
+
+.tutor-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:15px 0}
+.tutor-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 6px 20px rgba(16,38,63,.045)}
+.tutor-stat span{display:block;color:#718394;font-size:.72rem;font-weight:850;text-transform:uppercase}.tutor-stat strong{display:block;color:var(--ink);font-size:1.35rem;margin-top:4px}
+.profile-box{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid #dfe7ed;border-radius:14px;background:#fbfdfe;margin-bottom:15px}
+.profile-pic{width:86px;height:86px;min-width:86px;border-radius:50%;object-fit:cover;object-position:center;border:3px solid #eef4f7;background:#e9f1f5;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.profile-placeholder{display:flex;align-items:center;justify-content:center;font-size:2rem}
+.payment-state{display:inline-block;padding:5px 9px;border-radius:999px;font-size:.7rem;font-weight:900}.payment-paid{background:#e7f7ee;color:#177245}.payment-pending{background:#fff2df;color:#9a5a00}
+.comment-list{display:grid;gap:8px;margin-top:8px}.comment{padding:10px;border:1px solid #e1e8ed;border-radius:10px;background:#fbfdfe}.comment.admin{border-left:4px solid #0f7f8c}.comment.tutor{border-left:4px solid #f2b632}
+.verify-actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:900px){.tutor-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.tutor-summary{grid-template-columns:1fr}}
+</style><style>
+.scroll-box{max-height:280px;overflow:auto;padding-right:5px}
+.tutor-balance-summary{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.balance-card{min-width:190px;flex:1;border:1px solid #dce5ec;border-radius:12px;background:#f8fbfd;padding:12px;display:flex;flex-direction:column;gap:4px}
+.balance-card strong{font-size:1.25rem;color:#10263f}.balance-card small{color:#718394}
+.all-day{display:block!important;margin-top:6px;font-size:.78rem;color:#5e6d83}
+.profile-pic img{width:100%;height:100%;display:block;object-fit:cover;object-position:center;border-radius:50%}
+#works{max-height:430px;overflow:auto;padding-right:5px}#docs,#submissions,#comments,#scheduleInfo{scrollbar-width:thin}
+</style></head><body>
+<header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span style="color:#fff;font-weight:800">TUTOR PORTAL</span></div></header>
+<main><section class="page-hero"><div class="container"><div class="eyebrow">VERIFIED TUTOR AREA</div><h1>Tutor Dashboard</h1><p>Manage assigned work, documents, submissions, availability and communication with BrightAce Admin.</p></div></section>
+<section class="section"><div class="shell"><div id="notice" class="chat-notice" hidden></div>
+<div id="login" class="panel login">
+<h2>Verify tutor WhatsApp</h2>
+<p class="meta">Only the WhatsApp number registered by BrightAce Admin during tutor admission can access this workspace. The number is checked against the BrightAce tutor register before a code is sent.</p>
+<form id="phoneForm" class="form">
+<label>Registered WhatsApp number<input id="phone" required placeholder="+254 7XX XXX XXX" autocomplete="tel"></label>
+<div class="verify-actions"><button class="btn btn-primary" type="submit">CHECK NUMBER →</button></div>
+</form>
+<div id="numberConfirmed" hidden>
+<div class="chat-notice success">✓ Registered BrightAce tutor number identified: <strong id="confirmedTutorName"></strong></div>
+<div class="verify-actions">
+<button id="editPhone" type="button" class="btn btn-outline">← EDIT WHATSAPP NUMBER</button>
+<button id="sendCode" type="button" class="btn btn-primary">SEND VERIFICATION CODE →</button>
+</div>
+</div>
+<form id="codeForm" class="form" hidden>
+<label>6-digit verification code<input id="code" inputmode="numeric" maxlength="6" required autocomplete="one-time-code"></label>
+<div class="verify-actions"><button id="editFromCode" type="button" class="btn btn-outline">← EDIT NUMBER</button><button class="btn btn-primary" type="submit">VERIFY &amp; OPEN DASHBOARD</button></div>
+</form>
+</div>
+<div id="app" hidden>
+<div class="topline"><div class="profile-box" style="margin:0;flex:1"><div id="profilePicWrap" class="profile-pic profile-placeholder">👤</div><div><strong id="welcome"></strong><div class="meta">Verified tutor workspace</div></div></div><button id="logout" class="btn btn-outline">LOG OUT</button></div>
+<div class="tutor-summary">
+<div class="tutor-stat"><span>Assigned Work</span><strong id="statWorks">0</strong></div>
+<div class="tutor-stat"><span>Paid Projects</span><strong id="statPaid">0</strong></div>
+<div class="tutor-stat"><span>Pending Payments</span><strong id="statPending">0</strong></div>
+<div class="tutor-stat"><span>Current Balance</span><strong id="statBalance">0.00</strong></div>
+</div>
+<div class="panel" style="margin-bottom:18px"><h2>Assigned Payouts</h2><p class="meta">Your project-specific payout amounts are calculated from the client payment for each paid assignment. BrightAce internal balances are not shown here.</p><div id="balanceSummary" class="tutor-balance-summary"></div><div id="payList" class="comment-list"></div></div>
+<div class="grid">
+<section class="panel">
+<h2>Assigned Work</h2><div id="works"></div>
+<hr style="margin:20px 0;border:0;border-top:1px solid #e4ebf1">
+<h2>My Profile</h2>
+<p class="meta">Upload one professional profile picture. Admin and clients can see it on BrightAce.</p>
+<form id="profileForm" class="form"><input id="profileFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><button class="btn btn-outline" type="submit">UPLOAD PROFILE PICTURE</button></form>
+<hr style="margin:20px 0;border:0;border-top:1px solid #e4ebf1">
+<h2>My Availability</h2><p class="meta">Set the days and exact hours you are available. Choose 24 hours when you are available all day.</p><div id="availability" class="days"></div><button id="saveAvailability" class="btn btn-primary" style="margin-top:12px">SAVE AVAILABILITY</button>
+</section>
+<section class="panel">
+<div id="empty"><h2>Select a work request</h2><p class="meta">Choose an assignment to view its documents, payment status, comments and submission controls.</p></div>
+<div id="detail" hidden>
+<h2 id="workTitle"></h2><div id="workMeta" class="meta"></div><p id="workDescription" style="margin:12px 0"></p>
+<div id="workPayment"></div>
+<h3>Client / Admin Documents</h3><div id="docs" class="scroll-box"></div><h3 style="margin-top:18px">My Drafts &amp; Final Works</h3><div id="submissions" class="scroll-box"></div>
+<h3 style="margin-top:18px">Upcoming Tutoring / Zoom</h3><div id="scheduleInfo" class="scroll-box"></div><h3 style="margin-top:18px">Work Status</h3><select id="status"><option>RECEIVED</option><option>IN_PROGRESS</option><option>READY_FOR_QA</option><option>REVISION_REQUESTED</option></select><button id="saveStatus" class="btn btn-outline" style="margin-top:8px">UPDATE STATUS</button>
+<h3 style="margin-top:18px">Submit Work to BrightAce</h3><label>Submission type<select id="submissionType"><option value="DRAFT">DRAFT</option><option value="FINAL">FINAL</option></select></label><textarea id="submissionNote" rows="4" placeholder="Explain what you completed, what is included and any important notes."></textarea><input id="submissionFiles" type="file" multiple style="margin-top:8px"><div class="actions"><button id="submitWork" class="btn btn-primary">SUBMIT FOR ADMIN QA →</button></div><div class="meta">Maximum 10 files, 25 MB each. Submitted files appear in Admin QA and the client dashboard.</div>
+<h3 style="margin-top:20px">⭐ Client Feedback</h3><div id="clientFeedback" class="comment-list"></div><h3 style="margin-top:20px">Visible Work Comments &amp; Activity</h3><div id="comments" class="comment-list"></div><form id="workCommentForm" class="form" style="margin-top:10px"><textarea id="workComment" rows="3" placeholder="Add a comment about this work. This comment is visible to the client and BrightAce Admin."></textarea><button type="submit" class="btn btn-outline">ADD VISIBLE COMMENT</button></form><p class="meta">Comments added here are visible on the same BrightAce work record to the client and Admin. Private tutor ↔ Admin messages remain separate.</p>
+<h3 style="margin-top:20px">Messages from BrightAce Admin</h3><div id="adminMessages" class="comment-list"></div><h3 style="margin-top:20px">Communicate with BrightAce Admin</h3><form id="adminMessageForm" class="form"><textarea id="adminMessage" rows="3" placeholder="Message BrightAce Admin..."></textarea><button class="btn btn-outline">SEND TO ADMIN WHATSAPP</button></form>
+</div></section>
+</div></div></div></section></main>
+<footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
+<script src="../js/app.js"></script><script>
+const API="https://script.google.com/macros/s/AKfycbx6--Az56QTjbYLQaFB80qLPnD7AUDm0qoVPMX_mmlK_ttV7n5DTIyDHCEvrH9ZGodH/exec",KEY="brightace_tutor_token_v1";const $=id=>document.getElementById(id);let tutorToken=sessionStorage.getItem(KEY)||"",data=null,selected=null,availabilityDirty=false,lastTutorMessageIds=new Set(),lastWorkMessageIds=new Set(),firstTutorLoad=true,alertAudio=null;
+function notice(t,type="info"){$("notice").textContent=t;$("notice").className="chat-notice "+type;$("notice").hidden=!t}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function unlockAudio(){try{if(!alertAudio)alertAudio=new(window.AudioContext||window.webkitAudioContext)();if(alertAudio.state==="suspended")alertAudio.resume()}catch(e){}}
+function beep(count=1){try{unlockAudio();if(!alertAudio||alertAudio.state==="suspended")return;const now=alertAudio.currentTime;for(let i=0;i<Math.min(count,3);i++){const o=alertAudio.createOscillator(),g=alertAudio.createGain();o.frequency.value=i%2?880:660;g.gain.setValueAtTime(.0001,now+i*.18);g.gain.exponentialRampToValueAtTime(.16,now+i*.18+.02);g.gain.exponentialRampToValueAtTime(.0001,now+i*.18+.14);o.connect(g);g.connect(alertAudio.destination);o.start(now+i*.18);o.stop(now+i*.18+.16)}}catch(e){}}
+async function api(action,p={}){const b=new URLSearchParams();b.set("payload",JSON.stringify({action,tutorToken,...p}));const r=await fetch(API,{method:"POST",body:b,cache:"no-store"});const raw=await r.text();let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce server returned HTML instead of JSON. Please update the /exec deployment to the latest saved version.")}if(!d.ok)throw Error(d.error||"Request failed");return d}
+$("phoneForm").onsubmit=async e=>{e.preventDefault();unlockAudio();try{const d=await api("tutorSendVerification",{phone:$("phone").value.trim()});$("numberConfirmed").hidden=false;$("confirmedTutorName").textContent=d.tutor?.tutorDisplayName||"Registered tutor";$("phoneForm").hidden=true;notice("Your registered tutor number was identified. Confirm below to send the verification code.","success")}catch(e){notice(e.message,"error")}};
+$("editPhone").onclick=()=>{$("numberConfirmed").hidden=true;$("phoneForm").hidden=false;$("codeForm").hidden=true;$("phone").focus()};
+$("sendCode").onclick=async()=>{try{const d=await api("tutorSendVerification",{phone:$("phone").value.trim()});$("numberConfirmed").hidden=true;$("codeForm").hidden=false;$("code").focus();notice(d.message,"success")}catch(e){notice(e.message,"error")}};
+$("editFromCode").onclick=()=>{$("codeForm").hidden=true;$("numberConfirmed").hidden=false;$("code").value=""};
+$("codeForm").onsubmit=async e=>{e.preventDefault();unlockAudio();try{const d=await api("tutorVerifyLogin",{phone:$("phone").value.trim(),code:$("code").value.trim()});tutorToken=d.tutorToken;sessionStorage.setItem(KEY,tutorToken);openApp();notice("Tutor dashboard ready.","success");beep(1)}catch(e){notice(e.message,"error")}};
+function openApp(){$("login").hidden=true;$("app").hidden=false;load()}
+function profileImage(url){return url?`<img class="profile-pic" src="${esc(url)}" alt="Tutor profile picture">`:`<div class="profile-pic profile-placeholder">👤</div>`}
+function tutorAttachmentHtml(a){if(!a)return "";if(Array.isArray(a))return a.map(tutorAttachmentHtml).join("");const u=esc(a.viewUrl||a.url||""),d=esc(a.downloadUrl||u),n=esc(a.name||"Attachment");return u?`<div class="doc">📎 ${n} <a href="${u}" target="_blank" rel="noopener">OPEN</a> <a href="${d}" target="_blank" rel="noopener" download>DOWNLOAD</a></div>`:`<div class="doc">📎 ${n}</div>`}
+function renderWorks(){
+  const works=data?.works||[];
+  $("statWorks").textContent=works.length;
+  $("statPaid").textContent=works.filter(x=>x.paymentStatus==="PAID").length;
+  $("statPending").textContent=works.filter(x=>x.paymentStatus!=="PAID").length;
+  const bal=data?.balance?.byCurrency||{};
+  const balParts=Object.entries(bal).map(([cur,v])=>`${esc(cur)} ${Number(v.balance||0).toFixed(2)}`);
+  $("statBalance").textContent=balParts.length?balParts.join(" / "):"0.00";
+  $("balanceSummary").innerHTML=balParts.length?Object.entries(bal).map(([cur,v])=>`<div class="balance-card"><span>${esc(cur)} remaining balance</span><strong>${Number(v.balance||0).toFixed(2)}</strong><small>Earned: ${Number(v.earned||0).toFixed(2)} · Paid to you: ${Number(v.paid||0).toFixed(2)}</small></div>`).join(""):'<p class="meta">No paid tutor payout is currently due.</p>';
+  const pic=data?.tutor?.profilePictureUrl||works.find(x=>x.tutorProfilePictureUrl)?.tutorProfilePictureUrl||"";
+  const wrap=$("profilePicWrap");
+  if(wrap){wrap.className="profile-pic"+(pic?"":" profile-placeholder");wrap.innerHTML=pic?`<img src="${esc(pic)}" alt="Tutor profile picture" onerror="this.onerror=null;this.src='';this.parentElement.classList.add('profile-placeholder');this.parentElement.innerHTML='👤';">`:"👤";}
+  $("payList").innerHTML=works.map(x=>`<div class="comment"><strong>${esc(x.conversationId)} · ${esc(x.studentName)}</strong><div class="meta">${x.paymentStatus==="PAID"?`Client payment: <span class="payment-state payment-paid">PAID</span> · Assigned payout: <strong>${esc(x.currency||"KES")} ${Number(x.tutorPayout||0).toFixed(2)}</strong> · ${esc(x.payoutStatus||"PENDING")}`:`Client payment: <span class="payment-state payment-pending">NOT PAID</span> · Assigned payout: pending`}</div></div>`).join("")||'<p class="meta">No assigned projects yet.</p>';
+  $("works").innerHTML=works.map((x,i)=>`<article class="work ${selected?.conversationId===x.conversationId?"active":""}" data-i="${i}"><strong>${esc(x.studentName)}</strong><div class="meta">${esc(x.conversationId)} · ${esc(x.assignmentStatus)} · Tutor status: ${esc(x.tutorWorkStatus||"RECEIVED")}</div><div class="meta">Deadline: ${esc(x.deadline||"As agreed")}</div><div style="margin-top:7px"><span class="payment-state ${x.paymentStatus==="PAID"?"payment-paid":"payment-pending"}">${x.paymentStatus==="PAID"?"✓ PAID":"PAYMENT PENDING"}</span>${x.tutorPayout!=null?` <span class="badge good">Assigned payout: ${esc(x.currency||"")} ${Number(x.tutorPayout).toFixed(2)}</span>`:""}</div></article>`).join("")||'<p class="meta">No assigned work yet.</p>';
+  document.querySelectorAll(".work").forEach(x=>x.onclick=()=>{selected=works[+x.dataset.i];renderWorks();renderDetail()});
+}
+function renderDetail(){
+ if(!selected){$("detail").hidden=true;$("empty").hidden=false;return}
+ $("empty").hidden=true;$("detail").hidden=false;
+ $("workTitle").textContent=selected.studentName+" — "+selected.conversationId;
+ $("workMeta").textContent="Assignment: "+selected.assignmentStatus+" · Tutor status: "+(selected.tutorWorkStatus||"RECEIVED")+" · Deadline: "+(selected.deadline||"As agreed");
+ $("workDescription").textContent=selected.workDescription||"";
+ $("status").value=selected.tutorWorkStatus||"RECEIVED";
+ $("workPayment").innerHTML=selected.paymentStatus==="PAID"
+   ?`<div class="chat-notice success">✓ Client payment confirmed. Assigned payout for this project: <strong>${esc(selected.currency||"KES")} ${Number(selected.tutorPayout||0).toFixed(2)}</strong>.</div>`
+   :`<div class="chat-notice warning">Client payment status: <strong>NOT PAID</strong>. The assigned payout will be calculated when the client payment is confirmed.</div>`;
+ $("docs").innerHTML=(selected.documents||[]).map(x=>`<div class="doc">📎 <strong>${esc(x.name||"Document")}</strong><div class="meta">${esc(x.sender||"")} · ${x.size?((Number(x.size)/1024/1024).toFixed(1)+" MB"):""}</div><a href="${esc(x.downloadUrl||x.viewUrl||"#")}" target="_blank" rel="noopener">DOWNLOAD</a></div>`).join("")||'<p class="meta">No client/admin documents attached.</p>';
+ $("submissions").innerHTML=(selected.submissions||[]).map(x=>`<div class="doc"><strong>📤 ${esc(x.submissionType||"WORK SUBMISSION")}</strong><div class="meta">${x.timestamp?new Date(x.timestamp).toLocaleString():""} · ${esc(x.senderName||"Tutor")}</div><div>${esc(x.text||"").replace(/\n/g,"<br>")}</div>${x.attachment?`<div>${tutorAttachmentHtml(x.attachment)}</div>`:""}</div>`).join("")||'<p class="meta">No drafts or final works submitted yet.</p>';
+ $("clientFeedback").innerHTML=selected.clientFeedback?`<div class="chat-notice success">⭐ Client feedback: ${esc(selected.clientFeedback)}${selected.clientFeedbackAt?" · "+new Date(selected.clientFeedbackAt).toLocaleString():""}</div>`:"<p class=\"meta\">No client feedback yet.</p>";
+ $("comments").innerHTML=(selected.clientTutorMessages||[]).map(x=>`<div class="comment ${esc(x.sender)}"><strong>${esc(x.senderName||x.sender||"BrightAce")}</strong><div>${esc(x.text||"").replace(/\n/g,"<br>")}</div>${x.attachment?tutorAttachmentHtml(x.attachment):""}<small class="meta">${x.timestamp?new Date(x.timestamp).toLocaleString():""}</small></div>`).join("")||'<p class="meta">No client/tutor visible comments yet.</p>';
+ $("scheduleInfo").innerHTML=(selected.schedules||[]).map(x=>`<div class="doc"><strong>📅 ${esc(x.date)} · ${esc(x.startTime)}–${esc(x.endTime)}</strong><div class="meta">${esc(x.status||"CONFIRMED")}</div>${x.zoomLink?`<a class="btn btn-primary" href="${esc(x.zoomLink)}" target="_blank" rel="noopener">JOIN ZOOM</a>`:"<span class=\"meta\">No Zoom link provided.</span>"}</div>`).join("")||'<p class="meta">No online tutoring session is scheduled for this work.</p>';
+}
+async function load(){try{const [d,am]=await Promise.all([api("tutorDashboard"),api("tutorGetAdminMessages")]);data=d;const adminMessages=am.messages||[];const ids=adminMessages.map(m=>m.id).filter(Boolean);if(!firstTutorLoad&&ids.some(id=>!lastTutorMessageIds.has(id)))beep(1);lastTutorMessageIds=new Set(ids);firstTutorLoad=false;renderWorks();if(!availabilityDirty)renderAvailability(d.availability||[]);$("adminMessages").innerHTML=adminMessages.map(m=>`<div class="comment admin"><strong>${esc(m.senderName||"BrightAce Admin")}</strong><div>${esc(m.text||"").replace(/\n/g,"<br>")}</div>${m.attachment?`<div class="doc">📎 <a href="${esc(m.attachment.downloadUrl||m.attachment.viewUrl||"#")}" target="_blank" rel="noopener">${esc(m.attachment.name||"Attachment")}</a></div>`:""}<small class="meta">${m.timestamp?new Date(m.timestamp).toLocaleString():""}</small></div>`).join("")||'<p class="meta">No messages from Admin yet.</p>';if(selected){selected=data.works.find(x=>x.conversationId===selected.conversationId)||null;renderDetail()}}catch(e){notice(e.message,"error")}}
+const dayNames=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+function renderAvailability(av){
+ availabilityDirty=false;
+ const map={};(av||[]).forEach(x=>{map[x.day]=x});
+ $("availability").innerHTML=dayNames.map((n,i)=>{const x=map[i],all=x&&x.end==="24:00";return `<div class="day"><label><input type="checkbox" data-day="${i}" ${x?"checked":""}> ${n}</label><div class="day-row"><input type="time" data-start="${i}" value="${x?.start||"09:00"}" ${all?"disabled":""}><input type="time" data-end="${i}" value="${all?"23:59":(x?.end||"17:00")}" ${all?"disabled":""}></div><label class="all-day"><input type="checkbox" data-all-day="${i}" ${all?"checked":""}> 24 hours</label></div>`}).join("");
+ document.querySelectorAll("[data-all-day]").forEach(c=>c.onchange=()=>{const d=+c.dataset.allDay,st=document.querySelector(`[data-start="${d}"]`),en=document.querySelector(`[data-end="${d}"]`);if(c.checked){st.value="00:00";en.value="23:59";st.disabled=true;en.disabled=true}else{st.disabled=false;en.disabled=false;en.value="17:00"}});
+}
+document.addEventListener("change",e=>{if(e.target.matches("[data-day],[data-start],[data-end],[data-all-day]"))availabilityDirty=true;});
+document.addEventListener("input",e=>{if(e.target.matches("[data-start],[data-end]"))availabilityDirty=true;});
+$("saveAvailability").onclick=async()=>{
+ const items=[];
+ document.querySelectorAll("[data-day]").forEach(c=>{if(c.checked){const d=+c.dataset.day,all=document.querySelector(`[data-all-day="${d}"]`)?.checked,st=document.querySelector(`[data-start="${d}"]`)?.value||"00:00",en=all?"24:00":(document.querySelector(`[data-end="${d}"]`)?.value||"17:00");items.push({day:d,start:all?"00:00":st,end:en})}});
+ const btn=$("saveAvailability");btn.disabled=true;btn.textContent="SAVING…";try{const d=await api("tutorSaveAvailability",{availability:items});availabilityDirty=false;renderAvailability(d.availability||[]);notice("Availability saved successfully.","success");btn.textContent="SAVED ✓"}catch(e){notice(e.message,"error");btn.textContent="SAVE AVAILABILITY"}finally{btn.disabled=false}
+};
+$("saveStatus").onclick=async()=>{if(!selected)return;const btn=$("saveStatus");btn.disabled=true;btn.textContent="UPDATING…";try{await api("tutorUpdateWorkStatus",{conversationId:selected.conversationId,status:$("status").value});notice("Work status updated.","success");btn.textContent="UPDATED ✓";await load();setTimeout(()=>{btn.disabled=false;btn.textContent="UPDATE STATUS"},1000)}catch(e){notice(e.message,"error");btn.disabled=false;btn.textContent="UPDATE STATUS"}};
+$("submitWork").onclick=async()=>{if(!selected)return;const btn=$("submitWork"),files=[...$("submissionFiles").files];if(files.length>10)return notice("Maximum 10 files.","error");if(files.some(f=>f.size>25*1024*1024))return notice("Each file must be smaller than 25 MB.","error");btn.disabled=true;btn.textContent="SUBMITTING…";try{const at=[];for(const f of files){const reader=new FileReader();at.push(await new Promise((res,rej)=>{reader.onload=()=>res({name:f.name,mimeType:f.type||"application/octet-stream",size:f.size,dataUrl:reader.result});reader.onerror=()=>rej(Error("Could not read attachment."));reader.readAsDataURL(f)}))}await api("tutorSubmitWork",{conversationId:selected.conversationId,note:$("submissionNote").value.trim(),submissionType:$("submissionType").value,attachments:at});$("submissionNote").value="";$("submissionFiles").value="";notice("Submission sent to Admin QA and the client dashboard.","success");btn.textContent="SUBMITTED ✓";await load();setTimeout(()=>{btn.disabled=false;btn.textContent="SUBMIT FOR ADMIN QA →"},1000)}catch(e){notice(e.message,"error");btn.disabled=false;btn.textContent="SUBMIT FOR ADMIN QA →"}};
+$("profileForm").onsubmit=async e=>{e.preventDefault();const f=$("profileFile").files[0];if(!f)return notice("Choose a profile picture first.","error");if(f.size>5*1024*1024)return notice("Profile picture must be smaller than 5 MB.","error");const btn=e.submitter||$("profileForm").querySelector("button");if(btn){btn.disabled=true;btn.textContent="UPLOADING…"}try{const r=new FileReader();const a=await new Promise((res,rej)=>{r.onload=()=>res({name:f.name,mimeType:f.type,size:f.size,dataUrl:r.result});r.onerror=()=>rej(Error("Could not read image."));r.readAsDataURL(f)});const d=await api("tutorUploadProfile",{profilePicture:a});notice("Profile picture updated. Admin and clients can now see it.","success");$("profileFile").value="";await load();if(btn)btn.textContent="UPLOADED ✓"}catch(e){notice(e.message,"error");if(btn)btn.textContent="UPLOAD PROFILE PICTURE"}finally{if(btn)btn.disabled=false}};
+$("workCommentForm").onsubmit=async e=>{e.preventDefault();if(!selected)return;const text=$("workComment").value.trim();if(!text)return;try{await api("tutorAddWorkComment",{conversationId:selected.conversationId,text});$("workComment").value="";await load();notice("Visible work comment added.","success")}catch(e){notice(e.message,"error")}};
+$("adminMessageForm").onsubmit=async e=>{e.preventDefault();try{await api("tutorSendAdminMessage",{text:$("adminMessage").value.trim()});$("adminMessage").value="";notice("Message sent to BrightAce Admin.","success");beep(1)}catch(e){notice(e.message,"error")}};
+$("logout").onclick=()=>{sessionStorage.removeItem(KEY);location.reload()};if(tutorToken)openApp();setInterval(()=>{if(tutorToken&&!document.hidden&&!$("app").hidden)load()},20000);
+</script></body></html>

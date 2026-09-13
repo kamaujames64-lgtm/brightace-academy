@@ -1,80 +1,393 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="About BrightAce Academy — an online academic support and tutoring platform built to make personalized learning support simple, accessible, personal, and convenient for students worldwide.">
-<title>About BrightAce Academy | BrightAce Academy</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Learn about BrightAce Academy, an online academic support and tutoring platform providing accessible, personalized guidance, research support, assignment assistance and learning resources for students worldwide.">
+<title>About BrightAce Academy | Unlock Your Brilliance. Ace Your Future.</title>
 <link rel="stylesheet" href="../css/style.css">
+<style>
+/* About page — visual layer built from the existing BrightAce design system. */
+.about-hero{
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(circle at 78% 18%,rgba(246,181,27,.16),transparent 30%),
+    radial-gradient(circle at 15% 80%,rgba(34,112,190,.18),transparent 32%),
+    linear-gradient(135deg,#021126 0%,#07305e 58%,#041b38 100%);
+  color:#fff;padding:64px 0 58px;
+}
+.about-hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.08;
+  background-image:linear-gradient(rgba(255,255,255,.7) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.7) 1px,transparent 1px);
+  background-size:42px 42px;
+}
+.about-hero-grid{
+  position:relative;z-index:1;display:grid;grid-template-columns:1.02fr .98fr;
+  gap:46px;align-items:center;
+}
+.about-hero-copy h1{
+  font-size:clamp(2.45rem,5vw,4.4rem);line-height:1.02;margin:10px 0 16px;
+  letter-spacing:-.04em;
+}
+.about-hero-copy .lead{
+  max-width:690px;font-size:1.13rem;line-height:1.8;color:#dbe7f6;margin:0;
+}
+.about-tagline{
+  display:inline-flex;align-items:center;gap:10px;margin-top:24px;padding:10px 16px;
+  border:1px solid rgba(246,181,27,.38);border-radius:999px;
+  background:rgba(255,255,255,.06);font-weight:850;color:#ffe18a;
+}
+.about-tagline::before{content:"✦";color:var(--gold2)}
+.about-photo-frame{
+  position:relative;border-radius:28px;padding:9px;
+  background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(246,181,27,.58));
+  box-shadow:0 26px 70px rgba(0,0,0,.32);
+}
+.about-photo-frame img{
+  display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:21px;
+}
+.about-photo-badge{
+  position:absolute;left:24px;bottom:23px;padding:13px 16px;border-radius:15px;
+  background:rgba(2,17,38,.9);border:1px solid rgba(255,255,255,.13);
+  box-shadow:0 12px 30px rgba(0,0,0,.24);font-size:.9rem;
+}
+.about-photo-badge strong{display:block;color:#fff;font-size:1rem}
+.about-photo-badge span{color:#c8d8eb}
+.about-section{padding:78px 0}
+.about-section.alt{
+  background:linear-gradient(180deg,#f5f8fc 0%,#eef4fa 100%);
+}
+.about-intro{
+  display:grid;grid-template-columns:.82fr 1.18fr;gap:48px;align-items:start;
+}
+.about-kicker{
+  color:#0b4e89;font-weight:900;text-transform:uppercase;letter-spacing:.12em;font-size:.82rem;
+}
+.about-intro h2,.about-section-head h2{
+  margin:8px 0 15px;font-size:clamp(2rem,3.5vw,3rem);line-height:1.1;color:#07172f;
+}
+.about-intro .intro-callout{
+  padding:25px;border-radius:20px;background:linear-gradient(135deg,#071b36,#0b3c70);
+  color:#fff;box-shadow:0 18px 40px rgba(3,21,47,.13);
+}
+.about-intro .intro-callout strong{font-size:1.18rem;color:#ffe083}
+.about-copy{color:#41546c;font-size:1.03rem;line-height:1.85}
+.about-copy p{margin:0 0 17px}
+.about-copy p:last-child{margin-bottom:0}
+.about-section-head{text-align:center;max-width:800px;margin:0 auto 40px}
+.about-section-head p{color:#61728a;line-height:1.75;margin:0}
+.about-values{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;
+}
+.about-value{
+  position:relative;overflow:hidden;padding:26px 27px;border:1px solid #dce5ef;
+  border-radius:20px;background:#fff;box-shadow:0 10px 28px rgba(3,21,47,.06);
+}
+.about-value::after{
+  content:"";position:absolute;right:-30px;top:-30px;width:95px;height:95px;border-radius:50%;
+  background:rgba(246,181,27,.10);
+}
+.about-value h3{margin:0 0 9px;color:#092247;font-size:1.12rem}
+.about-value p{margin:0;color:#60728a;line-height:1.7}
+.about-split{
+  display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch;
+}
+.about-panel{
+  border-radius:24px;overflow:hidden;background:#fff;border:1px solid #dce5ef;
+  box-shadow:0 14px 35px rgba(3,21,47,.07);
+}
+.about-panel-image{height:285px;overflow:hidden}
+.about-panel-image img{width:100%;height:100%;display:block;object-fit:cover}
+.about-panel-body{padding:27px}
+.about-panel-body h2{margin:0 0 12px;color:#07172f;font-size:1.65rem}
+.about-panel-body p{margin:0;color:#5c6e84;line-height:1.8}
+.about-points{
+  display:grid;gap:13px;margin-top:21px;padding:0;list-style:none;
+}
+.about-points li{
+  display:flex;gap:11px;align-items:flex-start;color:#40546c;line-height:1.6;
+}
+.about-points li::before{
+  content:"✓";flex:0 0 24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  background:#eaf2fa;color:#0b4e89;font-weight:900;font-size:.82rem;margin-top:1px;
+}
+.about-quote{
+  margin-top:28px;padding:24px 28px;border-left:4px solid var(--gold2);
+  border-radius:0 17px 17px 0;background:linear-gradient(90deg,#fffaf0,#fff);
+  color:#2c4059;font-weight:750;line-height:1.75;
+}
+.about-research{
+  display:grid;grid-template-columns:.75fr 1.25fr;gap:34px;align-items:center;
+}
+.about-research-photo{
+  border-radius:23px;overflow:hidden;border:7px solid #fff;
+  box-shadow:0 18px 42px rgba(3,21,47,.15);
+}
+.about-research-photo img{display:block;width:100%;height:260px;object-fit:cover}
+.about-research h2{margin:7px 0 14px;color:#07172f;font-size:2rem}
+.about-research p{color:#5b6d84;line-height:1.8;margin:0 0 15px}
+.about-global{
+  background:
+    radial-gradient(circle at 15% 30%,rgba(246,181,27,.13),transparent 28%),
+    linear-gradient(135deg,#021126,#07305e);
+  color:#fff;
+}
+.about-global .about-section-head h2{color:#fff}
+.about-global .about-section-head p{color:#c8d8ea}
+.about-global-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;
+}
+.about-global-card{
+  padding:26px;border:1px solid rgba(255,255,255,.11);border-radius:20px;
+  background:rgba(255,255,255,.06);backdrop-filter:blur(5px);
+}
+.about-global-card h3{margin:0 0 8px;color:#ffe18a}
+.about-global-card p{margin:0;color:#d3e0ef;line-height:1.7}
+.about-promise{
+  display:grid;grid-template-columns:1.25fr .75fr;gap:32px;align-items:center;
+}
+.about-promise h2{margin:8px 0 13px;color:#07172f;font-size:clamp(2rem,3.5vw,3rem)}
+.about-promise p{color:#596c83;line-height:1.85}
+.about-promise-mark{
+  min-height:220px;border-radius:25px;display:grid;place-items:center;text-align:center;padding:30px;
+  background:linear-gradient(135deg,#071b36,#0b4e89);color:#fff;
+  box-shadow:0 20px 45px rgba(3,21,47,.15);
+}
+.about-promise-mark .mark{font-size:2.3rem;color:#ffd45a;margin-bottom:8px}
+.about-promise-mark strong{font-size:1.35rem;line-height:1.35}
+.about-cta{
+  display:flex;justify-content:space-between;gap:28px;align-items:center;padding:34px 38px;
+  border-radius:25px;background:linear-gradient(135deg,#0b3c70,#07172f);
+  color:#fff;box-shadow:0 20px 45px rgba(3,21,47,.14);
+}
+.about-cta h2{margin:0 0 7px;color:#fff}
+.about-cta p{margin:0;color:#cddbeb;line-height:1.65}
+.about-cta .btn{white-space:nowrap}
+@media (max-width:900px){
+  .about-hero-grid,.about-intro,.about-split,.about-research,.about-promise{grid-template-columns:1fr}
+  .about-hero-grid{gap:30px}
+  .about-values{grid-template-columns:1fr}
+  .about-global-grid{grid-template-columns:1fr}
+  .about-photo-badge{left:18px;bottom:18px}
+}
+@media (max-width:620px){
+  .about-hero{padding:48px 0}
+  .about-section{padding:56px 0}
+  .about-hero-copy h1{font-size:2.55rem}
+  .about-hero-copy .lead{font-size:1rem}
+  .about-split{gap:18px}
+  .about-panel-image{height:225px}
+  .about-research-photo img{height:220px}
+  .about-cta{padding:27px 23px;align-items:flex-start;flex-direction:column}
+  .about-cta .btn{width:100%;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){
+  .about-photo-frame,.about-value,.about-panel{scroll-behavior:auto}
+}
+</style>
 </head>
 <body>
 
-<header class="nav"><div class="container nav-inner">
-<a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo">
-<div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
+<header class="nav">
+<div class="container nav-inner">
+<a class="brand" href="../index.html">
+<img src="../assets/brightace-logo.png" alt="BrightAce Academy logo">
+<div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div>
+</a>
 <button class="menu-btn" aria-label="Open menu" onclick="toggleMenu()">☰</button>
-<nav class="nav-links" id="siteNav"><a class="" href="../index.html">Home</a>
+<nav class="nav-links" id="siteNav">
+<a class="" href="../index.html">Home</a>
 <a class="" href="subjects.html">Subjects</a>
 <a class="" href="resources.html">Resources</a>
 <a class="" href="homework-help.html">Homework Help</a>
 <a class="" href="how-it-works.html">How It Works</a>
 <a class="active" href="about.html">About</a>
 <a class="" href="faq.html">FAQ</a>
-<a class="" href="chat.html">Live Chat</a></nav>
+<a class="" href="chat.html">Live Chat</a>
+</nav>
 <a class="nav-cta" href="chat.html">💬 LIVE CHAT</a>
-</div></header>
+</div>
+</header>
 
 <main>
-<section class="page-hero"><div class="container"><div class="eyebrow">ABOUT BRIGHTACE</div><h1>About BrightAce Academy</h1><p>Unlock Your Brilliance. Ace Your Future.</p></div></section>
 
-<section class="section"><div class="container" style="max-width:900px">
-<div class="card">
-<h2>Unlock Your Brilliance. Ace Your Future.</h2>
-<p><strong>BrightAce Academy</strong> is an online academic support and tutoring platform created to make quality academic assistance <strong>simple, accessible, personal, and convenient</strong> for students wherever they are.</p>
-<p style="margin-top:16px">We believe that every learner has the potential to achieve remarkable things. Sometimes, that potential simply needs the right guidance, clear explanations, encouragement, and someone who is willing to help.</p>
-<p style="margin-top:16px">That is what BrightAce is built around.</p>
+<section class="about-hero">
+<div class="container about-hero-grid">
+<div class="about-hero-copy">
+<div class="eyebrow">ABOUT BRIGHTACE</div>
+<h1><span class="gradient-text">Unlock Your Brilliance.</span><br>Ace Your Future.</h1>
+<p class="lead">BrightAce Academy is an online academic support and tutoring platform created to make quality academic assistance <strong>simple, accessible, personal, and convenient</strong> for clients and students wherever they are.</p>
+<div class="about-tagline">Quality guidance. Better work. Great results.</div>
+</div>
+<div class="about-photo-frame">
+<img src="../assets/about-student-study.webp" alt="Student studying mathematics and science with a laptop">
+<div class="about-photo-badge"><strong>Learn • Solve • Excel • Achieve</strong><span>Academic support built around you</span></div>
+</div>
+</div>
+</section>
 
-<h2 style="margin-top:32px">What BrightAce Stands For</h2>
-<p>The name <strong>BrightAce</strong> brings together two powerful ideas.</p>
-<p style="margin-top:16px"><strong>Bright</strong> represents intelligence, curiosity, potential, knowledge, and the light that comes from learning.</p>
-<p style="margin-top:16px"><strong>Ace</strong> represents excellence, mastery, achievement, confidence, and the ability to rise to a challenge.</p>
-<p style="margin-top:16px">Together, <strong>BrightAce</strong> represents our commitment to helping learners transform their potential into excellence through <strong>knowledge, guidance, and confidence.</strong></p>
+<section class="about-section">
+<div class="container about-intro">
+<div>
+<div class="about-kicker">Our purpose</div>
+<h2>Academic support that helps potential become progress.</h2>
+<div class="intro-callout"><strong>BrightAce is here to help.</strong><br>Sometimes potential simply needs the right guidance, clear explanations, quality academic support, encouragement, and someone willing to help.</div>
+</div>
+<div class="about-copy">
+<p>We believe that everyone has the potential to attain remarkable things. Sometimes, that potential simply needs the right guidance, clear explanations, quality academic support, encouragement, and someone who is willing to help.</p>
+<p>That is what BrightAce is built around.</p>
+<p>We support clients with academic needs such as <strong>research work, assignments, homework, projects, academic writing, data and quantitative work, examination preparation, coursework, concept clarification, and other academic tasks.</strong></p>
+<p>Whether you are looking for support with research, need help understanding a difficult concept, are working through an assignment or project, preparing for an examination, reviewing coursework, or need expert guidance through a challenging topic, BrightAce is here to help.</p>
+</div>
+</div>
+</section>
 
-<h2 style="margin-top:32px">Online Learning Support Without the Barriers</h2>
+<section class="about-section alt">
+<div class="container">
+<div class="about-section-head">
+<div class="about-kicker">The BrightAce idea</div>
+<h2>What BrightAce Stands For</h2>
+<p>The name BrightAce brings together two powerful ideas — potential and excellence.</p>
+</div>
+<div class="about-values">
+<div class="about-value">
+<h3>💡 Bright — Potential & Knowledge</h3>
+<p><strong>Bright</strong> represents intelligence, curiosity, potential, knowledge, and the light that comes from learning.</p>
+</div>
+<div class="about-value">
+<h3>🏆 Ace — Excellence & Achievement</h3>
+<p><strong>Ace</strong> represents excellence, mastery, achievement, confidence, and the ability to rise to a challenge.</p>
+</div>
+<div class="about-value">
+<h3>🎓 Quality Academic Work</h3>
+<p>We aim to strengthen academic work through clear explanations, careful attention to detail, practical problem-solving, and personalized guidance.</p>
+</div>
+<div class="about-value">
+<h3>🌍 A Global Learning Community</h3>
+<p>BrightAce is designed to make meaningful academic support accessible to learners wherever they are in the world.</p>
+</div>
+</div>
+<div class="about-quote">Together, <strong>BrightAce</strong> represents our commitment to helping learners transform their potential into excellence through <strong>knowledge, guidance, quality academic work, and confidence.</strong></div>
+</div>
+</section>
+
+<section class="about-section">
+<div class="container about-split">
+<div class="about-panel">
+<div class="about-panel-image"><img src="../assets/about-collaboration.webp" alt="Diverse students collaborating on academic work"></div>
+<div class="about-panel-body">
+<h2>Online Academic Support Without the Barriers</h2>
 <p>We believe getting academic help should not feel complicated.</p>
-<p style="margin-top:16px">Students do <strong>not need to create an account, register, or navigate through a complicated learning system</strong> before getting assistance. BrightAce provides a straightforward online experience where students can explore our academic support services, find useful learning resources, and reach a real tutor when they need personalized assistance.</p>
-<p style="margin-top:16px">Whether you are struggling to understand a difficult concept, working through an assignment, preparing for an examination, reviewing coursework, or simply looking for someone to guide you through a challenging topic, BrightAce is here to help.</p>
+<ul class="about-points">
+<li>No unnecessary student account creation or complicated registration process.</li>
+<li>A straightforward online experience for finding academic support and useful resources.</li>
+<li>Direct communication when personalized help is needed.</li>
+<li>Support designed for students and clients across different countries and time zones.</li>
+</ul>
+</div>
+</div>
+<div class="about-panel">
+<div class="about-panel-image"><img src="../assets/about-research.webp" alt="Student conducting scientific research in a laboratory"></div>
+<div class="about-panel-body">
+<h2>Research, Assignments & Real Academic Challenges</h2>
+<p>From understanding a difficult topic to working through a research project, BrightAce focuses on practical academic support that helps clients improve their understanding, strengthen their work, and work toward great results.</p>
+<ul class="about-points">
+<li>Research and academic project support.</li>
+<li>Assignments, homework and coursework guidance.</li>
+<li>Data, statistics, quantitative and analytical support.</li>
+<li>Academic writing, review and concept clarification.</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
 
-<h2 style="margin-top:32px">One Tutor. Direct Communication. Global Students.</h2>
-<p>At the heart of BrightAce is <strong>direct human communication</strong>.</p>
-<p style="margin-top:16px">Our website provides the information and resources you need to get started. When you need personalized academic support, you can simply open the <strong>BrightAce live chat</strong> and continue the conversation through our connected <strong>WhatsApp Business messaging system</strong>.</p>
-<p style="margin-top:16px">No unnecessary accounts.<br>No complicated registration process.<br>No getting lost in a maze of automated systems.</p>
-<p style="margin-top:16px"><strong>Just a student, a question, and a direct connection to a tutor.</strong></p>
+<section class="about-section alt">
+<div class="container about-research">
+<div class="about-research-photo"><img src="../assets/about-research.webp" alt="Academic research and laboratory study"></div>
+<div>
+<div class="about-kicker">Our approach</div>
+<h2>Support that goes beyond simply giving an answer.</h2>
+<p>Our goal is to help learners <strong>understand the “why,” develop independent thinking, strengthen their academic skills, produce quality work, and build the confidence to tackle challenges effectively.</strong></p>
+<p>We focus on clear explanations, quality academic work, personalized guidance, practical problem-solving, attention to detail, and a learning experience that meets clients where they are.</p>
+<p>Whether the goal is to understand a topic, improve an assignment, complete a research project, prepare for an examination, analyze information, or strengthen overall academic performance, we work toward one thing:</p>
+<div class="about-quote"><strong>Helping our clients achieve great results.</strong><br>Because the goal isn't simply to help a student get through today's question. The goal is to help them become better, more capable, and more confident learners for tomorrow.</div>
+</div>
+</div>
+</section>
 
-<h2 style="margin-top:32px">Our Approach</h2>
-<p>At BrightAce Academy, we believe effective tutoring is about more than simply providing an answer.</p>
-<p style="margin-top:16px">Our goal is to help learners <strong>understand the “why,” develop independent thinking, strengthen their academic skills, and build the confidence to tackle challenges on their own.</strong></p>
-<p style="margin-top:16px">We focus on clear explanations, personalized guidance, practical problem-solving, and a learning experience that meets students where they are.</p>
-<p style="margin-top:16px">Because the goal isn't simply to help a student get through today's question.</p>
-<p style="margin-top:16px"><strong>The goal is to help them become better, more confident learners for tomorrow.</strong></p>
+<section class="about-section about-global">
+<div class="container">
+<div class="about-section-head">
+<div class="about-kicker" style="color:#ffd45a">Your tutor. Direct communication. Global students.</div>
+<h2>Simple access to meaningful academic support.</h2>
+<p>Our website provides the information and resources you need to get started. When personalized support is needed, clients can open the BrightAce live chat and continue through our connected WhatsApp Business messaging system.</p>
+</div>
+<div class="about-global-grid">
+<div class="about-global-card">
+<h3>🤝 Direct Human Communication</h3>
+<p>BrightAce keeps communication personal. No unnecessary maze of automated systems — just a clear path to academic support.</p>
+</div>
+<div class="about-global-card">
+<h3>🔐 Private & Professional</h3>
+<p>Academic conversations are handled privately and professionally, with a strong focus on respectful communication and confidentiality.</p>
+</div>
+<div class="about-global-card">
+<h3>🌎 Wherever You Are</h3>
+<p>Whether you are connecting from the United States, United Kingdom, Canada, Africa, or elsewhere, BrightAce aims to make quality support easy to access.</p>
+</div>
+</div>
+</div>
+</section>
 
-<h2 style="margin-top:32px">Our Vision</h2>
+<section class="about-section">
+<div class="container about-promise">
+<div>
+<div class="about-kicker">Our vision</div>
+<h2>A trusted global academic support platform.</h2>
+<div class="about-copy">
 <p>We envision a world where students can access meaningful academic support without geographical or technological barriers.</p>
-<p style="margin-top:16px">Whether a learner is connecting from <strong>Kenya, the United States, the United Kingdom, Canada, or anywhere else in the world</strong>, BrightAce aims to make reaching academic support as simple as starting a conversation.</p>
+<p>We aspire to build a trusted global academic support platform where learners can easily connect with the guidance, expertise, and resources they need to <strong>learn, improve, achieve, and excel.</strong></p>
+</div>
+</div>
+<div class="about-promise-mark">
+<div><div class="mark">✦</div><strong>Bright minds have limitless potential.<br>With the right guidance, they can become aces.</strong></div>
+</div>
+</div>
+</section>
 
-<h2 style="margin-top:32px">Our Promise</h2>
-<p><strong>Bright minds have limitless potential. With the right guidance, they can become aces.</strong></p>
-<p style="margin-top:16px">At BrightAce Academy, we are committed to helping learners <strong>discover their brilliance, develop their abilities, and confidently ace their future.</strong></p>
-</div></div></section>
+<section class="about-section alt">
+<div class="container">
+<div class="about-cta">
+<div>
+<div class="section-kicker" style="color:#ffd45a">Ready when you are</div>
+<h2>Need academic support?</h2>
+<p>Tell BrightAce what you're working on and start a conversation about the help you need.</p>
+</div>
+<a class="btn btn-primary" href="chat.html">💬 START LIVE CHAT</a>
+</div>
+</div>
+</section>
+
 </main>
 
-<footer class="footer"><div class="container footer-grid">
-<div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy">
-<div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div>
-<p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div>
+<footer class="footer">
+<div class="container footer-grid">
+<div>
+<div class="brand">
+<img src="../assets/brightace-logo.png" alt="BrightAce Academy">
+<div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div>
+</div>
+<p style="margin-top:14px;max-width:390px">Unlock Your Brilliance. Ace Your Future. Quality academic support for students worldwide.</p>
+</div>
 <div><h3>Explore</h3><a href="../pages/subjects.html">Subjects</a><a href="../pages/resources.html">Resources</a><a href="../pages/how-it-works.html">How It Works</a></div>
 <div><h3>Support</h3><a href="../pages/homework-help.html">Homework Help</a><a href="../pages/faq.html">FAQ</a><a href="../pages/chat.html">Live Chat</a></div>
-<div><h3>BrightAce</h3><a href="../pages/about.html">About</a><a href="../pages/contact.html">Contact</a><a href="../pages/privacy.html">Privacy Policy</a></div>
-</div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
-<script src="../js/app.js"></script>
+<div><h3>BrightAce</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a><a href="../pages/about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div>
+</div>
+<div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div>
+</footer>
 
-</body></html>
+<script src="../js/app.js" defer></script>
+</body>
+</html>

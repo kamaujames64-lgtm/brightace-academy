@@ -1,0 +1,153 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>My BrightAce Dashboard | BrightAce Academy</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.client-dashboard-page{width:min(1400px,calc(100% - 28px));margin:24px auto}
+.dashboard-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:14px 16px;background:#fff;border:1px solid #dce5ec;border-radius:16px;box-shadow:0 8px 24px rgba(16,38,63,.06)}
+.client-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.client-dash-card{background:#fff;border:1px solid #dce6f1;border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(16,38,63,.055)}
+.client-dash-card h4{margin:0 0 9px;color:#10263f}.client-dash-card p{margin:5px 0;color:#5e6d83;font-size:.92rem}
+.client-dash-list{display:grid;gap:8px;max-height:360px;overflow:auto;padding-right:4px}
+.client-dash-item{border:1px solid #e4ebf2;border-radius:11px;padding:11px;background:#fbfdff}
+.client-dash-badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:.7rem;font-weight:900;background:#eef4f7;color:#10263f}
+.client-dash-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.client-dash-actions a,.client-dash-actions button{border:0;cursor:pointer}
+.tutor-profile-card{display:flex;align-items:center;gap:12px}.tutor-profile-card img,.tutor-profile-placeholder{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid #eef4f7}
+.tutor-profile-placeholder{background:#eef4f7;display:flex;align-items:center;justify-content:center;font-size:1.8rem}
+@media(max-width:800px){.client-dashboard-grid{grid-template-columns:1fr}.client-dashboard-page{width:calc(100% - 18px)}}
+
+.client-fixed-list{height:300px;max-height:300px;overflow:auto;overscroll-behavior:contain;padding-right:5px}
+.client-dash-item{cursor:pointer;transition:background .15s,transform .15s}
+.client-dash-item:hover{background:#f2f7fb;transform:translateY(-1px)}
+.client-modal{position:fixed;inset:0;background:rgba(5,20,35,.62);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.client-modal-card{width:min(980px,100%);max-height:min(88vh,900px);overflow:auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.25)}
+.client-modal-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;position:sticky;top:-20px;background:#fff;padding:2px 0 12px;z-index:2;border-bottom:1px solid #e5edf4}
+.client-emoji-picker{display:flex;flex-wrap:wrap;gap:5px;padding:8px;border:1px solid #dce5ec;border-radius:10px;background:#fff;max-height:120px;overflow:auto}
+.client-emoji-picker button{border:0;background:#f4f7fa;border-radius:8px;padding:6px;cursor:pointer;font-size:18px}
+.client-upload-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.client-file-chip{padding:5px 8px;border-radius:8px;background:#eef4f8;font-size:.8rem}
+@media(max-width:650px){.client-modal{padding:8px}.client-modal-card{padding:14px}.client-fixed-list{height:260px;max-height:260px}}
+</style></head><body>
+<header class="nav"><div class="container nav-inner">
+<a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
+<nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></nav>
+<a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
+<main><section class="page-hero"><div class="container"><div class="eyebrow">VERIFIED CLIENT AREA</div><h1>My BrightAce Dashboard</h1><p>Your verified workspace for requests, assignments, tutoring, payments, documents, messages and completed work.</p></div></section>
+<section class="section"><div class="client-dashboard-page">
+<div class="dashboard-toolbar"><div><strong id="clientName">Verified Client</strong><div class="meta" id="clientPhone"></div></div><button id="closeDashboard" class="btn btn-outline">← BACK TO LIVE CHAT</button></div>
+<div id="dashboardNotice" class="chat-notice" hidden></div><div id="dashboardContent"><p>Loading your BrightAce dashboard…</p></div>
+</div></section>
+<div id="clientDetailModal" class="client-modal" hidden>
+  <div class="client-modal-card">
+    <div class="client-modal-head">
+      <div><div class="eyebrow">REQUEST DETAILS</div><h2 id="clientModalTitle" style="margin:4px 0">Request</h2><div id="clientModalMeta" class="meta"></div></div>
+      <button id="clientModalClose" class="btn btn-outline" type="button">CLOSE</button>
+    </div>
+    <div id="clientModalBody" style="padding-top:14px"></div>
+  </div>
+</div>
+</main>
+<footer class="footer"><div class="container"><div>© BrightAce Academy</div><div><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></div></div></footer>
+<script src="../js/app.js"></script><script>
+const API="https://script.google.com/macros/s/AKfycbx6--Az56QTjbYLQaFB80qLPnD7AUDm0qoVPMX_mmlK_ttV7n5DTIyDHCEvrH9ZGodH/exec";
+const KEY="brightace_chat_session_v5";let session=null,alertAudio=null,lastIncoming=new Set(),firstLoad=true;
+try{session=JSON.parse(localStorage.getItem(KEY)||sessionStorage.getItem(KEY)||localStorage.getItem("brightace_chat_session_v4")||"null")}catch(e){session=null}
+if(session)sessionStorage.setItem(KEY,JSON.stringify(session));
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function dashMoney(n,c){try{return new Intl.NumberFormat(undefined,{style:"currency",currency:c||"KES"}).format(Number(n||0))}catch(e){return (c||"")+" "+Number(n||0).toFixed(2)}}
+function notice(t,type="info"){const n=document.getElementById("dashboardNotice");n.textContent=t;n.className="chat-notice "+type;n.hidden=!t}
+function unlock(){try{if(!alertAudio)alertAudio=new(window.AudioContext||window.webkitAudioContext)();if(alertAudio.state==="suspended")alertAudio.resume()}catch(e){}}
+function beep(){try{unlock();if(!alertAudio||alertAudio.state==="suspended")return;const n=alertAudio.currentTime,o=alertAudio.createOscillator(),g=alertAudio.createGain();o.frequency.setValueAtTime(740,n);o.frequency.setValueAtTime(980,n+.11);g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(.14,n+.02);g.gain.exponentialRampToValueAtTime(.0001,n+.22);o.connect(g);g.connect(alertAudio.destination);o.start(n);o.stop(n+.24)}catch(e){}}
+async function post(action,p={}){
+ const b=new URLSearchParams();b.set("payload",JSON.stringify({action,...p}));
+ const r=await fetch(API,{method:"POST",body:b,cache:"no-store"});const raw=await r.text();let d;
+ try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce Apps Script returned HTML instead of JSON. The live /exec deployment must be updated to the latest saved Code.gs version.")}
+ if(!d.ok)throw Error(d.error||"Server error");return d
+}
+
+function addEmojiPicker(id, targetId){
+ const box=document.getElementById(id),target=document.getElementById(targetId);if(!box||!target)return;
+ ["😀","😂","😊","😍","🥰","👍","🙏","👏","💪","❤️","🔥","✨","🎉","🎓","📚","💡","✅","❌","⭐","🚀"].forEach(e=>{
+  const b=document.createElement("button");b.type="button";b.textContent=e;b.onclick=()=>{target.value+=(target.value?" ":"")+e;target.focus()};box.appendChild(b);
+ });
+ box.hidden=true;
+ const btn=document.getElementById(id==="clientEmojiPicker"?"clientEmojiBtn":"feedbackEmojiBtn");
+ if(btn)btn.onclick=()=>{box.hidden=!box.hidden};
+}
+function openClientRequestDetail(x){
+ const modal=document.getElementById("clientDetailModal"),body=document.getElementById("clientModalBody");
+ if(!modal||!body)return;
+ document.getElementById("clientModalTitle").textContent=x.conversationId||"Request details";
+ document.getElementById("clientModalMeta").textContent=(x.assignmentStatus||"REQUEST")+" · "+(x.tutor||"Tutor not assigned")+" · "+(x.assignedAdminName||"BrightAce Admin");
+ const docs=(x.documents||[]).map(attachment).join("")||"<p>No documents attached.</p>";
+ const msgs=(x.messages||[]).map(m=>`<div class="client-dash-item"><strong>${esc(m.senderName||m.sender||"BrightAce")}</strong><p>${esc(m.text||"")}</p>${attachment(m.attachment)}<small>${m.timestamp?new Date(m.timestamp).toLocaleString():""}</small></div>`).join("")||"<p>No conversation messages.</p>";
+ body.innerHTML=`<section class="client-dash-card"><h4>Request</h4><p>${esc(x.workDescription||"")}</p><p><strong>Status:</strong> ${esc(x.assignmentStatus||"")}</p><p><strong>Tutor:</strong> ${esc(x.tutor||"Not assigned")} · ${esc(x.tutorPhone?"+"+x.tutorPhone:"")}</p><p><strong>Admin:</strong> ${esc(x.assignedAdminName||"BrightAce Admin")}</p><p><strong>Deadline:</strong> ${esc(x.deadline||"As agreed")}</p></section><section class="client-dash-card"><h4>💬 Conversation</h4><div class="client-fixed-list">${msgs}</div></section><section class="client-dash-card"><h4>📎 Documents</h4><div class="client-fixed-list">${docs}</div></section><section class="client-dash-card"><h4>💳 Payment & status</h4><p>Payment information for this request is shown in your Payments section. Current status: <strong>${esc(x.assignmentStatus||"")}</strong>.</p></section>`;
+ modal.hidden=false;
+}
+function openWorkDetail(x){
+ const modal=document.getElementById("clientDetailModal"),body=document.getElementById("clientModalBody");if(!modal||!body)return;
+ document.getElementById("clientModalTitle").textContent="Tutor work — "+(x.submissionType||"Submission");
+ document.getElementById("clientModalMeta").textContent=x.timestamp?new Date(x.timestamp).toLocaleString():"";
+ body.innerHTML=`<section class="client-dash-card"><h4>Submission details</h4><p>${esc(x.text||"Tutor submission")}</p>${attachment(x)}</section>`;
+ modal.hidden=false;
+}
+
+function attachment(a){if(!a)return"";if(Array.isArray(a))return a.map(attachment).join("");const u=esc(a.viewUrl||a.url||""),d=esc(a.downloadUrl||u),n=esc(a.name||"Attachment");return u?`<div class="client-dash-actions"><a class="btn btn-outline" href="${u}" target="_blank" rel="noopener">OPEN ${n}</a><a class="btn btn-outline" href="${d}" target="_blank" rel="noopener" download>DOWNLOAD</a></div>`:`<p>📎 ${n}</p>`}
+function ics(x){const start=x.date.replace(/-/g,"")+"T"+x.startTime.replace(":","")+"00",end=x.date.replace(/-/g,"")+"T"+x.endTime.replace(":","")+"00";const text="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BrightAce Academy//EN\r\nBEGIN:VEVENT\r\nUID:"+x.scheduleId+"@brightace\r\nDTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"")+"\r\nDTSTART:"+start+"\r\nDTEND:"+end+"\r\nSUMMARY:BrightAce Tutoring Session\r\nDESCRIPTION:"+String(x.notes||"BrightAce tutoring session").replace(/\n/g," ")+"\r\nEND:VEVENT\r\nEND:VCALENDAR";const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/calendar"}));a.download=(x.scheduleId||"brightace-session")+".ics";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+async function load(){
+ if(!session?.verified){notice("Your WhatsApp verification is required before opening the client dashboard.","warning");return}
+ if(!session?.clientAccessToken){
+   try{
+     const boot=await post("clientDashboardBootstrap",{conversationId:session.id,phone:session.phone});
+     session.clientAccessToken=boot.clientAccessToken;localStorage.setItem(KEY,JSON.stringify(session));sessionStorage.setItem(KEY,JSON.stringify(session));
+   }catch(e){notice(e.message||"Your verified client session could not be restored. Please return to Live Chat and verify again.","warning");return}
+ }
+ document.getElementById("clientName").textContent=session.name||"Verified Client";document.getElementById("clientPhone").textContent=session.phone?("WhatsApp: "+String(session.phone).replace(/^254/,"+254")):"";
+ try{
+  const d=await post("clientDashboard",{conversationId:session.id,clientAccessToken:session.clientAccessToken});
+  const reqs=d.requests||[],payments=d.payments||[],docs=d.documents||[],schedules=d.schedules||[],messages=d.messages||[],subs=d.tutorSubmissions||[],current=d.currentRequest||{};
+  const active=reqs.filter(x=>!["COMPLETED","REJECTED"].includes(String(x.assignmentStatus||"").toUpperCase())),completed=reqs.filter(x=>String(x.assignmentStatus||"").toUpperCase()==="COMPLETED");
+  const tutorReq=active.find(x=>x.tutor)||reqs.find(x=>x.tutor)||current,tutorName=tutorReq?.tutor||"Not assigned yet",pic=tutorReq?.tutorProfilePictureUrl||"";
+  const tutor=`<div class="tutor-profile-card">${pic?`<img src="${esc(pic)}" alt="Tutor profile">`:`<div class="tutor-profile-placeholder">👤</div>`}<div><strong>${esc(tutorName)}</strong><p>${tutorReq?.tutorPhone?"WhatsApp: +"+esc(tutorReq.tutorPhone):"Your Admin will assign a tutor after review and agreement."}</p></div></div>`;
+  const reqHtml=reqs.map(x=>`<div class="client-dash-item" data-request-index="${reqs.indexOf(x)}"><strong>${esc(x.conversationId)}</strong><p>${esc((x.workDescription||"").slice(0,220))}</p><span class="client-dash-badge">${esc(x.assignmentStatus||"NEW_REQUEST")}</span>${x.tutor?` <span class="client-dash-badge">Tutor: ${esc(x.tutor)}</span>`:""}</div>`).join("")||"<p>No requests found.</p>";
+  const msgHtml=messages.slice(-20).map(m=>`<div class="client-dash-item"><strong>${esc(m.senderName||m.sender||"BrightAce")}</strong><p>${esc(m.text||"")}</p>${attachment(m.attachment)}<small>${m.timestamp?new Date(m.timestamp).toLocaleString():""}</small></div>`).join("")||"<p>No messages yet.</p>";
+  const schedHtml=schedules.map(x=>`<div class="client-dash-item"><strong>📅 ${esc(x.date)} · ${esc(x.startTime)}–${esc(x.endTime)}</strong><p>Tutor: ${esc(x.tutorName)} · ${esc(x.status)}</p>${x.zoomLink?`<div class="client-dash-actions"><a class="btn btn-primary" href="${esc(x.zoomLink)}" target="_blank" rel="noopener">JOIN ZOOM</a>`:""}<button class="btn btn-outline" type="button" data-ics="${esc(x.scheduleId)}">ADD TO CALENDAR</button></div></div>`).join("")||"<p>No upcoming tutoring sessions.</p>";
+  const payHtml=payments.map(x=>`<div class="client-dash-item"><strong>${esc(x.service)}</strong><p>${dashMoney(x.amount,x.currency)} · <span class="client-dash-badge">${esc(x.status)}</span></p>${x.reference?`<p>Reference: ${esc(x.reference)}</p>`:""}<div class="client-dash-actions"><a class="btn btn-outline" href="${esc(x.invoiceUrl)}" target="_blank">INVOICE / RECEIPT</a>${String(x.status).toUpperCase()!=="PAID"?`<a class="btn btn-primary" href="payment.html?request=${encodeURIComponent(x.requestId)}">PAY SECURELY</a>`:""}</div></div>`).join("")||"<p>No transactions yet.</p>";
+  const subHtml=subs.map(x=>`<div class="client-dash-item" data-work-index="${subs.indexOf(x)}"><strong>📤 ${esc(x.submissionType||"Tutor submission")}</strong><p>${x.timestamp?new Date(x.timestamp).toLocaleString():""} · ${esc(x.sender||"Tutor")}</p>${attachment(x)}</div>`).join("")||"<p>No tutor work has been submitted yet.</p>";
+  document.getElementById("dashboardContent").innerHTML=`<div class="client-dashboard-grid">
+  <section class="client-dash-card"><h4>📌 Active Requests</h4><div class="client-dash-list client-fixed-list">${reqHtml}</div></section>
+  <section class="client-dash-card"><h4>🧭 Assignment Status</h4><p><strong>${esc(current.tutorWorkStatus||current.assignmentStatus||"NEW_REQUEST")}</strong></p><p>Tutor: <strong>${esc(current.assignedTutor||"Not assigned yet")}</strong></p><p>Admin: ${esc(current.assignedAdminName||"BrightAce Admin")}</p></section>
+  <section class="client-dash-card"><h4>👨‍🏫 Assigned Tutor</h4>${tutor}</section>
+  <section class="client-dash-card"><h4>📅 Upcoming Tutoring</h4><div class="client-dash-list">${schedHtml}</div></section>
+  <section class="client-dash-card"><h4>💳 Payments</h4><div class="client-dash-list">${payHtml}</div></section>
+  <section class="client-dash-card"><h4>📎 Uploaded Documents</h4><div class="client-dash-list">${docs.map(attachment).join("")||"<p>No uploaded documents yet.</p>"}</div></section>
+  <section class="client-dash-card"><h4>📤 Tutor Uploaded Works</h4><div class="client-dash-list client-fixed-list">${subHtml}</div></section>
+  <section class="client-dash-card"><h4>💬 Messages &amp; Comments</h4><div class="client-dash-list client-fixed-list">${msgHtml}</div><textarea id="clientComment" rows="3" placeholder="Add a comment for BrightAce Admin..."></textarea><div class="client-emoji-picker" id="clientEmojiPicker"></div><div class="client-upload-row"><button id="clientEmojiBtn" type="button" class="btn btn-outline">😊 EMOJI</button><button id="clientAttachBtn" type="button" class="btn btn-outline">📎 ATTACH FILE</button><input id="clientCommentFiles" type="file" multiple hidden></div><div id="clientCommentFilesPreview" class="client-upload-row"></div><div class="client-dash-actions"><button id="addComment" class="btn btn-primary">ADD COMMENT</button></div></section>
+  <section class="client-dash-card"><h4>✅ Completed Work</h4><div class="client-dash-list client-fixed-list">${completed.map(x=>`<div class="client-dash-item" data-completed-index="${completed.indexOf(x)}"><strong>${esc(x.conversationId)}</strong><p>${x.completedAt?new Date(x.completedAt).toLocaleString():"Completed"}</p></div>`).join("")||"<p>No completed work yet.</p>"}</div></section>
+  <section class="client-dash-card"><h4>🧾 Invoices / Receipts</h4><div class="client-dash-list client-fixed-list">${payments.map(x=>`<div class="client-dash-item"><strong>${esc(x.requestId)}</strong><p>${dashMoney(x.amount,x.currency)} · ${esc(x.status)}</p><a class="btn btn-outline" href="${esc(x.invoiceUrl)}" target="_blank">OPEN DOCUMENT</a></div>`).join("")||"<p>No invoices yet.</p>"}</div></section>
+  </div><section class="client-dash-card" style="margin-top:14px"><h4>⭐ Client Feedback</h4><textarea id="feedback" rows="3" style="width:100%;box-sizing:border-box" placeholder="Tell BrightAce how the service went...">${esc(current.clientFeedback||"")}</textarea><div class="client-emoji-picker" id="feedbackEmojiPicker"></div><div class="client-dash-actions"><button id="feedbackEmojiBtn" type="button" class="btn btn-outline">😊 EMOJI</button><button id="saveFeedback" class="btn btn-primary">SAVE FEEDBACK</button></div></section>`;
+  document.querySelectorAll("[data-request-index]").forEach(b=>b.onclick=()=>openClientRequestDetail(reqs[+b.dataset.requestIndex]));
+  document.querySelectorAll("[data-work-index]").forEach(b=>b.onclick=()=>openWorkDetail(subs[+b.dataset.workIndex]));
+  document.querySelectorAll("[data-completed-index]").forEach(b=>b.onclick=()=>openClientRequestDetail(completed[+b.dataset.completedIndex]));
+  addEmojiPicker("clientEmojiPicker","clientComment");addEmojiPicker("feedbackEmojiPicker","feedback");
+  document.getElementById("clientModalClose").onclick=()=>document.getElementById("clientDetailModal").hidden=true;
+  document.getElementById("clientDetailModal").onclick=e=>{if(e.target.id==="clientDetailModal")e.currentTarget.hidden=true};
+  document.querySelectorAll("[data-ics]").forEach(b=>b.onclick=()=>{const x=schedules.find(v=>v.scheduleId===b.dataset.ics);if(x)ics(x)});
+  document.getElementById("clientAttachBtn").onclick=()=>document.getElementById("clientCommentFiles").click();
+  document.getElementById("clientCommentFiles").onchange=e=>{document.getElementById("clientCommentFilesPreview").innerHTML=[...e.target.files].map(f=>`<span class="client-file-chip">📎 ${esc(f.name)}</span>`).join("")};
+  document.getElementById("saveFeedback").onclick=async()=>{try{await post("clientSubmitFeedback",{conversationId:session.id,clientAccessToken:session.clientAccessToken,feedback:document.getElementById("feedback").value});notice("Feedback saved.","success")}catch(e){notice(e.message,"error")}};
+  document.getElementById("addComment").onclick=async()=>{const el=document.getElementById("clientComment"),text=el.value.trim(),files=[...document.getElementById("clientCommentFiles").files];if(!text&&!files.length)return notice("Enter a comment or attach a file.","error");const btn=document.getElementById("addComment");btn.disabled=true;btn.textContent="ADDING…";try{const at=[];for(const f of files){if(f.size>25*1024*1024)throw Error("Each attachment must be smaller than 25 MB.");const r=new FileReader();at.push(await new Promise((res,rej)=>{r.onload=()=>res({name:f.name,mimeType:f.type||"application/octet-stream",size:f.size,dataUrl:r.result});r.onerror=()=>rej(Error("Could not read attachment."));r.readAsDataURL(f)}))}await post("clientSendComment",{conversationId:session.id,clientAccessToken:session.clientAccessToken,text,attachments:at});el.value="";document.getElementById("clientCommentFiles").value="";document.getElementById("clientCommentFilesPreview").innerHTML="";await load();notice("Comment added.","success");btn.textContent="ADDED ✓"}catch(e){notice(e.message,"error");btn.textContent="ADD COMMENT"}finally{setTimeout(()=>{btn.disabled=false;btn.textContent="ADD COMMENT"},1000)}};
+  const incoming=messages.filter(m=>String(m.sender||"").toLowerCase()!=="student");const ids=new Set(incoming.map(m=>m.id).filter(Boolean));if(!firstLoad&&[...ids].some(id=>!lastIncoming.has(id)))beep();lastIncoming=ids;firstLoad=false;notice("Dashboard updated.","success");
+ }catch(e){notice(e.message||"Dashboard could not be loaded.","error")}
+}
+document.getElementById("closeDashboard").onclick=()=>{location.href="chat.html";};
+document.addEventListener("click",unlock,{once:true});document.addEventListener("keydown",unlock,{once:true});
+if(session?.verified)load();else {
+ notice("Your verified client session is not available on this browser. Return to Live Chat to verify your WhatsApp number.","warning");
+ const c=document.getElementById("dashboardContent"); if(c)c.innerHTML='<div class="chat-notice warning">Your verified session is required. <a href="chat.html">RETURN TO LIVE CHAT</a></div>';
+}
+setInterval(()=>{if(session?.verified&&!document.hidden)load()},60000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&session?.verified){unlock();load().catch(()=>{})}});
+</script></body></html>
