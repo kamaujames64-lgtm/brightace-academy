@@ -1,0 +1,133 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>My Payment Wallet | BrightAce Academy</title><link rel="stylesheet" href="../css/style.css"><style>.shell{width:min(900px,calc(100% - 36px));margin:auto}.panel{background:#fff;border:1px solid #dce5ec;border-radius:17px;padding:22px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid label{display:block}.grid input,.grid select{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd8e1;border-radius:9px}@media(max-width:700px){.shell{width:calc(100% - 18px)}.grid{grid-template-columns:1fr}}.notice{padding:12px;border-radius:10px;margin-bottom:14px}.tutor-nav{display:flex;flex-wrap:wrap;gap:6px;background:#fff;border:1px solid #dce5ec;padding:8px;border-radius:14px;margin-bottom:18px}.tutor-nav a{padding:9px 12px;border-radius:9px;text-decoration:none;color:#10263f;font-weight:850;font-size:.82rem}.tutor-nav a:hover{background:#10263f;color:#fff}.wallet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.wallet-section{margin-top:20px;padding-top:18px;border-top:1px solid #e4ebf1}.withdraw-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #e1e8ed;background:#fbfdfe;border-radius:10px;padding:11px;margin:7px 0}.withdraw-status{font-size:.68rem;font-weight:900;padding:4px 8px;border-radius:999px;background:#fff2df;color:#8a5a00}.withdraw-status.paid{background:#e7f7ee;color:#177245}@media(max-width:700px){.wallet-grid{grid-template-columns:1fr}.tutor-nav{overflow-x:auto;flex-wrap:nowrap}.tutor-nav a{white-space:nowrap}}</style><script src="../js/brightace-api-config.js"></script></head><body><header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span class="admin-top-label">TUTOR PAYMENT WALLET</span></div></header><main><section class="page-hero"><div class="container"><a href="tutor.html" style="color:inherit">← Tutor Dashboard</a><div class="eyebrow">PRIVATE TUTOR AREA</div><h1>My Payment Wallet</h1><p>Choose and maintain the payment destination BrightAce Admin should use for your tutor earnings.</p></div></section><section class="section"><div class="shell"><nav class="tutor-nav" aria-label="Tutor navigation"><a href="tutor.html">Overview</a><a href="tutor.html#workSection">Assigned Work</a><a href="tutor.html#profileSection">Profile</a><a href="tutor-wallet.html">Payment Wallet</a><a href="tutor.html#withdrawSection">Withdrawals</a></nav><div id="login" class="panel" hidden><h2>Tutor sign in required</h2><p class="meta">Open this page after signing in to your Tutor Dashboard.</p><a class="btn btn-primary" href="tutor.html">OPEN TUTOR DASHBOARD</a></div><div id="app" class="panel" hidden><div id="notice" class="notice" hidden></div><form id="walletForm"><div class="wallet-grid"><label>Preferred payment method<select id="preferredMethod"><option value="">Select</option><option value="MOBILE">Mobile Money</option><option value="PAYPAL">PayPal</option><option value="PAYONEER">Payoneer</option><option value="BANK">Bank Transfer</option></select></label><label>Mobile provider<input id="mobileProvider" placeholder="e.g. M-PESA"></label><label>Mobile number<input id="mobileNumber" placeholder="2547XXXXXXXX"></label><label>PayPal email<input id="paypalEmail" type="email"></label><label>Payoneer email<input id="payoneerEmail" type="email"></label><label>Bank name<input id="bankName"></label><label>Account name<input id="accountName"></label><label>Account number<input id="accountNumber"></label><label>Branch code<input id="branchCode"></label><label>SWIFT/BIC<input id="swiftCode"></label></div><button class="btn btn-primary" style="margin-top:16px" id="save">SAVE PAYMENT WALLET</button></form><div id="fxToolbar" style="margin-top:18px"></div><div class="wallet-section"><div class="topline"><div><h2 style="margin:0">Withdraw earnings</h2><div class="meta">Minimum withdrawal: KSh 2,000. BrightAce Admin approves and pays manually.</div></div><strong id="available">Available: KSh 0.00<br><span id="availableConverted" class="fx-converted"></span></strong></div><form id="withdrawForm" style="margin-top:14px"><label>Withdrawal amount (KSh)<input id="withdrawAmount" type="number" min="2000" step="0.01" placeholder="2000"></label><button id="withdrawBtn" class="btn btn-primary" style="margin-top:10px">REQUEST WITHDRAWAL</button></form><div id="withdrawals" style="margin-top:18px"></div></div><div id="history" style="margin-top:25px"></div></div></div></section></main><script src="../js/app.js"></script><script src="../js/statement-pdf.js"></script><style id="brightace-fx-style">
+.fx-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:0 0 14px;background:#f8fbfd;border:1px solid #dce5ec;border-radius:12px}
+.fx-toolbar label{font-weight:800;font-size:.84rem;color:#10263f;display:flex;align-items:center;gap:8px}
+.fx-toolbar select{padding:8px 30px 8px 10px;border:1px solid #ccd8e1;border-radius:8px;background:#fff;color:#10263f;font-weight:750}
+.fx-note{font-size:.74rem;color:#647789}
+.fx-converted{font-weight:800}
+</style><script>
+const BA_FX_TARGETS=["KES","USD","EUR","GBP","UGX","TZS","ZAR","NGN","GHS"];
+const BA_FX_CACHE_KEY="brightace_fx_rates_v1";
+let BA_FX_RATES={KES:{KES:1}},BA_FX_TARGET="KES";
+function baFxFmt(n,c){try{return new Intl.NumberFormat(undefined,{style:"currency",currency:c||"KES",minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n||0))}catch(e){return (c||"KES")+" "+Number(n||0).toFixed(2)}}
+function baFxReadCache(){try{const x=JSON.parse(localStorage.getItem(BA_FX_CACHE_KEY)||"null");if(x&&x.at&&Date.now()-x.at<3600000&&x.rates){BA_FX_RATES=x.rates;return true}}catch(e){}return false}
+function baFxSave(){try{localStorage.setItem(BA_FX_CACHE_KEY,JSON.stringify({at:Date.now(),rates:BA_FX_RATES}))}catch(e){}}
+async function baFxLoadBase(base){
+  base=String(base||"KES").toUpperCase();
+  if(BA_FX_RATES[base]&&BA_FX_RATES[base][BA_FX_TARGET])return;
+  const r=await fetch("https://open.er-api.com/v6/latest/"+encodeURIComponent(base),{cache:"no-store"});
+  const d=await r.json();
+  if(!d||d.result!=="success"||!d.rates)throw new Error("Exchange-rate service unavailable.");
+  BA_FX_RATES[base]=d.rates; BA_FX_RATES[base][base]=1;
+}
+async function baFxConvert(amount,from,to){
+  from=String(from||"KES").toUpperCase();to=String(to||"KES").toUpperCase();
+  if(from===to)return Number(amount||0);
+  await baFxLoadBase(from);
+  const rate=Number(BA_FX_RATES[from]?.[to]);
+  if(!isFinite(rate)||rate<=0)throw new Error("No exchange rate available for "+from+" → "+to+".");
+  return Number(amount||0)*rate;
+}
+function baFxToolbar(id,caption){
+  const el=document.getElementById(id); if(!el)return;
+  el.innerHTML='<div class="fx-toolbar"><label>'+caption+' <select id="baFxTarget"><option>KES</option><option>USD</option><option>EUR</option><option>GBP</option><option>UGX</option><option>TZS</option><option>ZAR</option><option>NGN</option><option>GHS</option></select></label><span class="fx-note">Display conversion only. Original transaction currencies and balances are unchanged.</span></div>';
+  const sel=document.getElementById("baFxTarget");sel.value=BA_FX_TARGET;
+  sel.onchange=async()=>{BA_FX_TARGET=sel.value;await baFxRefresh();};
+}
+async function baFxRefresh(){}
+
+async function baFxRefresh(){
+  const target=BA_FX_TARGET;
+  try{
+    const av=document.getElementById("availableConverted");
+    if(av){
+      const base=Number(document.getElementById("available")?.dataset.fxAmount||0);
+      const v=await baFxConvert(base,"KES",target);
+      av.textContent=target==="KES"?"":"≈ "+baFxFmt(v,target);
+    }
+    const els=document.querySelectorAll("[data-fx-amount][data-fx-from]");
+    for(const el of els){
+      const from=el.dataset.fxFrom, amount=Number(el.dataset.fxAmount||0);
+      if(target===from){el.textContent="";continue}
+      try{el.textContent="≈ "+baFxFmt(await baFxConvert(amount,from,target),target)}catch(e){el.textContent="Conversion unavailable"}
+    }
+  }catch(e){
+    const av=document.getElementById("availableConverted");if(av)av.textContent=target==="KES"?"":"Conversion unavailable";
+  }
+}
+baFxReadCache();baFxToolbar("fxToolbar","Display money in:");
+</script><script>
+const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec"),KEY="brightace_tutor_token_v1";const $=id=>document.getElementById(id);let token=window.BrightAceTutorSession?.consumeHandoff?.()||window.BrightAceTutorSession?.get?.()||sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||"";function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}function msg(t,err=false){$("notice").textContent=t;$("notice").style.background=err?"#fdecec":"#e8f7ee";$("notice").hidden=!t}async function api(action,p={}){
+  const b=new URLSearchParams();b.set("payload",JSON.stringify({action,tutorToken:token,...p}));
+  let lastError=null;
+  for(let attempt=0;attempt<2;attempt++){
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);
+    try{
+      const r=await fetch(API,{method:"POST",body:b,cache:"no-store",signal:ctl.signal}),raw=await r.text();
+      let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce server returned HTML instead of JSON. Please update the Apps Script deployment.")}
+      if(!d.ok)throw Error(d.error||"Request failed");
+      return d;
+    }catch(e){
+      lastError=e;
+      if(e.name==="AbortError")lastError=Error("BrightAce tutor wallet request timed out. Please try again.");
+      if(attempt===0)await new Promise(r=>setTimeout(r,250));
+    }finally{clearTimeout(timer)}
+  }
+  throw lastError||Error("BrightAce tutor wallet request failed.");
+}function fill(w){if(!w)return;["preferredMethod","mobileProvider","mobileNumber","paypalEmail","payoneerEmail","bankName","accountName","accountNumber","branchCode","swiftCode"].forEach(k=>$(k).value=w[k]||"")}function updateWithdrawalAvailability(balance){
+  const n=Number(balance||0),btn=$("withdrawBtn"),input=$("withdrawAmount");
+  if(input) input.max=String(Math.max(0,n));
+  if(btn){
+    const eligible=n>=2000;
+    btn.disabled=!eligible;
+    btn.title=eligible?"":"Eligible balance must be at least KSh 2,000.";
+    btn.textContent=eligible?"REQUEST WITHDRAWAL":"KSh 2,000 MINIMUM";
+  }
+  if(input) input.disabled=n<2000;
+}
+async function load(){try{const [d,w]=await Promise.all([api("tutorGetWallet"),api("tutorListWithdrawals")]);fill(d.wallet);$("available").dataset.fxAmount=Number(w.availableBalance||0);$("available").dataset.fxFrom="KES";$("available").innerHTML="Available: "+baFxFmt(Number(w.availableBalance||0),"KES")+"<br><span id=\"availableConverted\" class=\"fx-converted\"></span>";updateWithdrawalAvailability(Number(w.availableBalance||0));$("withdrawals").innerHTML="<h3>Withdrawal history</h3>"+((w.withdrawals||[]).map(x=>`<div class="withdraw-row"><div><strong>${esc(x.currency)} ${Number(x.amount||0).toFixed(2)}</strong><div class="meta fx-converted" data-fx-amount="${Number(x.amount||0)}" data-fx-from="${esc(x.currency)}"></div><div class="meta">${esc(x.method)} · ${x.requestedAt?new Date(x.requestedAt).toLocaleString():""}${x.paymentReference?" · Ref: "+esc(x.paymentReference):""}</div></div><span class="withdraw-status ${String(x.status).toUpperCase()==="PAID"?"paid":""}">${esc(x.status)}</span></div>`).join("")||'<p class="meta">No withdrawal requests yet.</p>');$("history").innerHTML='<div class="actions" style="margin-bottom:10px"><label>From <input id="statementFrom" type="date"></label><label>To <input id="statementTo" type="date"></label><button id="statement" class="btn btn-outline" type="button">⬇ DOWNLOAD TRANSACTION STATEMENT</button></div><h2>Payment history</h2>'+((d.paymentHistory||[]).map(x=>`<div class="panel" style="margin:8px 0;padding:13px"><strong>${esc(x.currency)} ${Number(x.amount||0).toFixed(2)}</strong><div class="meta fx-converted" data-fx-amount="${Number(x.amount||0)}" data-fx-from="${esc(x.currency)}"></div> · ${esc(x.method)} · ${esc(x.paymentReference)}<div class="meta">${x.paidAt?new Date(x.paidAt).toLocaleString():""}</div></div>`).join("")||'<p class="meta">No tutor payments recorded yet.</p>');await baFxRefresh()}catch(e){msg(e.message,true)}}
+$("withdrawForm").onsubmit=async e=>{e.preventDefault();const b=$("withdrawBtn"),amt=Number($("withdrawAmount").value||0);if(amt<2000)return msg("Minimum tutor withdrawal is KSh 2,000.",true);b.disabled=true;b.textContent="REQUESTING…";try{const d=await api("tutorRequestWithdrawal",{amount:amt,currency:"KES"});msg(d.message||("Withdrawal "+d.withdrawalId+" submitted. Admin will review and pay it."));$("withdrawAmount").value="";await load()}catch(e){msg(e.message,true)}finally{await load();}};$("walletForm").onsubmit=async e=>{e.preventDefault();const b=$("save");b.disabled=true;b.textContent="SAVING…";try{await api("tutorSaveWallet",{preferredMethod:$("preferredMethod").value,mobileProvider:$("mobileProvider").value.trim(),mobileNumber:$("mobileNumber").value.trim(),paypalEmail:$("paypalEmail").value.trim(),payoneerEmail:$("payoneerEmail").value.trim(),bankName:$("bankName").value.trim(),accountName:$("accountName").value.trim(),accountNumber:$("accountNumber").value.trim(),branchCode:$("branchCode").value.trim(),swiftCode:$("swiftCode").value.trim()});msg("Payment wallet saved successfully.");b.textContent="SAVED ✓";await load()}catch(e){msg(e.message,true);b.textContent="SAVE PAYMENT WALLET"}finally{b.disabled=false}};function walletFields(){const m=$("preferredMethod")?.value||"",groups={MOBILE:["mobileProvider","mobileNumber"],PAYPAL:["paypalEmail"],PAYONEER:["payoneerEmail"],BANK:["bankName","accountName","accountNumber","branchCode","swiftCode"]};document.querySelectorAll("#walletForm .wallet-grid label").forEach(l=>l.style.display="none");(groups[m]||[]).forEach(id=>{const e=$(id);if(e)e.parentElement.style.display="block"})}$("preferredMethod").onchange=walletFields;walletFields();async function downloadTutorStatement(){
+  const b=document.getElementById("statement");b.disabled=true;b.textContent="PREPARING…";
+  try{
+    const from=document.getElementById("statementFrom")?.value||"",to=document.getElementById("statementTo")?.value||"";
+    const d=await api("registerStatement",{statementType:"TUTOR",from,to});
+    const tx=(d.transactions||[]).map(x=>({date:x.paidAt,type:x.type,reference:x.reference||x.paymentId,details:(x.method||"")+" - "+(x.note||""),amount:Number(x.amount||0),currency:x.currency,status:x.type==="TUTOR WITHDRAWAL"?"WITHDRAWAL":"PAID"}));
+    const period=(from||to)?((from||"Beginning")+" to "+(to||"Present")):"All recorded transactions";
+    const total=tx.filter(x=>x.type!=="TUTOR WITHDRAWAL").reduce((a,x)=>a+Number(x.amount||0),0),withdrawn=tx.filter(x=>x.type==="TUTOR WITHDRAWAL").reduce((a,x)=>a+Number(x.amount||0),0);
+    await baFxRefresh();await BrightAceStatementPDF.download({title:"Tutor Transaction Statement",subtitle:"BrightAce Academy - Tutor Earnings Record",party:{name:d.party?.name||"Tutor",email:d.party?.email||"",phone:d.party?.phone||"",identifier:"Tutor ID: "+(d.party?.tutorId||d.party?.id||"")},transactions:tx,statementReference:d.statementReference,integrityHash:d.integrityHash,verificationUrl:d.verificationUrl,generatedAt:d.generatedAt,periodText:period,summary:{total:total,withdrawn:withdrawn,currency:tx[0]?.currency||"KES",note:"Official BrightAce Academy tutor earnings record."},filename:"BrightAce-Tutor-Transaction-Statement-"+(d.statementReference||"").replace(/[^A-Za-z0-9-]/g,"")+".pdf"});
+    msg("Transaction statement downloaded successfully. Reference: "+d.statementReference);
+  }catch(e){msg(e.message,true)}finally{b.disabled=false;b.textContent="⬇ DOWNLOAD TRANSACTION STATEMENT"}
+}
+
+$("statement").onclick=downloadTutorStatement;
+async function openTutorWallet(){
+  token=window.BrightAceTutorSession?.consumeHandoff?.()||window.BrightAceTutorSession?.get?.()||sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||token||"";
+  if(!token){$("login").hidden=false;$("app").hidden=true;return;}
+  $("login").hidden=true;$("app").hidden=false;
+  try{
+    const session=await api("tutorSessionProfile");
+    if(session.tutor?.tutorPhone)window.BrightAceTutorSession?.set?.(token);
+    await load();
+  }catch(e){
+    const em=String(e&&e.message||e);
+    // One last canonical-storage recovery prevents a stale handoff race from
+    // forcing an already signed-in tutor through verification again.
+    const recovered=window.BrightAceTutorSession?.get?.()||sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||"";
+    if(recovered&&recovered!==token){
+      token=recovered;
+      try{const session=await api("tutorSessionProfile");if(session.tutor?.tutorPhone){window.BrightAceTutorSession?.set?.(token);await load();return;}}catch(ignore){}
+    }
+    if(/login is required|login.*expired|no longer active|tutor account/i.test(em)){
+      try{window.BrightAceTutorSession?.clear?.()}catch(ignore){}
+      token="";$("app").hidden=true;$("login").hidden=false;
+    }
+    msg(em||"Unable to validate the tutor session.",true);
+  }
+}
+openTutorWallet().catch(()=>{});
+if(!token){
+  setTimeout(()=>{
+    const recovered=window.BrightAceTutorSession?.consumeHandoff?.()||window.BrightAceTutorSession?.get?.()||sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||"";
+    if(recovered){token=recovered;openTutorWallet().catch(()=>{});}
+  },150);
+}
+</script></body></html>

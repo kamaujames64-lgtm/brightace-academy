@@ -21,10 +21,10 @@
 
 @media(max-width:700px){.chat-toolbar{flex-wrap:wrap}}
 </style>
-</head>
+<script src="../js/brightace-api-config.js"></script></head>
 <body>
 <header class="nav"><div class="container nav-inner">
-<a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
+<a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
 <button class="menu-btn" aria-label="Open menu" onclick="toggleMenu()">☰</button>
 <nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a class="active" href="chat.html">Live Chat</a></nav>
 <a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
@@ -33,15 +33,36 @@
 <div class="chat-head"><div class="chat-person"><div class="chat-avatar">🎓</div><div><strong>BrightAce Academy</strong><div class="chat-status">● Secure Academic Support</div></div></div><span class="admin-badge">Private Support</span></div>
 <div id="chatNotice" class="chat-notice" hidden></div>
 <div id="chatStart" class="chat-start"><h3>Start your support request</h3><p class="chat-helper">No student account is required. Enter your name, WhatsApp number, request details, budget and deadline.</p>
+<div class="returning-entry"><button type="button" id="showReturningClientBtn" class="btn btn-outline returning-client-trigger">Already a returning user? →</button></div>
 <form id="startForm" class="form">
 <label>Client / Student Name<input id="studentName" required placeholder="Your name" autocomplete="name"></label>
 <label>WhatsApp number<input id="studentPhone" required placeholder="+254 7XX XXX XXX" autocomplete="tel"></label>
-<label>Task / Work Description<textarea id="taskDescription" required placeholder="Describe the assignment, tutoring, analysis, research, website, or other academic support you need..."></textarea></label>
-<div class="admin-form-grid"><label>Student Budget<input id="studentBudget" type="number" min="0.01" step="0.01" required placeholder="Your budget"></label><label>Currency<select id="studentCurrency" required><option value="KES">KES — Kenyan Shilling</option><option value="USD">USD — US Dollar</option><option value="EUR">EUR — Euro</option></select></label></div>
+<label>Task / Work Description<textarea id="taskDescription" placeholder="Describe the assignment, tutoring, analysis, research, website, or other academic support you need..."></textarea></label>
+<div class="admin-form-grid"><label>Student Budget<input id="studentBudget" type="number" min="0" step="0.01" placeholder="Your budget"></label><label>Currency<select id="studentCurrency" required><option value="KES">KES — Kenyan Shilling</option><option value="USD">USD — US Dollar</option><option value="EUR">EUR — Euro</option></select></label></div>
 <label>Deadline<input id="studentDeadline" placeholder="e.g. 12 September 2026, 5:00 PM"></label>
 <label class="consent"><input id="consent" type="checkbox" required> <span>I agree that BrightAce may use the provided contact details to respond to this support request.</span></label>
 <button id="startChatBtn" class="btn btn-primary" type="submit">SEND REQUEST →</button>
 </form></div>
+
+<div id="returningClientArea" class="chat-start returning-client-panel" style="display:none">
+<button type="button" id="hideReturningClientBtn" class="chat-exit-btn" aria-label="Close returning user form">← Back to new request</button>
+<h3>Welcome back</h3>
+<p class="chat-helper">Enter the name and WhatsApp number you previously used with BrightAce. We’ll send a fresh verification code to your WhatsApp.</p>
+<form id="returningClientForm" class="form">
+<label>Client / Student Name<input id="returningClientName" required placeholder="Your name" autocomplete="name"></label>
+<label>WhatsApp number<input id="returningClientPhone" required placeholder="+254 7XX XXX XXX" autocomplete="tel"></label>
+<button id="returningClientBtn" class="btn btn-primary" type="submit">SEND VERIFICATION CODE →</button>
+</form>
+<div id="returningVerificationArea" class="verification-panel" style="display:none">
+<h4>Verify your WhatsApp number</h4>
+<p id="returningVerificationIntro">We found your existing BrightAce request. Enter the 6-digit verification code sent to your WhatsApp number.</p>
+<form id="returningVerificationForm" class="form">
+<label>6-digit verification code<input id="returningVerificationCode" class="verification-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" required></label>
+<div class="verification-actions"><button id="returningVerifyBtn" class="btn btn-primary" type="submit">VERIFY & CONTINUE</button><button id="returningResendBtn" class="btn btn-outline" type="button">SEND NEW CODE</button></div>
+</form>
+<div id="returningVerificationNotice" class="chat-notice" hidden></div>
+</div>
+</div>
 
 <div id="verificationArea" class="verification-panel" style="display:none">
 <button type="button" id="exitVerificationBtn" class="chat-exit-btn" aria-label="Exit verification">← Exit verification</button>
@@ -57,7 +78,7 @@
 <div id="chatBody" class="chat-body" aria-live="polite"></div>
 <form id="messageForm" class="chat-input"><div id="attachmentPreview" class="attachment-preview" hidden></div><div class="composer-tools"><button type="button" id="emojiBtn" title="Emoji">😊</button><button type="button" id="attachBtn" title="Attach file">📎</button><button type="button" id="photoBtn" title="Photo">📷</button><input id="fileInput" type="file" multiple hidden></div><input id="messageInput" autocomplete="off" placeholder="Type a message..." aria-label="Message"><button class="send-btn" aria-label="Send">➤</button></form><div class="chat-footnote">You can send text, images and common documents. Files are optional and can be viewed or downloaded manually.</div>
 
-<div class="payment-chat-card" style="margin:20px 16px 0"><div><strong>🛡️ Secure payment</strong><p>After the service and final amount are agreed, BrightAce will provide a secure payment request. <strong>Never send money directly to a tutor.</strong></p></div><a class="btn btn-primary payment-chat-btn" href="payment.html">SECURE PAYMENT →</a></div>
+<div class="payment-chat-card" style="margin:20px 16px 0"><div><strong>🛡️ Secure payment</strong><p>After the service and final amount are agreed, BrightAce will provide a secure payment request. <strong>Never send money directly to a tutor.</strong></p></div><a class="btn btn-primary payment-chat-btn" id="securePaymentBtn" href="client-payments.html">SECURE PAYMENT →</a></div>
 <div class="refund-chat-card" style="margin:16px">
 <button type="button" id="refundToggle" class="refund-toggle">💳 REQUEST A REFUND</button>
 <div id="refundPanel" class="refund-panel" hidden>
@@ -69,5 +90,5 @@
 <div id="refundNotice" class="chat-notice" hidden></div></div></div></div>
 </div>
 </div></section></main>
-<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.png" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div><div><h3>Legal</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
+<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div><div><h3>Legal</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
 <script src="../js/app.js" defer></script><script src="../js/chat.js" defer></script></body></html>

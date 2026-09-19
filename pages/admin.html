@@ -43,42 +43,84 @@ body{background:var(--ba-bg)}
 .payment-alert-item .delete-alert{border:0;border-radius:8px;padding:6px 9px;background:#fff0f0;color:#a21d1d;font-weight:800;flex:0 0 auto}
 .payment-alert-item .delete-alert:hover{background:#ffe0e0}
 </style>
-<style>.admin-ops-hub{margin:0 0 18px;padding:16px 18px;background:#fff;border:1px solid #dce5ec;border-radius:16px;box-shadow:0 8px 24px rgba(16,38,63,.055)}.admin-ops-hub>div:first-child{display:flex;flex-direction:column;gap:3px}.admin-ops-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.admin-ops-mini{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;color:#526575;font-size:.84rem}.admin-ops-mini b{color:#10263f}.admin-ops-hub a{text-decoration:none}</style></head>
+<style>.admin-ops-hub{margin:0 0 18px;padding:16px 18px;background:#fff;border:1px solid #dce5ec;border-radius:16px;box-shadow:0 8px 24px rgba(16,38,63,.055)}.admin-ops-hub>div:first-child{display:flex;flex-direction:column;gap:3px}.admin-ops-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.admin-ops-mini{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;color:#526575;font-size:.84rem}.admin-ops-mini b{color:#10263f}.admin-ops-hub a{text-decoration:none}.admin-workspace-index{margin:18px 0;background:#fff;border:1px solid #dce5ec;border-radius:18px;padding:20px;box-shadow:0 8px 28px rgba(16,38,63,.055)}.workspace-index-head h3{margin:4px 0;color:#10263f}.workspace-index-head p{margin:0;color:#718394}.workspace-index-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.workspace-index-grid a{display:flex;flex-direction:column;gap:5px;padding:13px;border:1px solid #e1e8ed;border-radius:12px;text-decoration:none;color:#10263f;background:#fbfdfe}.workspace-index-grid a:hover{border-color:#10263f;transform:translateY(-1px)}.workspace-index-grid span{font-size:.76rem;color:#718394;line-height:1.4}@media(max-width:1000px){.workspace-index-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.workspace-index-grid{grid-template-columns:1fr}}</style><script>
+(function(){
+  const KEY="brightace_admin_token_v4";
+  if(!(localStorage.getItem(KEY)||sessionStorage.getItem(KEY)||localStorage.getItem("brightace_admin_token_v3")||sessionStorage.getItem("brightace_admin_token_v3"))){
+    location.replace("admin-login.html");
+  }
+})();
+</script><script>
+(function(){
+  var k=["brightace_admin_active_token_v4","brightace_admin_token_v4","brightace_admin_token_v3"];
+  var ok=k.some(function(x){return localStorage.getItem(x)||sessionStorage.getItem(x)});
+  if(!ok) location.replace("admin-login.html");
+})();
+</script>
+<style>#login{display:none!important}</style><script src="../js/brightace-api-config.js"></script></head>
 <body>
-<header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span class="admin-top-label">PRIVATE ADMIN CONTROL CENTER</span></div></header>
+<header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span class="admin-top-label">PRIVATE ADMIN CONTROL CENTER</span></div></header>
 <main>
 <section class="page-hero"><div class="container"><div class="eyebrow">BRIGHTACE ACADEMY</div><h1>Admin Dashboard</h1><p>One professional workspace for client communication, work allocation and operational control. Client communication stays with BrightAce administration.</p></div></section>
 <section class="section" style="padding-top:28px">
 <div class="admin-shell-pro">
-<nav id="adminNav" class="admin-topnav-pro" style="display:none" aria-label="Admin navigation"><a class="active" href="admin.html">Dashboard</a><a class="" href="admin-clients.html">Client Admissions</a><a class="" href="admin-assignments.html">Work Assignments</a><a class="" href="admin-team.html">Admin Team</a><a class="" href="admin-tutors.html">Tutors</a><a class="" href="admin-scheduling.html">Scheduling</a><a class="" href="admin-quality.html">Quality Control</a><a class="" href="admin-payments.html">Payments</a><a class="" href="admin-tutor-earnings.html">Tutor Earnings</a><a class="" href="admin-history.html">History</a></nav>
+<nav id="adminNav" class="admin-topnav-pro" style="display:none" aria-label="Admin navigation"><a class="active" href="admin.html">Dashboard</a><a class="" href="admin-clients.html">Client Admissions</a><a class="" href="admin-assignments.html">Work Assignments</a><a class="" href="admin-team.html">Admin Team</a><a class="" href="admin-tutors.html">Tutors</a><a class="" href="admin-scheduling.html">Scheduling</a><a class="" href="admin-quality.html">Quality Control</a><a class="" href="admin-payments.html">Payments</a><a class="" href="admin-tutor-earnings.html">Tutor Earnings</a><a class="" href="admin-history.html">History</a><a class="" href="admin-observability.html">System Health</a><a class="" href="admin-recovery.html">Recovery</a><a class="" href="admin-production-qa.html">Production QA</a><a class="" href="admin-resources.html">Resources</a></nav>
 <div id="notice" class="chat-notice notice-pro" hidden></div><div id="paymentAlerts" class="payment-alerts" hidden></div>
-<div id="login" class="panel login-pro" style="padding:24px"><h2 style="margin-top:0">Admin sign in</h2><p class="muted">Use your BrightAce admin credentials. Access is protected by the Apps Script backend.</p><form id="loginForm" class="form"><label>Username<input id="username" value="owner" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button class="btn btn-primary" type="submit">SIGN IN →</button></form></div>
+<div id="login" hidden class="panel login-pro" style="padding:24px"><h2 style="margin-top:0">Admin sign in</h2><p class="muted">Use your BrightAce admin credentials. Access is protected by the Apps Script backend.</p><form id="loginForm" class="form"><label>Username<input id="username" value="owner" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button class="btn btn-primary" type="submit">SIGN IN →</button></form></div>
 <div id="app" hidden>
-<div class="admin-toolbar-pro"><div><h2>BrightAce Operations</h2><p>Live client communication and active work queue.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="refresh" class="btn btn-outline btn-small">REFRESH</button><button id="alertSoundBtn" class="btn btn-outline btn-small alert-sound-btn" type="button" aria-pressed="true">🔔 SOUND ON</button><button id="logout" class="text-btn" type="button">Log out</button></div></div>
-<div class="admin-stats"><div class="stat-card"><span>New / Unassigned</span><strong id="statNew">0</strong></div><div class="stat-card"><span>Assigned Work</span><strong id="statAssigned">0</strong></div><div class="stat-card"><span>Paid Active</span><strong id="statPaid">0</strong></div><div class="stat-card"><span>Total Active</span><strong id="statActive">0</strong></div></div><div class="admin-ops-hub"><div><strong>Operations</strong><span class="meta">Tutor management, availability, QA and client-facing status stay in their dedicated workspaces.</span></div><div class="admin-ops-actions"><a class="btn btn-outline btn-small" href="admin-tutors.html">TUTORS</a><a class="btn btn-outline btn-small" href="admin-scheduling.html">CHECK AVAILABILITY / SCHEDULE</a><a class="btn btn-outline btn-small" href="admin-quality.html">QUALITY CONTROL</a><a class="btn btn-outline btn-small" href="admin-assignments.html">WORK ASSIGNMENTS</a></div><div class="admin-ops-mini"><span>Active tutors: <b id="opsTutorCount">0</b></span><span>Upcoming sessions: <b id="opsScheduleCount">0</b></span><span>QA queue: <b id="opsQaCount">0</b></span></div></div>
+<div class="admin-toolbar-pro"><div><h2>BrightAce Operations</h2><p>Live client communication and active work queue.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="refresh" class="btn btn-outline btn-small">REFRESH</button><button id="requestIntakeBtn" class="btn btn-outline btn-small" type="button">NEW REQUESTS: CHECKING…</button><button id="alertSoundBtn" class="btn btn-outline btn-small alert-sound-btn" type="button" aria-pressed="true">🔔 SOUND ON</button><button id="logout" class="text-btn" type="button">Log out</button></div></div>
+<section class="statement-download-card" aria-labelledby="statementDownloadTitle">
+  <div class="statement-download-head">
+    <div><div class="eyebrow">FINANCIAL RECORDS</div><h3 id="statementDownloadTitle">BrightAce Academy Transaction Statement</h3><p>Download an official statement for the selected period. The statement includes all recorded client payments, approved client refunds, and tutor payments for the selected period, with transaction references and digital verification details.</p></div>
+    <div class="statement-security-badge"><span>✓</span><div><strong>Official record</strong><small>Reference + verification QR</small></div></div>
+  </div>
+  <div class="statement-download-body">
+    <div class="statement-date-field"><label for="adminStatementFrom">FROM DATE</label><input id="adminStatementFrom" type="date"></div>
+    <div class="statement-date-separator" aria-hidden="true">→</div>
+    <div class="statement-date-field"><label for="adminStatementTo">TO DATE</label><input id="adminStatementTo" type="date"></div>
+    <div class="statement-range-actions" role="group" aria-label="Statement date presets"><button type="button" class="statement-preset" data-statement-range="7">Last 7 days</button><button type="button" class="statement-preset" data-statement-range="30">Last 30 days</button><button type="button" class="statement-preset" data-statement-range="month">This month</button><button type="button" class="statement-preset" data-statement-range="all">All time</button></div>
+  </div>
+  <div class="statement-download-footer">
+    <div class="statement-help"><strong>Choose a statement period</strong><span>Leave both dates blank to include all recorded transactions.</span><span id="statementRangeStatus" class="statement-range-status" aria-live="polite">All recorded transactions</span></div>
+    <button id="ownerStatementBtn" class="btn btn-primary statement-download-btn" type="button">⬇ DOWNLOAD STATEMENT</button>
+  </div>
+</section>
+<div class="admin-stats"><div class="stat-card"><span>New / Unassigned</span><strong id="statNew">0</strong></div><div class="stat-card"><span>Assigned Work</span><strong id="statAssigned">0</strong></div><div class="stat-card"><span>Paid Active</span><strong id="statPaid">0</strong></div><div class="stat-card"><span>Total Active</span><strong id="statActive">0</strong></div></div><section class="admin-workspace-index"><div class="workspace-index-head"><div><div class="eyebrow" style="color:#718394">ADMIN WORKSPACES</div><h3>Operations menu</h3><p>Use the dedicated workspace for each part of BrightAce operations.</p></div></div><div class="workspace-index-grid"><a href="admin-clients.html"><strong>👥 Client Admissions</strong><span>Clients, registration and access status</span></a><a href="admin-assignments.html"><strong>📋 Work Assignments</strong><span>Assign, monitor and manage active work</span></a><a href="admin-tutors.html"><strong>🎓 Tutor Directory</strong><span>Open tutor dashboards and private chats</span></a><a href="admin-scheduling.html"><strong>🗓 Scheduling</strong><span>Availability and upcoming sessions</span></a><a href="admin-quality.html"><strong>✅ Quality Control</strong><span>Review and approve submitted work</span></a><a href="admin-payments.html"><strong>💳 Payments</strong><span>Client payments and payment requests</span></a><a href="admin-tutor-earnings.html"><strong>💰 Tutor Earnings</strong><span>Balances, wallets and withdrawals</span></a><a href="admin-history.html"><strong>🕘 History</strong><span>Operational activity and records</span></a><a href="admin-observability.html"><strong>🩺 System Health</strong><span>API, delivery queue and recent failures</span></a><a href="admin-recovery.html"><strong>🛡 Recovery & Data Protection</strong><span>Integrity checks and sanitized recovery snapshots</span></a><a href="admin-production-qa.html"><strong>🧪 Production QA</strong><span>End-to-end workflow coverage and read-only readiness checks</span></a><a href="admin-resources.html"><strong>📚 Resources</strong><span>Google Drive resources, USD prices and publication</span></a></div></section><div class="admin-ops-hub"><div><strong>Operations</strong><span class="meta">Tutor management, availability, QA and client-facing status stay in their dedicated workspaces.</span></div><div class="admin-ops-actions"><a class="btn btn-outline btn-small" href="admin-tutors.html">TUTORS</a><a class="btn btn-outline btn-small" href="admin-scheduling.html">CHECK AVAILABILITY / SCHEDULE</a><a class="btn btn-outline btn-small" href="admin-quality.html">QUALITY CONTROL</a><a class="btn btn-outline btn-small" href="admin-assignments.html">WORK ASSIGNMENTS</a></div><div class="admin-ops-mini"><span>Active tutors: <b id="opsTutorCount">0</b></span><span>Upcoming sessions: <b id="opsScheduleCount">0</b></span><span>QA queue: <b id="opsQaCount">0</b></span></div></div>
 <div class="admin-main-grid">
-<section class="panel"><div class="panel-head"><div><h3>Client Requests</h3><p>Select a request to open its BrightAce WhatsApp wall.</p></div></div><div id="requestList" class="request-list"><div class="chat-empty">Loading requests…</div></div></section>
+<section class="panel"><div class="panel-head"><div><h3>Client Requests</h3><p>Search clients, tutors, admins, requests, payments and other operational records.</p></div></div><input id="adminSearch" type="search" placeholder="Search client, tutor, admin, request ID, phone or status…" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #d5e0e8;border-radius:10px;margin-bottom:12px"><div id="requestList" class="request-list"><div class="chat-empty">Loading requests…</div></div></section>
 <section class="panel workspace" id="workspace"><div id="workspaceEmpty" class="chat-empty">Select a client request from the left to open the conversation.</div><div id="workspaceBody" hidden></div></section>
 </div>
 </div>
-</div></div>
+</div>
 </section></main>
 <footer class="footer" style="margin-top:34px"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html" style="margin-right:14px">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
 
-<script src="../js/app.js"></script><script>
-const API="https://script.google.com/macros/s/AKfycbx6--Az56QTjbYLQaFB80qLPnD7AUDm0qoVPMX_mmlK_ttV7n5DTIyDHCEvrH9ZGodH/exec";
+<script src="../js/app.js"></script><script src="../js/statement-pdf.js"></script><script>
+const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec");
 const KEY="brightace_admin_token_v4";let rows=[],tutors=[],admins=[],selected=null,selectedMessages=[],selectedFiles=[],loading=false,pollTimer=null;
 const $=id=>document.getElementById(id),notice=$('notice');
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function money(n,c){try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'KES'}).format(Number(n||0))}catch(e){return `${c||''} ${Number(n||0).toFixed(2)}`}}
 function setNotice(t,type='info'){notice.textContent=t;notice.className='chat-notice notice-pro '+type;notice.hidden=!t}
-function showAdminNav(){document.querySelector('nav[aria-label*="Admin"], nav.navx')?.style.setProperty("display","flex");}function token(){return sessionStorage.getItem(KEY)||sessionStorage.getItem("brightace_admin_token_v3")||''}
-async function api(action,p={}){const b=new URLSearchParams();b.set('payload',JSON.stringify({action,adminToken:token(),...p}));let raw="";for(let attempt=0;attempt<2;attempt++){try{const r=await fetch(API,{method:'POST',body:b,cache:'no-store'});raw=await r.text();if(raw.trim().startsWith("{"))break}catch(e){if(attempt===1)throw Error("BrightAce server could not be reached. Please check the deployed Apps Script web-app URL.")}await new Promise(x=>setTimeout(x,250))}let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce Apps Script returned HTML instead of JSON. The /exec web-app deployment is not currently returning the BrightAce API response.")}if(!d.ok)throw Error(d.error||'Request failed');return d}
-async function login(){const b=new URLSearchParams();b.set('payload',JSON.stringify({action:'adminLogin',username:$('username').value.trim()||'owner',password:$('password').value}));const r=await fetch(API,{method:'POST',body:b,cache:'no-store'});const raw=await r.text();let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce Apps Script returned HTML instead of JSON during admin sign-in. The deployment URL/access needs checking.")}if(!d.ok)throw Error(d.error||'Sign in failed');sessionStorage.setItem(KEY,d.adminToken);return d}
+function showAdminNav(){document.querySelector('nav[aria-label*="Admin"], nav.navx')?.style.setProperty("display","flex");}function token(){return window.BrightAceAdminSession?window.BrightAceAdminSession.get():(localStorage.getItem(KEY)||sessionStorage.getItem(KEY)||localStorage.getItem("brightace_admin_token_v3")||sessionStorage.getItem("brightace_admin_token_v3")||"")};
+function updateOwnerStatementButton(){
+  const b=$('ownerStatementBtn'); if(!b)return;
+  let p=window.BrightAceCurrentAdmin;
+  if(!p){try{p=JSON.parse(sessionStorage.getItem("brightace_admin_profile_v1")||"null")}catch(e){}}
+  const owner=String(p?.role||"").toUpperCase()==="SUPER_ADMIN";
+  b.hidden=false;b.disabled=!owner;b.title=owner?"Download the official BrightAce Academy transaction statement":"Owner / Main Admin authorization is required for this statement.";b.setAttribute("aria-disabled",String(!owner));
+}
+async function loadAdminProfile(){
+  try{const d=await api('adminSessionProfile');window.BrightAceCurrentAdmin=d.admin||null;try{sessionStorage.setItem("brightace_admin_profile_v1",JSON.stringify(window.BrightAceCurrentAdmin||{}))}catch(e){};updateOwnerStatementButton()}catch(e){updateOwnerStatementButton()}
+}
+
+async function api(action,p={}){const b=new URLSearchParams();b.set('payload',JSON.stringify({action,adminToken:token(),...p}));let raw="";for(let attempt=0;attempt<2;attempt++){try{const r=await fetch(API,{method:'POST',body:b,cache:'no-store'});raw=await r.text();if(raw.trim().startsWith("{"))break}catch(e){if(attempt===1)throw Error("BrightAce server could not be reached. Please check the deployed Apps Script web-app URL.")}await new Promise(x=>setTimeout(x,250))}let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce /exec returned HTML instead of JSON. The deployed Web App is not currently returning the V45 BrightAce API response. Redeploy V45 as a new version of the SAME Web App and keep the existing /exec URL.")}if(!d.ok){const msg=String(d.error||'Request failed');if(/admin login is required|login is required|expired/i.test(msg)){try{window.BrightAceAdminSession?.clear()}catch(e){}location.replace('admin-login.html');return new Promise(()=>{});}throw Error(msg)}return d}
+async function login(){const b=new URLSearchParams();b.set("payload",JSON.stringify({action:"adminLogin",username:$('u')?.value||$('username')?.value||"owner",password:$('p')?.value||$('password')?.value||""}));const r=await fetch(API,{method:"POST",body:b,cache:"no-store"});const raw=await r.text();let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce /exec returned HTML instead of JSON during admin sign-in. Redeploy the latest V46 backend as a NEW version of the SAME Web App (Execute as: Me; Who has access: Anyone) and keep the existing /exec URL.")}if(!d.ok)throw Error(d.error||"Sign in failed");if(!d.adminToken)throw Error("Admin sign-in succeeded but no session token was returned.");if(window.BrightAceAdminSession)window.BrightAceAdminSession.set(d.adminToken);else{sessionStorage.setItem(KEY,d.adminToken);localStorage.setItem(KEY,d.adminToken)}}
 const EMOJIS=['😀','😂','😊','😍','🥳','👍','🙏','👏','💪','❤️','🔥','✨','🎉','🎓','📚','📝','🧮','🔬','💡','📊','💻','✅','❌','❓','❗','⭐'];
-function attachmentHtml(a){if(!a)return '';if(Array.isArray(a))return `<div class="message-attachments">${a.map(attachmentHtml).join('')}</div>`;const name=esc(a.name||'Attachment'),view=String(a.viewUrl||a.url||''),download=String(a.downloadUrl||view||''),type=String(a.mimeType||'');if(type.startsWith('image/')&&view)return `<div class="attachment-card"><a href="${esc(view)}" target="_blank" rel="noopener"><img src="${esc(view)}" alt="${name}"></a><div class="attachment-name">📎 ${name}</div><div class="attachment-actions"><a href="${esc(view)}" target="_blank" rel="noopener">OPEN</a>${download?`<a href="${esc(download)}" target="_blank" rel="noopener">DOWNLOAD ↓</a>`:''}</div></div>`;return `<div class="attachment-card"><div class="attachment-name">📎 ${name}</div><div class="attachment-actions">${view?`<a href="${esc(view)}" target="_blank" rel="noopener">OPEN</a>`:''}${download?`<a href="${esc(download)}" target="_blank" rel="noopener">DOWNLOAD ↓</a>`:''}</div></div>`}
-function renderRequests(){const box=$('requestList');$('statActive').textContent=rows.length;$('statNew').textContent=rows.filter(x=>!x.assignedTutor||x.assignedTutor==='Unassigned').length;$('statAssigned').textContent=rows.filter(x=>x.assignedTutor&&x.assignedTutor!=='Unassigned').length;$('statPaid').textContent=rows.filter(x=>String(x.paymentStatus).toUpperCase()==='PAID').length;if(!rows.length){box.innerHTML='<div class="chat-empty">No active verified requests.</div>';return}box.innerHTML=rows.map(c=>`<button class="request-item ${selected?.conversationId===c.conversationId?'active':''}" data-id="${esc(c.conversationId)}"><strong>${esc(c.studentName)}</strong><span class="badge ${String(c.assignmentStatus).toLowerCase()==='assigned'?'assigned':'pending'}">${esc(c.assignmentStatus||'NEW_REQUEST')}</span><span class="badge ${String(c.paymentStatus).toUpperCase()==='PAID'?'paid':'pending'}">${esc(c.paymentStatus||'PENDING')}</span><small>+${esc(c.studentPhone)} · ${c.startedAt?new Date(c.startedAt).toLocaleString():'—'}</small><p>${esc(c.workDescription||'No task description')}</p></button>`).join('');box.querySelectorAll('.request-item').forEach(b=>b.onclick=()=>selectRequest(b.dataset.id))}
+function attachmentHtml(a){if(!a)return '';if(Array.isArray(a))return `<div class="message-attachments">${a.map(attachmentHtml).join('')}</div>`;const name=esc(a.name||'Attachment'),view=String(a.viewUrl||a.url||''),download=String(a.downloadUrl||view||''),type=String(a.mimeType||'');if(type.startsWith('image/')&&view)return `<div class="attachment-card"><a href="${esc(view)}" target="_blank" rel="noopener"><img src="${esc(view)}" alt="${name}" loading="lazy" decoding="async"></a><div class="attachment-name">📎 ${name}</div><div class="attachment-actions"><a href="${esc(view)}" target="_blank" rel="noopener">OPEN</a>${download?`<a href="${esc(download)}" target="_blank" rel="noopener">DOWNLOAD ↓</a>`:''}</div></div>`;return `<div class="attachment-card"><div class="attachment-name">📎 ${name}</div><div class="attachment-actions">${view?`<a href="${esc(view)}" target="_blank" rel="noopener">OPEN</a>`:''}${download?`<a href="${esc(download)}" target="_blank" rel="noopener">DOWNLOAD ↓</a>`:''}</div></div>`}
+function renderRequests(){const box=$('requestList'),q=(document.getElementById('adminSearch')?.value||'').trim().toLowerCase(),source=rows.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)||tutors.some(t=>String(t.tutorName||'').toLowerCase().includes(q)&&String(t.tutorName||'').toLowerCase()===String(x.assignedTutor||'').toLowerCase())||admins.some(a=>JSON.stringify(a).toLowerCase().includes(q)&&String(a.username||'').toLowerCase()===String(x.assignedAdminUsername||'').toLowerCase()));$('statActive').textContent=rows.length;$('statNew').textContent=rows.filter(x=>!x.assignedTutor||x.assignedTutor==='Unassigned').length;$('statAssigned').textContent=rows.filter(x=>x.assignedTutor&&x.assignedTutor!=='Unassigned').length;$('statPaid').textContent=rows.filter(x=>String(x.paymentStatus).toUpperCase()==='PAID').length;if(!source.length){box.innerHTML='<div class="chat-empty">No active verified requests.</div>';return}box.innerHTML=source.map(c=>`<button class="request-item ${selected?.conversationId===c.conversationId?'active':''}" data-id="${esc(c.conversationId)}"><strong>${esc(c.studentName)}</strong><span class="badge ${String(c.assignmentStatus).toLowerCase()==='assigned'?'assigned':'pending'}">${esc(c.assignmentStatus||'NEW_REQUEST')}</span><span class="badge ${String(c.paymentStatus).toUpperCase()==='PAID'?'paid':'pending'}">${esc(c.paymentStatus||'PENDING')}</span><small>+${esc(c.studentPhone)} · ${c.startedAt?new Date(c.startedAt).toLocaleString():'—'}</small><p>${esc(c.workDescription||'No task description')}</p></button>`).join('');box.querySelectorAll('.request-item').forEach(b=>b.onclick=()=>selectRequest(b.dataset.id))}
 function detailHtml(c){return `<div class="workspace-meta"><div class="identity"><div><strong>${esc(c.studentName)}</strong><br><small>+${esc(c.studentPhone)} · Work ID ${esc(c.conversationId)}</small></div><div><span class="badge ${String(c.assignmentStatus).toLowerCase()==='assigned'?'assigned':'pending'}">${esc(c.assignmentStatus||'NEW_REQUEST')}</span><span class="badge ${String(c.paymentStatus).toUpperCase()==='PAID'?'paid':'pending'}">${esc(c.paymentStatus||'PENDING')}</span></div></div><div class="detail-strip"><div><span>Budget</span><b>${money(c.studentBudget,c.currency)}</b></div><div><span>Approved</span><b>${money(c.agreedAmount||c.studentBudget,c.agreedCurrency||c.currency)}</b></div><div><span>Tutor</span><b>${esc(c.assignedTutor||'Unassigned')}</b></div><div><span>Admin</span><b>${esc(c.assignedAdminName||'Unassigned')}</b></div><div><span>Deadline</span><b>${esc(c.deadline||'As agreed')}</b></div></div></div>`}
+document.getElementById("adminSearch")?.addEventListener("input",renderRequests);
 function renderChat(){
   const body=$('chatMessages');if(!body)return;
   const nearBottom=body.scrollHeight-body.scrollTop-body.clientHeight<90,oldTop=body.scrollTop,oldHeight=body.scrollHeight;
@@ -88,7 +130,7 @@ function renderChat(){
 function composerHtml(){return `<form id="chatForm" class="composer"><div id="emojiPicker" class="emoji-picker-pro">${EMOJIS.map(e=>`<button type="button">${e}</button>`).join('')}</div><div id="filePreview" class="attachment-preview" hidden></div><div class="composer-row"><div class="composer-tools"><button type="button" class="icon-btn" id="emojiBtn">😊</button><button type="button" class="icon-btn" id="attachBtn">📎</button><button type="button" class="icon-btn" id="photoBtn">📷</button><input id="fileInput" type="file" multiple hidden></div><textarea id="messageInput" rows="2" placeholder="Type a message to the student…"></textarea><button class="btn btn-primary send-btn" type="submit">SEND</button></div></form>`}
 function assignmentHtml(c){const activeAdmins=admins.filter(x=>String(x.status).toUpperCase()==='ACTIVE');return `<div class="workspace-bottom"><div class="assignment-box"><h4>Assignment control</h4><form id="assignForm" class="form"><label>Responsible admin<select id="assignAdmin"><option value="">Unassigned</option>${activeAdmins.map(a=>`<option value="${esc(a.username)}" data-name="${esc(a.name)}" ${a.username===c.assignedAdminUsername?'selected':''}>${esc(a.name)} — ${esc(a.username)}</option>`).join('')}</select></label><label>Tutor<select id="assignTutor"><option value="">Select tutor</option>${tutors.map(t=>`<option value="${esc(t.tutorName)}" data-phone="${esc(t.tutorPhone||'')}" ${t.tutorName===c.assignedTutor?'selected':''}>${esc(t.tutorDisplayName||t.tutorName)}${t.tutorPhone?' — +'+esc(t.tutorPhone):''}</option>`).join('')}</select></label><div class="action-row"><button class="btn btn-primary btn-small" type="submit">SAVE ASSIGNMENT</button><button id="completeBtn" class="btn btn-outline btn-small" type="button">MARK COMPLETED</button><button id="rejectBtn" class="btn btn-outline btn-small danger" type="button">REJECT</button></div></form></div><div class="assignment-box"><h4>Request details</h4><p style="margin:0;color:#526575;line-height:1.55"><strong>Description:</strong><br>${esc(c.workDescription||'No description')}</p><p style="color:#718394;font-size:.8rem;margin-bottom:0">Tutor payout and BrightAce share remain visible only to authorized administrators.</p></div></div>`}
 async function selectRequest(id){chatSignature='';selected=rows.find(x=>x.conversationId===id);if(!selected)return;renderRequests();$('workspaceEmpty').hidden=true;$('workspaceBody').hidden=false;$('workspaceBody').innerHTML=detailHtml(selected)+`<div class="chat-wrap"><div class="admin-chat-pro"><div id="chatMessages" class="admin-chat-messages-pro"><div class="chat-empty">Loading conversation…</div></div>${composerHtml()}</div></div>`+assignmentHtml(selected);bindComposer();bindAssignment();await loadConversation(selected.conversationId)}
-let chatSignature='';async function loadConversation(id){const d=await api('adminGetConversation',{conversationId:id});const next=d.conversation.messages||[],sig=next.map(m=>`${m.id||''}:${m.status||''}:${m.timestamp||''}:${JSON.stringify(m.attachment||null)}`).join('|');if(sig===chatSignature)return;chatSignature=sig;selectedMessages=next;renderChat()}
+let chatSignature='';async function loadConversation(id){const d=await api('adminGetConversation',{conversationId:id});const next=d.conversation.messages||[],sig=next.map(m=>`${m.id||''}:${m.status||''}:${m.timestamp||''}:${JSON.stringify(m.attachment||null)}`).join('|');if(sig===chatSignature)return;if(chatSignature&&sig!==chatSignature)window.BrightAceSound?.notify("admin-conversation",sig);chatSignature=sig;selectedMessages=next;renderChat()}
 function bindComposer(){
   const input=$('fileInput'),preview=$('filePreview'),picker=$('emojiPicker');
   $('emojiBtn').onclick=()=>picker.classList.toggle('open');
@@ -125,12 +167,12 @@ async function runMutationWithRecovery(action,p,successCheck){
   catch(err){
     if(String(err.message||'').toLowerCase().includes('html')||String(err.message||'').toLowerCase().includes('invalid response')){
       try{
-        const check=await api('adminListConversations');
+        const check=await api('adminListConversations',{fresh:true});
         const fresh=(check.conversations||[]).find(x=>x.conversationId===p.conversationId);
         if(fresh && successCheck(fresh))return {ok:true,recovered:true};
       }catch(e){}
       try{
-        const history=await api('adminListWorkHistory');
+        const history=await api('adminListWorkHistory',{fresh:true});
         const fresh=(history.work||history.history||[]).find(x=>x.conversationId===p.conversationId||x.workId===p.conversationId);
         if(fresh && successCheck(fresh))return {ok:true,recovered:true};
       }catch(e){}
@@ -182,17 +224,56 @@ function handleNewRequests(nextRows){
     return id && !knownRequestIds.has(id) && String(x.assignmentStatus||'NEW_REQUEST').toUpperCase()!=='COMPLETED' && String(x.assignmentStatus||'NEW_REQUEST').toUpperCase()!=='REJECTED';
   });
   knownRequestIds=ids;
+  const due=window.BrightAceSound?.checkDeadlines(nextRows,{windowHours:24,keyPrefix:"admin"});
+  if(due?.length)setNotice(`⏰ ${due.length} job${due.length===1?"":"s"} approaching deadline.`, "warning");
   if(fresh.length){
     playNewRequestAlert(fresh.length);
     setNotice(`🔔 ${fresh.length} new BrightAce request${fresh.length===1?'':'s'} received.`, 'success');
   }
 }
 updateAlertSoundButton();
+function updateRequestIntakeButton(enabled){
+  const b=$('requestIntakeBtn'); if(!b)return;
+  b.textContent=enabled?'NEW REQUESTS: ON':'NEW REQUESTS: OFF';
+  b.title=enabled?'New clients can submit requests.':'New clients are paused; existing client numbers may still verify and request support.';
+  b.setAttribute('aria-pressed',enabled?'true':'false');
+}
+async function loadRequestIntakeStatus(){
+  try{
+    const d=await api('adminGetRequestIntakeStatus');
+    updateRequestIntakeButton(!!d.enabled);
+  }catch(e){}
+}
+async function toggleRequestIntake(){
+  const b=$('requestIntakeBtn'); if(!b)return;
+  const currentlyOn=String(b.textContent||'').includes('ON');
+  const next=!currentlyOn;
+  const confirmed=confirm(next
+    ? 'Open new client requests now? New clients will be allowed to start verification.'
+    : 'Pause new client requests? Existing client numbers will still be allowed to verify, but new numbers will receive: “We are not taking in new requests right now. Please check again in the next 24 hours.”');
+  if(!confirmed)return;
+  const old=b.textContent;
+  b.disabled=true;b.textContent=next?'OPENING…':'PAUSING…';
+  try{
+    const d=await api('adminSetRequestIntake',{enabled:next});
+    updateRequestIntakeButton(!!d.enabled);
+    setNotice(d.message||'Request intake setting updated.','success');
+  }catch(e){
+    b.textContent=old;
+    setNotice(e.message,'error');
+  }finally{b.disabled=false}
+}
+$('requestIntakeBtn').addEventListener('click',toggleRequestIntake);
+let knownPaymentSignature="";
 async function refresh(){
   if(loading)return;loading=true;
   try{
-    const [c,t,a,pay,s,q]=await Promise.all([api('adminListConversations'),api('adminListTutors'),api('adminListAdmins'),api('adminListPayments'),api('adminListSchedules'),api('adminListQuality')]);
-    rows=c.conversations||[];handleNewRequests(rows);tutors=t.tutors||[];document.getElementById('opsTutorCount').textContent=tutors.length;document.getElementById('opsScheduleCount').textContent=(s.schedules||[]).filter(x=>String(x.status||'').toUpperCase()==='CONFIRMED').length;document.getElementById('opsQaCount').textContent=(q.works||[]).length;admins=a.admins||[];
+    const [c,t,a,pay,s,intake]=await Promise.all([api('adminListConversations',{fresh:true}),api('adminListTutors'),api('adminListAdmins'),api('adminListPayments'),api('adminListSchedules'),api('adminGetRequestIntakeStatus')]);
+    rows=c.conversations||[];handleNewRequests(rows);
+const paymentSig=(pay.payments||[]).map(x=>`${x.requestId||x.paymentId||''}:${x.status||''}:${x.paidAt||''}:${x.amount||''}`).join('|');
+if(knownPaymentSignature&&paymentSig!==knownPaymentSignature)window.BrightAceSound?.notify("admin-payment-update",paymentSig);
+knownPaymentSignature=paymentSig;
+updateRequestIntakeButton(!!intake.enabled);tutors=t.tutors||[];document.getElementById('opsTutorCount').textContent=tutors.length;document.getElementById('opsScheduleCount').textContent=(s.schedules||[]).filter(x=>String(x.status||'').toUpperCase()==='CONFIRMED').length;document.getElementById('opsQaCount').textContent=rows.filter(x=>['READY_FOR_QA','REVISION_REQUIRED','APPROVED','COMPLETED'].includes(String(x.tutorWorkStatus||x.qaStatus||x.assignmentStatus||'').toUpperCase())).length;admins=a.admins||[];
     const paid=(pay.payments||[]).filter(x=>String(x.status).toUpperCase()==='PAID').slice(0,5);
     const alert=$('paymentAlerts');
     if(alert){
@@ -219,10 +300,23 @@ async function refresh(){
         if(!selectedMessages.length)await loadConversation(selected.conversationId);
       }else{selected=null;$('workspaceBody').hidden=true;$('workspaceEmpty').hidden=false}
     }
-  }catch(err){setNotice(err.message,'error')}finally{loading=false}
+  }catch(err){if(/Admin login is required or has expired|admin login required|expired/i.test(err.message||'')){sessionStorage.removeItem(KEY);localStorage.removeItem(KEY);location.replace('admin-login.html');return}setNotice(err.message,'error')}finally{loading=false}
 }
-$('loginForm').onsubmit=async e=>{e.preventDefault();try{await login();$('login').hidden=true;$('app').hidden=false;showAdminNav();$('adminNav').style.display='flex';setNotice('Admin session active.','success');await refresh()}catch(err){setNotice(err.message,'error')}};$('refresh').onclick=refresh;$('alertSoundBtn').onclick=()=>{alertSoundEnabled=!alertSoundEnabled;localStorage.setItem('brightace_admin_alert_sound_v1',alertSoundEnabled?'on':'off');updateAlertSoundButton();if(alertSoundEnabled){unlockAlertAudio();playNewRequestAlert(1)}};$('logout').onclick=()=>{sessionStorage.removeItem(KEY);location.reload()};$('loginForm').addEventListener('submit',()=>{unlockAlertAudio()},{once:false});if(token()){showAdminNav();$('login').hidden=true;$('app').hidden=false;$('adminNav').style.display='flex';refresh()}setInterval(()=>{if(token()&&!loading)refresh().catch(()=>{})},20000);
-setInterval(()=>{if(token()&&selected&&!loading&&!document.hidden)loadConversation(selected.conversationId).catch(()=>{})},20000);
+if($('loginForm'))$('loginForm').onsubmit=e=>{e.preventDefault();location.replace('admin-login.html')};$('refresh').onclick=refresh;$('alertSoundBtn').onclick=()=>{alertSoundEnabled=!alertSoundEnabled;localStorage.setItem('brightace_admin_alert_sound_v1',alertSoundEnabled?'on':'off');updateAlertSoundButton();if(alertSoundEnabled){unlockAlertAudio();playNewRequestAlert(1)}};$('logout').onclick=()=>{sessionStorage.removeItem(KEY);localStorage.removeItem(KEY);location.reload()};$('loginForm').addEventListener('submit',()=>{unlockAlertAudio()},{once:false});$('ownerStatementBtn').onclick=async function(){
+  const b=this;b.disabled=true;b.textContent='PREPARING STATEMENT…';
+  try{
+    const from=$('adminStatementFrom').value,to=$('adminStatementTo').value;if(from&&to&&from>to)throw Error('Statement start date cannot be after the end date.');
+    const d=await api('registerStatement',{statementType:'OWNER',from,to});
+    const tx=(d.transactions||[]).map(x=>({date:x.date,type:x.type,direction:x.direction,reference:x.reference,details:x.details,amount:x.amount,currency:x.currency,status:x.status,sourceId:x.sourceId}));
+    const period=(from||to)?((from||'Beginning')+' to '+(to||'Present')):'All recorded transactions';
+    const total=tx.reduce((a,x)=>a+Number(x.amount||0),0),incoming=tx.filter(x=>x.direction==='IN').reduce((a,x)=>a+Number(x.amount||0),0),outgoing=tx.filter(x=>x.direction==='OUT').reduce((a,x)=>a+Number(x.amount||0),0),net=incoming-outgoing;
+    await BrightAceStatementPDF.download({title:'BrightAce Academy Transaction Statement',subtitle:'Owner / Main Admin Financial Transaction Record',party:{name:'BrightAce Academy',email:d.party?.email||'',phone:d.party?.phone||'',administrator:d.party?.administrator||'',identifier:'Owner / Main Admin'},transactions:tx,statementReference:d.statementReference,integrityHash:d.integrityHash,verificationUrl:d.verificationUrl,generatedAt:d.generatedAt,periodText:period,summary:{total:total,incoming:incoming,outgoing:outgoing,net:net,currency:tx[0]?.currency||'KES',note:'Official BrightAce Academy financial transaction record. Includes client payments received, approved client refunds, and tutor payments made. The statement reference and verification QR can be checked online.'},filename:'BrightAce-Academy-Transaction-Statement-'+(d.statementReference||'').replace(/[^A-Za-z0-9-]/g,'')+'.pdf'});
+    setNotice('Transaction statement downloaded successfully. Reference: '+d.statementReference,'success');
+  }catch(e){setNotice(e.message,'error')}finally{b.disabled=false;b.textContent='⬇ DOWNLOAD STATEMENT'}
+};
+
+function updateStatementRangeStatus(){const from=$('adminStatementFrom').value,to=$('adminStatementTo').value,el=$('statementRangeStatus');if(!el)return;if(from&&to)el.textContent='Selected: '+from+' to '+to;else if(from)el.textContent='From '+from+' to present';else if(to)el.textContent='Beginning to '+to;else el.textContent='All recorded transactions'}$('adminStatementFrom').addEventListener('change',updateStatementRangeStatus);$('adminStatementTo').addEventListener('change',updateStatementRangeStatus);document.querySelectorAll('.statement-preset').forEach(btn=>btn.addEventListener('click',()=>{const now=new Date(),mode=btn.dataset.statementRange,from=$('adminStatementFrom'),to=$('adminStatementTo'),pad=n=>String(n).padStart(2,'0'),fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());if(mode==='all'){from.value='';to.value=''}else if(mode==='month'){from.value=fmt(new Date(now.getFullYear(),now.getMonth(),1));to.value=fmt(now)}else{const days=Number(mode)||7,d=new Date(now);d.setDate(d.getDate()-days+1);from.value=fmt(d);to.value=fmt(now)}updateStatementRangeStatus();}));updateStatementRangeStatus();if(token()){showAdminNav();$('login').hidden=true;$('app').hidden=false;$('adminNav').style.display='flex';loadAdminProfile();refresh()}window.BrightAceScheduler.start("admin-dashboard",()=>{if(token()&&!loading&&!document.querySelector("input:focus,textarea:focus,select:focus"))return refresh().catch(()=>{})},25000);
+window.BrightAceScheduler.start("admin-conversation",()=>{if(token()&&selected&&!loading&&!document.querySelector("input:focus,textarea:focus,select:focus"))return loadConversation(selected.conversationId).catch(()=>{})},20000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&token()&&selected)loadConversation(selected.conversationId).catch(()=>{})});
 </script>
 </body></html>

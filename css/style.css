@@ -115,7 +115,7 @@ h1{font-size:clamp(3rem,6vw,5.4rem);line-height:.98;letter-spacing:-.055em;margi
 .page-hero h1{font-size:clamp(2.6rem,5vw,4.3rem)}
 .page-hero p{max-width:720px;color:#dce8f6}
 .resource-grid{grid-template-columns:repeat(3,1fr)}
-.resource-card{padding:22px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.resource-card{padding:22px;border:1px solid var(--line);border-radius:18px;background:#fff;overflow:hidden}.resource-thumb{height:150px;margin:-22px -22px 18px;background:#f2f6f9;display:flex;align-items:center;justify-content:center;overflow:hidden}.resource-thumb img{width:100%;height:100%;object-fit:cover}.resource-thumb-fallback{font-size:3rem}.resource-checkout-thumb{width:100%;max-height:220px;margin-bottom:16px;border-radius:14px;overflow:hidden;background:#f2f6f9;text-align:center}.resource-checkout-thumb img{width:100%;max-height:220px;object-fit:cover}.admin-resource-thumb{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .resource-tag{display:inline-block;background:#e8f7f8;color:#087e89;padding:4px 9px;border-radius:999px;font-size:.75rem;font-weight:800;margin-bottom:10px}
 .resource-card a{color:#087e89;font-weight:800}
 .steps{grid-template-columns:repeat(3,1fr)}
@@ -178,7 +178,7 @@ body::before{
   pointer-events:none;
   background-image:
     linear-gradient(rgba(247,250,252,.91),rgba(247,250,252,.91)),
-    url("../assets/brightace-graduates.png");
+    url("../assets/brightace-graduates.webp");
   background-size:cover;
   background-position:center center;
   background-repeat:no-repeat;
@@ -188,7 +188,7 @@ body::before{
 .hero,.page-hero{
   background-image:
     linear-gradient(135deg,rgba(2,17,38,.94),rgba(3,39,82,.88) 58%,rgba(2,17,38,.94)),
-    url("../assets/brightace-graduates.png");
+    url("../assets/brightace-graduates.webp");
   background-size:cover;
   background-position:center 34%;
   background-attachment:scroll;
@@ -196,12 +196,16 @@ body::before{
 .hero{background-image:
     radial-gradient(circle at 74% 40%,rgba(246,181,27,.18),transparent 28%),
     linear-gradient(135deg,rgba(2,17,38,.94),rgba(5,39,85,.88) 62%,rgba(3,26,56,.94)),
-    url("../assets/brightace-graduates.png");
+    url("../assets/brightace-graduates.webp");
 }
 .page-hero{background-image:
     linear-gradient(135deg,rgba(2,17,38,.92),rgba(7,48,94,.86)),
-    url("../assets/brightace-graduates.png");
+    url("../assets/brightace-graduates.webp");
 }
+.returning-entry{margin:0 0 18px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.returning-client-trigger{width:100%;max-width:620px}
+.returning-client-panel{max-width:700px;margin:0 auto}
+.returning-client-panel .chat-exit-btn{margin-bottom:12px}
 .verification-panel{padding:25px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 25px rgba(3,21,47,.06);max-width:620px;margin:0 auto}
 .verification-panel h3{margin-bottom:7px}
 .verification-panel p{color:var(--muted);margin-bottom:15px}
@@ -289,3 +293,39 @@ body.modal-open{overflow:hidden}
 .fixed-scroll-box.compact{height:320px;max-height:320px}
 @media(max-width:700px){.fixed-scroll-box{height:300px;max-height:300px}.fixed-scroll-box.compact{height:280px;max-height:280px}}
 .chat-exit-btn{border:1px solid #c9d9e1;background:#fff;color:#176b8c;font-weight:800;border-radius:9px;padding:8px 12px;cursor:pointer;white-space:nowrap}.chat-exit-btn:hover{background:#eef7fb}.verification-number-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin:12px 0 16px;border:1px solid var(--line);border-radius:10px;background:#f7fbfd}.verification-number-row strong{font-size:.9rem;word-break:break-word}.verification-number-row .text-btn{padding:0}@media(max-width:560px){.chat-toolbar{align-items:flex-start;gap:10px}.chat-exit-btn{font-size:.78rem;padding:7px 9px}.verification-number-row{align-items:flex-start;flex-direction:column}.verification-number-row .text-btn{padding:0}}
+
+/* BrightAce statement download card — clear date selection and primary action */
+.statement-download-card{margin:10px 0 20px;background:rgba(255,255,255,.98);border:1px solid #d9e4eb;border-radius:18px;box-shadow:0 8px 24px rgba(10,38,64,.08);overflow:hidden}
+.statement-download-head{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:20px 22px 16px;border-bottom:1px solid #e5edf2}
+.statement-download-head .eyebrow{margin-bottom:5px;color:#60778b;font-weight:800;letter-spacing:.08em}
+.statement-download-head h3{margin:0;color:#082b4d;font-size:1.2rem}
+.statement-download-head p{margin:6px 0 0;color:#64788a;font-size:.9rem;max-width:720px}
+.statement-security-badge{display:flex;align-items:center;gap:9px;flex:0 0 auto;padding:9px 12px;border:1px solid #d8e5ec;border-radius:12px;background:#f7fbfd}
+.statement-security-badge>span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#e7f5ed;color:#18754a;font-weight:900}
+.statement-security-badge strong,.statement-security-badge small{display:block}
+.statement-security-badge strong{font-size:.78rem;color:#173a55}
+.statement-security-badge small{font-size:.68rem;color:#728596;margin-top:2px}
+.statement-download-body{display:flex;align-items:flex-end;gap:10px;padding:18px 22px 14px;flex-wrap:wrap}
+.statement-date-field{min-width:175px;flex:0 0 175px}
+.statement-date-field label{display:block;margin:0 0 6px;color:#536b7f;font-size:.72rem;font-weight:900;letter-spacing:.07em}
+.statement-date-field input{width:100%;box-sizing:border-box;height:42px;border:1px solid #cbd9e2;border-radius:10px;padding:8px 10px;background:#fff;color:#12344e;font-size:.92rem}
+.statement-date-field input:focus{outline:2px solid rgba(14,103,145,.16);border-color:#0e678f}
+.statement-date-separator{height:42px;display:grid;place-items:center;color:#718698;font-weight:800}
+.statement-range-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:4px}
+.statement-preset{height:38px;padding:0 11px;border:1px solid #d0dde5;border-radius:9px;background:#fff;color:#31536b;font-weight:800;font-size:.74rem;cursor:pointer}
+.statement-preset:hover{background:#f1f7fa;border-color:#9fb8c7}
+.statement-download-footer{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:14px 22px 18px;background:#f8fbfd;border-top:1px solid #e5edf2}
+.statement-help strong,.statement-help span{display:block}
+.statement-help strong{color:#193e59;font-size:.82rem}
+.statement-help>span:not(.statement-range-status){color:#718596;font-size:.76rem;margin-top:2px}
+.statement-range-status{color:#0e678f!important;font-size:.74rem;font-weight:800;margin-top:4px}
+.statement-download-btn{min-width:205px;min-height:44px;font-weight:900;letter-spacing:.02em}
+@media(max-width:700px){
+ .statement-download-head{align-items:flex-start;flex-direction:column;padding:16px}
+ .statement-download-body{padding:16px;gap:8px}
+ .statement-date-field{min-width:calc(50% - 24px);flex:1 1 160px}
+ .statement-date-separator{display:none}
+ .statement-range-actions{margin-left:0;width:100%}
+ .statement-download-footer{align-items:stretch;flex-direction:column;padding:14px 16px 16px}
+ .statement-download-btn{width:100%}
+}

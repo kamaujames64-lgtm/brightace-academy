@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin Sign In | BrightAce Academy</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+:root{--ba-ink:#10263f;--ba-teal:#0f7f8c;--ba-bg:#f3f6f9;--ba-line:#dce5ec}
+body{background:var(--ba-bg);min-height:100vh}
+.ba-login-page{min-height:calc(100vh - 110px);display:flex;align-items:center;justify-content:center;padding:34px 18px;box-sizing:border-box}
+.ba-login-card{width:min(480px,100%);background:#fff;border:1px solid var(--ba-line);border-radius:18px;padding:30px;box-shadow:0 12px 36px rgba(16,38,63,.08)}
+.ba-login-card h1{margin:0;color:var(--ba-ink);font-size:1.55rem}
+.ba-login-card p{color:#718394;line-height:1.55}
+.ba-login-card .eyebrow{color:var(--ba-teal);font-weight:900;letter-spacing:.08em;font-size:.75rem}
+.ba-login-card .form{margin-top:22px}
+.ba-login-card .btn{width:100%;margin-top:4px}
+#notice{margin-top:14px}
+.ba-login-footer{text-align:center;color:#718394;font-size:.78rem;margin-top:18px}
+</style>
+
+<script src="../js/brightace-api-config.js"></script></head>
+<body>
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="../index.html">
+      <img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo">
+      <div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div>
+    </a>
+  </div>
+</header>
+<main class="ba-login-page">
+  <section class="ba-login-card" aria-labelledby="adminSignInTitle">
+    <div class="eyebrow">BRIGHTACE ACADEMY</div>
+    <h1 id="adminSignInTitle">Admin Sign In</h1>
+    <p>Sign in with your BrightAce administrator credentials to open the private administration area.</p>
+    <form id="loginForm" class="form" autocomplete="on">
+      <label>Username<input id="username" value="owner" autocomplete="username" required></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+      <button id="signIn" class="btn btn-primary" type="submit">SIGN IN →</button>
+    </form>
+    <div id="notice" class="chat-notice" hidden></div>
+    <div class="ba-login-footer">Private Admin Area · Authentication is handled by the BrightAce backend.</div>
+  </section>
+</main>
+<footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
+<script src="../js/app.js"></script>
+<script>
+const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec");
+const KEY="brightace_admin_token_v4";
+const form=document.getElementById("loginForm"), notice=document.getElementById("notice"), btn=document.getElementById("signIn");
+function setNotice(t,type){notice.textContent=t;notice.className="chat-notice "+type;notice.hidden=!t}
+form.addEventListener("submit",async function(e){
+  e.preventDefault();
+  if(btn.disabled)return;
+  btn.disabled=true;btn.textContent="SIGNING IN…";setNotice("","info");
+  try{
+    const payload={action:"adminLogin",username:document.getElementById("username").value.trim()||"owner",password:document.getElementById("password").value};
+    const r=await fetch(API,{method:"POST",body:new URLSearchParams({payload:JSON.stringify(payload)}),cache:"no-store"});
+    const raw=await r.text();let d;
+    try{d=JSON.parse(raw)}catch(err){throw Error("BrightAce /exec returned HTML instead of JSON during admin sign-in. Redeploy the latest V46 backend as a NEW version of the SAME Web App (Execute as: Me; Who has access: Anyone) and keep the existing /exec URL.")}
+    if(!d.ok)throw Error(d.error||"Sign in failed");
+    if(!d.adminToken)throw Error("Admin sign-in succeeded but no session token was returned.");
+    // Replace any stale/legacy browser session before installing the newly authenticated token.
+    if(window.BrightAceAdminSession) window.BrightAceAdminSession.set(d.adminToken);
+    else {sessionStorage.removeItem(KEY);localStorage.removeItem(KEY);sessionStorage.removeItem("brightace_admin_token_v3");localStorage.removeItem("brightace_admin_token_v3");sessionStorage.setItem(KEY,d.adminToken);localStorage.setItem(KEY,d.adminToken);}
+    setNotice("Admin sign-in successful. Opening the private admin area…","success");
+    location.replace("admin.html");
+  }catch(err){
+    setNotice(err.message||"Sign in failed.","error");
+    btn.disabled=false;btn.textContent="SIGN IN →";
+  }
+});
+</script>
+</body></html>

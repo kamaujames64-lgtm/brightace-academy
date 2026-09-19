@@ -1,0 +1,26 @@
+/* BrightAce V52 — frontend/mobile performance audit. Static by default. */
+const fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const code=read('backend/Code.gs'), fi=read('backend/BA_FinancialIntegrity.gs'), dep=read('backend/BA_Deployment.gs');
+const checks=[];const c=(name,ok,detail)=>checks.push({name,ok,detail});
+c('V52 build marker present',/2026-09-19-V52-FRONTEND-MOBILE-PERFORMANCE/.test(code),'Backend is marked V52.');
+c('V52 JSON marker present',/brightace-json-v52/.test(code),'Health endpoint advertises the V52 API marker.');
+c('Deployment metadata matches V52',/brightace-json-v52/.test(dep)&&/frontendPerformanceEngine:"v52-visibility-aware-polling"/.test(dep),'Deployment metadata advertises the V52 frontend performance engine.');
+c('Visibility-aware scheduler present',/BrightAceScheduler/.test(read('js/app.js'))&&/visibilitychange/.test(read('js/app.js')),'Shared scheduler pauses background polling and resumes on visibility.');
+c('Scheduler avoids overlapping work',/running=false/.test(read('js/app.js'))&&/if\(running\)/.test(read('js/app.js')),'Scheduler has an in-flight guard.');
+c('Scheduler uses timeout recursion',/setTimeout\(tick/.test(read('js/app.js'))&&!/setInterval/.test(read('js/app.js')),'Scheduler avoids permanent interval timers.');
+c('Live Chat uses scheduler',/BrightAceScheduler.start\("client-live-chat"/.test(read('js/chat.js')),'Live Chat polling is visibility-aware.');
+c('Live Chat polling interval raised to 20s',/const POLL_MS=20000/.test(read('js/chat.js')),'Live Chat reduces background refresh pressure while remaining responsive.');
+c('Client dashboard uses scheduler',/BrightAceScheduler.start\("client-dashboard"/.test(read('pages/client-dashboard.html')),'Client dashboard refresh is visibility-aware.');
+c('Tutor dashboard uses scheduler',/BrightAceScheduler.start\("tutor-dashboard"/.test(read('pages/tutor.html')),'Tutor dashboard refresh is visibility-aware.');
+c('Tutor work/messages use scheduler',/BrightAceScheduler.start\("tutor-work"/.test(read('pages/tutor-work.html'))&&/BrightAceScheduler.start\("tutor-messages"/.test(read('pages/tutor-messages.html')),'Tutor work and messages no longer use interval polling.');
+c('Admin dashboard uses scheduler',/BrightAceScheduler.start\("admin-dashboard"/.test(read('pages/admin.html'))&&/BrightAceScheduler.start\("admin-conversation"/.test(read('pages/admin.html')),'Admin dashboard and conversation polling are visibility-aware.');
+c('Admin workspaces use scheduler',/BrightAceScheduler.start\("admin-assignments"/.test(read('pages/admin-assignments.html'))&&/BrightAceScheduler.start\("admin-quality"/.test(read('pages/admin-quality.html')),'Admin assignments and quality refreshes use the shared scheduler.');
+c('Tutor directory uses scheduler',/BrightAceScheduler.start\("admin-tutors"/.test(read('pages/admin-tutors.html'))&&/BrightAceScheduler.start\("admin-tutors-chat"/.test(read('pages/admin-tutors.html')),'Tutor directory and tutor chat refreshes use the scheduler.');
+c('No page interval polling remains',!Object.keys(require('fs').readdirSync(path.join(root,'pages')).reduce((a,f)=>{const x=read('pages/'+f);if(/setInterval/.test(x))a[f]=1;return a},{})).length,'Page-level setInterval polling has been removed.');
+c('V51 financial integrity retained',/baFinancialIntegrity_/.test(read('backend/BA_FinancialIntegrity.gs'))&&/adminFinancialIntegrity/.test(code),'V51 reconciliation engine remains present.');
+c('V50 session hardening retained',/V50: the per-request access token is itself the post-verification credential/.test(code),'V50 client-session security remains present.');
+c('V48 delivery engine retained',/baEnqueueMessageDelivery_/.test(code)&&/MESSAGE_DELIVERY_QUEUE/.test(read('backend/BA_MessageDelivery.gs')),'Durable messaging delivery remains present.');
+c('Tutor wallet handoff retained',/BrightAceTutorSession/.test(read('js/app.js'))&&/consumeHandoff/.test(read('pages/tutor-wallet.html')),'Tutor wallet session handoff remains present.');
+let failed=0;console.log('\nBrightAce V52 Frontend + Mobile Performance Audit');console.log('=============================================');for(const x of checks){console.log((x.ok?'PASS':'FAIL')+'  '+x.name+' — '+x.detail);if(!x.ok)failed++;}console.log(`\nResult: ${failed?'FAIL':'PASS'} (${checks.length} checks, ${failed} failed)`);process.exitCode=failed?1:0;

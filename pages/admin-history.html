@@ -1,12 +1,125 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Work History | BrightAce Academy</title><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/admin-chat.css"><style>.ba-admin-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid #dce5ec;border-radius:15px;padding:7px;margin:0 auto 18px;width:min(1500px,calc(100% - 36px));box-shadow:0 7px 24px rgba(16,38,63,.06)}.ba-admin-nav a{padding:11px 14px;border-radius:10px;color:#10263f;text-decoration:none;font-weight:850;font-size:.9rem}.ba-admin-nav a:hover,.ba-admin-nav a.active{background:#10263f;color:#fff}@media(max-width:700px){.ba-admin-nav{width:calc(100% - 18px);overflow:auto;flex-wrap:nowrap}.ba-admin-nav a{white-space:nowrap}}</style></head><body><header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.png" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span class="admin-top-label">OWNER / ADMIN</span></div></header><main><nav class="ba-admin-nav" aria-label="Admin navigation"><a href="admin.html">Dashboard</a><a href="admin-clients.html">Client Admissions</a><a class="" href="admin-assignments.html">Work Assignments</a><a href="admin-team.html">Admin Team</a><a href="admin-tutors.html">Tutors</a><a href="admin-scheduling.html">Scheduling</a><a href="admin-quality.html">Quality Control</a><a href="admin-payments.html">Payments</a><a href="admin-tutor-earnings.html">Tutor Earnings</a><a class="active" href="admin-history.html">History</a></nav><section class="page-hero"><div class="container"><a class="admin-dashboard-back" href="admin.html" aria-label="Back to Admin Dashboard">← Admin Dashboard</a><div class="eyebrow">PRIVATE ADMIN AREA</div><h1>Work History</h1><p>Pending, completed and rejected student requests are tracked here. Completed and rejected work is released from the active request queue.</p></div></section><section class="section"><div class="container admin-shell"><div id="notice" class="chat-notice" hidden></div><nav class="admin-topnav" aria-label="Admin workspace" style="display:none"><a href="admin-clients.html">Client Admissions</a><a href="admin.html">Dashboard</a><a href="admin-assignments.html">Work Assignments</a><a href="admin-team.html">Admin Team</a><a href="admin-tutors.html">Tutors</a><a href="admin-scheduling.html">Scheduling</a><a href="admin-quality.html">Quality Control</a><a href="admin-payments.html">Payments</a><a href="admin-tutor-earnings.html">Tutor Earnings</a><a class="active" href="admin-history.html">History</a></nav><div class="admin-toolbar"><strong>Work History</strong><div style="display:flex;gap:10px;flex-wrap:wrap"><button id="refresh" class="text-btn" type="button">↻ Refresh</button><a class="btn btn-secondary" href="admin.html">← BACK TO ACTIVE WORK</a><button id="logout" class="text-btn" type="button">Log out</button></div></div><div class="grid" style="margin-top:20px"><section class="card"><h2>🕐 Pending / Active Work</h2><div id="pending" class="admin-list fixed-scroll-box"><div class="admin-empty">Loading…</div></div></section><section class="card"><h2>✅ Completed Work</h2><div id="completed" class="admin-list fixed-scroll-box"><div class="admin-empty">Loading…</div></div></section><section class="card"><h2>⛔ Rejected Work</h2><div id="rejected" class="admin-list fixed-scroll-box"><div class="admin-empty">Loading…</div></div></section></div></div></section></main><footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Private Admin Area · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer><script src="../js/app.js"></script><script>
-const API="https://script.google.com/macros/s/AKfycbx6--Az56QTjbYLQaFB80qLPnD7AUDm0qoVPMX_mmlK_ttV7n5DTIyDHCEvrH9ZGodH/exec",KEY="brightace_admin_token_v4";
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Work History | BrightAce Academy</title><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/admin-chat.css"><style>.ba-admin-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid #dce5ec;border-radius:15px;padding:7px;margin:0 auto 18px;width:min(1500px,calc(100% - 36px));box-shadow:0 7px 24px rgba(16,38,63,.06)}.ba-admin-nav a{padding:11px 14px;border-radius:10px;color:#10263f;text-decoration:none;font-weight:850;font-size:.9rem}.ba-admin-nav a:hover,.ba-admin-nav a.active{background:#10263f;color:#fff}@media(max-width:700px){.ba-admin-nav{width:calc(100% - 18px);overflow:auto;flex-wrap:nowrap}.ba-admin-nav a{white-space:nowrap}}.history-select input{width:18px;height:18px}.admin-payment-row{display:flex;gap:10px}.admin-payment-row .admin-payment-side{margin-left:auto}@media(max-width:700px){.admin-payment-row{align-items:flex-start}.admin-payment-row .admin-payment-side{margin-left:0}}.history-protected{font-size:.82rem;color:#61758a;margin-top:8px}.history-scroll-box{height:430px;min-height:430px;max-height:430px;overflow-y:auto;overflow-x:hidden;padding-right:6px;box-sizing:border-box;scrollbar-gutter:stable}
+@media(max-width:700px){.history-scroll-box{height:340px;min-height:340px;max-height:340px}}
+</style><script>
+(function(){
+  const KEY="brightace_admin_token_v4";
+  if(!(localStorage.getItem("brightace_admin_active_token_v4")||sessionStorage.getItem("brightace_admin_active_token_v4")||localStorage.getItem(KEY)||sessionStorage.getItem(KEY)||localStorage.getItem("brightace_admin_token_v3")||sessionStorage.getItem("brightace_admin_token_v3"))){
+    location.replace("admin-login.html");
+  }
+})();
+</script><script src="../js/brightace-api-config.js"></script><style>
+.history-scroll-box{height:420px;max-height:420px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.history-scroll-box .admin-empty{min-height:80px}
+.history-load-error{line-height:1.55}
+.history-load-error .text-btn{margin-top:12px}
+</style>
+</head><body><header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span class="admin-top-label">OWNER / ADMIN</span></div></header><main><nav class="ba-admin-nav" aria-label="Admin navigation"><a href="admin.html">Dashboard</a><a href="admin-clients.html">Client Admissions</a><a class="" href="admin-assignments.html">Work Assignments</a><a href="admin-team.html">Admin Team</a><a href="admin-tutors.html">Tutors</a><a href="admin-scheduling.html">Scheduling</a><a href="admin-quality.html">Quality Control</a><a href="admin-payments.html">Payments</a><a href="admin-tutor-earnings.html">Tutor Earnings</a><a class="active" href="admin-history.html">History</a></nav><section class="page-hero"><div class="container"><a class="admin-dashboard-back" href="admin.html" aria-label="Back to Admin Dashboard">← Admin Dashboard</a><div class="eyebrow">PRIVATE ADMIN AREA</div><h1>Work History</h1><p>Pending, completed and rejected student requests are tracked here. Completed and rejected work is released from the active request queue.</p></div></section><section class="section"><div class="container admin-shell"><div id="notice" class="chat-notice" hidden></div><nav class="admin-topnav" aria-label="Admin workspace" style="display:none"><a href="admin-clients.html">Client Admissions</a><a href="admin.html">Dashboard</a><a href="admin-assignments.html">Work Assignments</a><a href="admin-team.html">Admin Team</a><a href="admin-tutors.html">Tutors</a><a href="admin-scheduling.html">Scheduling</a><a href="admin-quality.html">Quality Control</a><a href="admin-payments.html">Payments</a><a href="admin-tutor-earnings.html">Tutor Earnings</a><a class="active" href="admin-history.html">History</a></nav><div class="admin-toolbar"><strong>Work History</strong><div style="display:flex;gap:10px;flex-wrap:wrap"><button id="refresh" class="text-btn" type="button">↻ Refresh</button><button id="deleteSelected" class="btn btn-outline" type="button" disabled>DELETE SELECTED HISTORY</button><a class="btn btn-secondary" href="admin.html">← BACK TO ACTIVE WORK</a><button id="logout" class="text-btn" type="button">Log out</button></div></div><p class="history-protected">Deletion is available only to an authorized Super Admin. It requires confirmation and a second <strong>DELETE</strong> confirmation. Active/pending requests cannot be deleted from this screen, and financial payment records are preserved.</p><div class="grid" style="margin-top:20px"><section class="card"><h2>🕐 Pending / Active Work</h2><div id="pending" class="admin-list fixed-scroll-box history-scroll-box"><div class="admin-empty">Loading…</div></div></section><section class="card"><h2>✅ Completed Work</h2><div id="completed" class="admin-list fixed-scroll-box history-scroll-box"><div class="admin-empty">Loading…</div></div></section><section class="card"><h2>⛔ Rejected Work</h2><div id="rejected" class="admin-list fixed-scroll-box history-scroll-box"><div class="admin-empty">Loading…</div></div></section></div></div></section></main><footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Private Admin Area · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer><script src="../js/app.js"></script><script>
+const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec"),KEY="brightace_admin_token_v4";
 const n=document.getElementById('notice');
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function money(a,c){try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'KES'}).format(Number(a||0))}catch(e){return `${c||''} ${Number(a||0).toFixed(2)}`}}
 function notice(t,type='info'){n.textContent=t;n.className='chat-notice '+type;n.hidden=!t}
-function token(){return sessionStorage.getItem(KEY)||''}
-async function api(action,p={},method="GET"){const payload={action,adminToken:token(),...p};let raw="";for(let attempt=0;attempt<2;attempt++){try{const r=method==="POST"?await fetch(API,{method:"POST",body:new URLSearchParams({payload:JSON.stringify(payload)}),cache:"no-store"}):await fetch(API+"?"+new URLSearchParams(payload),{method:"GET",cache:"no-store"});raw=await r.text();if(raw.trim().startsWith("{"))break}catch(e){if(attempt===1)throw Error("BrightAce server could not be reached. Please check the deployed Apps Script web-app URL.")}await new Promise(x=>setTimeout(x,250))}let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce Apps Script returned HTML instead of JSON. The /exec web-app deployment is not currently returning the BrightAce API response.")}if(!d.ok)throw Error(d.error||"Request failed");return d}
-function render(box,rows,type){box.innerHTML=rows.length?rows.map((x,i)=>{const restorable=type==='COMPLETED'||type==='REJECTED';return `<article class="admin-payment-row"><div><div class="admin-payment-title">${esc(x.studentName)} <span class="admin-status ${type.toLowerCase()}">${type}</span></div><div class="admin-payment-meta">${esc(x.conversationId)} • Tutor: ${esc(x.assignedTutor||'Unassigned')} • Requested: ${x.requestedAt?new Date(x.requestedAt).toLocaleString():'—'}</div><p>${esc(x.workDescription||'No description')}</p><div class="admin-payment-meta">Budget: <strong>${money(x.studentBudget,x.currency)}</strong> • Approved: <strong>${money(x.agreedAmount||x.studentBudget,x.agreedCurrency||x.currency)}</strong></div>${type==='REJECTED'?`<div class="admin-payment-meta">Reason: ${esc(x.rejectionReason||'Not specified')} • Rejected: ${x.rejectedAt?new Date(x.rejectedAt).toLocaleString():'—'}</div>`:type==='COMPLETED'?`<div class="admin-payment-meta">Tutor payout: <strong>${money(x.tutorPayout,(x.agreedCurrency||x.currency))}</strong> • Completed: ${x.completedAt?new Date(x.completedAt).toLocaleString():'—'}</div>`:`<div class="admin-payment-meta">Status: ${esc(x.assignmentStatus||'NEW_REQUEST')} • Last activity: ${x.lastMessageAt?new Date(x.lastMessageAt).toLocaleString():'—'}</div>`}</div>${restorable?`<div class="admin-payment-side"><button type="button" class="btn btn-secondary restore-work" data-i="${i}">↩ RESTORE REQUEST</button></div>`:''}</article>`}).join(''):'<div class="admin-empty">None yet.</div>';if(type==='COMPLETED'||type==='REJECTED')box.querySelectorAll('.restore-work').forEach(b=>b.onclick=async()=>{const x=rows[Number(b.dataset.i)];if(!confirm(`Restore ${x.conversationId} to the active work queue?`))return;b.disabled=true;b.textContent='RESTORING…';try{await api('adminRestoreWork',{conversationId:x.conversationId},'POST');notice('Request restored to active work.','success');await load()}catch(e){notice(e.message,'error');b.disabled=false;b.textContent='↩ RESTORE REQUEST'}})}
-async function load(){try{const d=await api('adminListWorkHistory');const rows=d.works||[];render(document.getElementById('pending'),rows.filter(x=>!['COMPLETED','REJECTED'].includes(String(x.assignmentStatus).toUpperCase())),'PENDING');render(document.getElementById('completed'),rows.filter(x=>String(x.assignmentStatus).toUpperCase()==='COMPLETED'),'COMPLETED');render(document.getElementById('rejected'),rows.filter(x=>String(x.assignmentStatus).toUpperCase()==='REJECTED'),'REJECTED')}catch(e){notice(e.message,'error')}}
-document.getElementById('refresh').onclick=load;document.getElementById('logout').onclick=()=>{sessionStorage.removeItem(KEY);location.href='admin.html'};if(!token()){location.href='admin.html'}else{document.querySelector('.admin-topnav')?.style.setProperty('display','flex');load();}
+function token(){return window.BrightAceAdminSession?.get?.()||sessionStorage.getItem("brightace_admin_active_token_v4")||localStorage.getItem("brightace_admin_active_token_v4")||sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||sessionStorage.getItem("brightace_admin_token_v3")||localStorage.getItem("brightace_admin_token_v3")||""}
+async function api(action,p={}){
+  const t=token();
+  if(!t) throw Error("Your admin session is not available. Please sign in again.");
+  const payload={action,adminToken:t,...p};
+  const timeout=30000;
+  async function readJson(response){
+    const raw=await response.text();
+    const trimmed=raw.trim();
+    if(!trimmed) throw Error("BrightAce Apps Script returned an empty response.");
+    if(!trimmed.startsWith("{")) throw Error("BrightAce Apps Script returned HTML instead of JSON. Please redeploy the production /exec Web App using the latest backend Code.gs.");
+    let d;
+    try{d=JSON.parse(trimmed)}catch(e){throw Error("BrightAce Apps Script returned invalid JSON.");}
+    if(!d.ok) throw Error(d.error||"BrightAce API request failed.");
+    return d;
+  }
+  // POST is the normal path. Abort stalled requests so the History page can never
+  // remain on Loading forever.
+  try{
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),timeout);
+    try{
+      const r=await fetch(API,{method:"POST",body:new URLSearchParams({payload:JSON.stringify(payload)}),cache:"no-store",signal:ctl.signal});
+      return await readJson(r);
+    }finally{clearTimeout(timer)}
+  }catch(e){
+    // GET is a deliberate read-only fallback for the history endpoint.
+    if(action!=="adminListWorkHistory") throw e;
+  }
+  // Read-only GET compatibility fallback. Try the canonical action first,
+  // then aliases supported by the repaired backend. This also makes the page
+  // tolerant of proxies that only permit GET requests.
+  let lastGetError=null;
+  const getActions=action==="adminListWorkHistory"
+    ? ["adminListWorkHistory","adminHistory","adminWorkHistory","adminListHistory","history"]
+    : [action];
+  for(const getAction of getActions){
+    const u=API+(API.indexOf("?")>=0?"&":"?")+"action="+encodeURIComponent(getAction)+"&adminToken="+encodeURIComponent(t)+"&fresh=1&_="+Date.now();
+    const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),timeout);
+    try{
+      const r=await fetch(u,{method:"GET",cache:"no-store",signal:ctl.signal});
+      return await readJson(r);
+    }catch(e){
+      lastGetError=e;
+      if(e&&e.name==="AbortError") break;
+    }finally{clearTimeout(timer)}
+  }
+  if(lastGetError&&lastGetError.name==="AbortError") throw Error("The BrightAce History API timed out while reading CONVERSATIONS. The latest backend must be deployed to the production /exec Web App.");
+  throw lastGetError||Error("The BrightAce History API could not be reached.");
+}
+function render(box,rows,type){box.innerHTML=rows.length?rows.map((x,i)=>{const restorable=type==='COMPLETED'||type==='REJECTED';return `<article class="admin-payment-row"><label class="history-select" style="display:flex;align-items:flex-start;gap:10px;min-width:28px;padding-top:3px"><input type="checkbox" class="history-check" data-i="${i}" aria-label="Select ${esc(x.conversationId)} for deletion"></label><div><div class="admin-payment-title">${esc(x.studentName)} <span class="admin-status ${type.toLowerCase()}">${type}</span></div><div class="admin-payment-meta">${esc(x.conversationId)} • Tutor: ${esc(x.assignedTutor||'Unassigned')} • Requested: ${x.requestedAt?new Date(x.requestedAt).toLocaleString():'—'}</div><p>${esc(x.workDescription||'No description')}</p><div class="admin-payment-meta">Budget: <strong>${money(x.studentBudget,x.currency)}</strong> • Approved: <strong>${money(x.agreedAmount||x.studentBudget,x.agreedCurrency||x.currency)}</strong></div>${type==='REJECTED'?`<div class="admin-payment-meta">Reason: ${esc(x.rejectionReason||'Not specified')} • Rejected: ${x.rejectedAt?new Date(x.rejectedAt).toLocaleString():'—'}</div>`:type==='COMPLETED'?`<div class="admin-payment-meta">Tutor payout: <strong>${money(x.tutorPayout,(x.agreedCurrency||x.currency))}</strong> • Completed: ${x.completedAt?new Date(x.completedAt).toLocaleString():'—'}</div>`:`<div class="admin-payment-meta">Status: ${esc(x.assignmentStatus||'NEW_REQUEST')} • Last activity: ${x.lastMessageAt?new Date(x.lastMessageAt).toLocaleString():'—'}</div>`}</div>${restorable?`<div class="admin-payment-side"><button type="button" class="btn btn-secondary restore-work" data-i="${i}">↩ RESTORE REQUEST</button><button type="button" class="btn btn-outline delete-work" data-i="${i}">DELETE HISTORY</button></div>`:''}</article>`}).join(''):'<div class="admin-empty">None yet.</div>';if(type==='COMPLETED'||type==='REJECTED')box.querySelectorAll('.restore-work').forEach(b=>b.onclick=async()=>{const x=rows[Number(b.dataset.i)];if(!confirm(`Restore ${x.conversationId} to the active work queue?`))return;b.disabled=true;b.textContent='RESTORING…';try{await api('adminRestoreWork',{conversationId:x.conversationId});notice('Request restored to active work.','success');await load()}catch(e){notice(e.message,'error');b.disabled=false;b.textContent='↩ RESTORE REQUEST'}})}
+if(type==='COMPLETED'||type==='REJECTED')box.querySelectorAll('.delete-work').forEach(b=>b.onclick=async()=>{const x=rows[Number(b.dataset.i)];if(!confirm(`Permanently delete the request/chat history for ${x.conversationId}? This cannot be undone. Financial payment records are preserved.`))return;b.disabled=true;b.textContent='DELETING…';try{await api('adminDeleteWorkHistory',{conversationId:x.conversationId});notice('Request history deleted; financial records were preserved.','success');await load()}catch(e){notice(e.message,'error');b.disabled=false;b.textContent='DELETE HISTORY'}});
+function selectedHistory(){const out=[];document.querySelectorAll('.history-check:checked').forEach(cb=>{const box=cb.closest('.admin-list');const type=box&&box.id==='completed'?'COMPLETED':box&&box.id==='rejected'?'REJECTED':'';if(type){const rowIndex=Number(cb.dataset.i);const rows=window.__historyRows&&window.__historyRows[type]||[];if(rows[rowIndex])out.push({type,conversationId:String(rows[rowIndex].conversationId||'')})}});return out}
+function updateDeleteSelected(){const b=document.getElementById('deleteSelected');if(b)b.disabled=selectedHistory().length===0}
+document.addEventListener('change',e=>{if(e.target&&e.target.classList.contains('history-check'))updateDeleteSelected()});
+document.getElementById('deleteSelected').onclick=async()=>{const selected=selectedHistory();if(!selected.length)return;if(!confirm(`Delete ${selected.length} selected request/chat history item(s)? This permanently removes the selected request and its chat history. Financial payment records are preserved. This action cannot be undone.`))return;const typed=prompt('Type DELETE to confirm permanent history deletion:');if(typed!=='DELETE'){notice('Deletion cancelled. No history was removed.','info');return}const b=document.getElementById('deleteSelected');b.disabled=true;b.textContent='DELETING…';let deleted=0;try{for(const item of selected){await api('adminDeleteWorkHistory',{conversationId:item.conversationId});deleted++}notice(`${deleted} selected history item(s) deleted; financial records were preserved.`,'success');await load()}catch(e){notice(`${deleted} item(s) deleted before the operation stopped. ${e.message}`,'error');await load()}};
+async function load(forceFresh=false){
+  const boxes=[document.getElementById('pending'),document.getElementById('completed'),document.getElementById('rejected')];
+  boxes.forEach(b=>{if(b)b.innerHTML='<div class="admin-empty">Loading latest records…</div>'});
+  try{
+    const h=await api('adminListWorkHistory',{fresh:!!forceFresh});
+
+    // Prefer the server's lifecycle buckets. The backend now classifies older
+    // rows using assignment status plus completion/rejection audit fields, so
+    // History does not depend on one exact status spelling.
+    const all=Array.isArray(h.works)?h.works:[];
+    const normalize=v=>String(v||'').toUpperCase().replace(/[\s-]+/g,'_');
+    const completedStates=new Set(['COMPLETED','DONE','FINISHED','COMPLETE','DELIVERED']);
+    const rejectedStates=new Set(['REJECTED','DECLINED','CANCELLED','CANCELED','FAILED']);
+
+    let completed=Array.isArray(h.completed)?h.completed:[];
+    let rejected=Array.isArray(h.rejected)?h.rejected:[];
+    let pending=Array.isArray(h.pending)?h.pending:[];
+
+    // Defensive fallback for older / partially deployed backends.
+    if(!Array.isArray(h.completed)||!Array.isArray(h.rejected)||!Array.isArray(h.pending)){
+      completed=all.filter(x=>completedStates.has(normalize(x.assignmentStatus||x.status))||x.completedAt);
+      rejected=all.filter(x=>rejectedStates.has(normalize(x.assignmentStatus||x.status))||x.rejectedAt||x.rejectionReason);
+      pending=all.filter(x=>!completed.includes(x)&&!rejected.includes(x)&&normalize(x.status)!=='CLOSED');
+    }
+
+    window.__historyRows={COMPLETED:completed,REJECTED:rejected};
+    render(boxes[0],pending,'PENDING');
+    render(boxes[1],completed,'COMPLETED');
+    render(boxes[2],rejected,'REJECTED');
+    updateDeleteSelected();
+
+    const total=pending.length+completed.length+rejected.length;
+    notice(total?`History loaded: ${total} work record${total===1?'':'s'}${h.cached?' from fast cache':''}.`:'No work history records were found.','success');
+  }catch(e){
+    const msg=esc(e&&e.message||'Request failed');
+    boxes.forEach(b=>{if(b)b.innerHTML='<div class="admin-empty history-load-error"><strong>History could not be loaded.</strong><br><span>'+msg+'</span><br><button type="button" class="text-btn history-retry">↻ Retry</button></div>'});
+    boxes.forEach(b=>b&&b.querySelector('.history-retry')?.addEventListener('click',()=>load(true)));
+    notice(e&&e.message||'Could not load history.','error');
+  }
+}
+document.getElementById('refresh').onclick=()=>load(true);
+document.getElementById('logout').onclick=()=>{sessionStorage.removeItem(KEY);localStorage.removeItem(KEY);location.href='admin-login.html'};
+function bootHistory(){
+  if(!token()){location.href='admin-login.html';return}
+  document.querySelector('.admin-topnav')?.style.setProperty('display','flex');
+  load();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootHistory,{once:true});else bootHistory();
 </script></body></html>

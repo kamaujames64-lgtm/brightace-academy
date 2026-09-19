@@ -1,0 +1,26 @@
+/* BrightAce V50 — security/session abuse audit. Static by default; never mutates production. */
+const fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..'), backend=path.join(root,'backend');
+const read=n=>fs.readFileSync(path.join(root,n),'utf8');
+const gs=fs.readdirSync(backend).filter(x=>x.endsWith('.gs')).map(x=>read('backend/'+x)).join('\n');
+const code=read('backend/Code.gs'),chat=read('js/chat.js');
+const sec=read('backend/BA_Security.gs'),rate=read('backend/BA_RateLimit.gs');
+const checks=[];const c=(name,ok,detail)=>checks.push({name,ok,detail});
+const funcs=[...gs.matchAll(/^function\s+(\w+)\s*\(/gm)].map(m=>m[1]);
+c('V50 build marker present',/2026-09-19-V50-SECURITY-ABUSE-SESSION-HARDENING/.test(code),'Backend is marked V50.');
+c('V50 JSON marker present',/brightace-json-v50/.test(code),'Health endpoint advertises the V50 API marker.');
+c('Deployment metadata matches V50',/brightace-json-v50/.test(read('backend/BA_Deployment.gs')),'Deployment metadata uses the V50 API marker; build is inherited from BRIGHTACE_BUILD.');
+c('POST action allowlist enforced',/BA_ALLOWED_ACTIONS_/.test(sec)&&/baSecurityGatePost_\(body\)/.test(code),'POST requests pass the central security gate.');
+c('GET action allowlist enforced',/BA_ALLOWED_GET_ACTIONS_/.test(sec)&&/baSecurityGateGet_\(p\)/.test(code),'GET requests pass the central security gate.');
+c('Rate limiting remains enabled',/baRateLimit_\(body,action\)/.test(sec)&&/BA_RATE_LIMITS_/.test(rate),'Cache-backed abuse throttling remains in the request path.');
+c('Client access token is phone-bound',/normalizePhone_\(c\.studentPhone\)!==phone/.test(code)&&/clientAccessToken/.test(code),'A per-request token cannot be used against another WhatsApp number.');
+c('Legacy verificationStatus is not session boundary',/V50: the per-request access token is itself the post-verification credential/.test(code)&&!/String\(c\.verificationStatus\|\|""\)\.toUpperCase\(\)!=="VERIFIED"/.test(code.split('function clientAuthConversation_')[1].split('function collectConversationAttachments_')[0]),'Historical requests are not rejected solely because their legacy status is missing/stale.');
+c('Client recovery enforces inactivity window',/Date\.now\(\)-activityAt>30\*60\*1000/.test(code),'Access-token recovery remains bounded by the 30-minute inactivity policy.');
+c('GET message recovery supports access token',/getMessages_\(p\.sessionId,p\.clientSessionToken,p\.phone,p\.afterMessageId,p\.clientAccessToken\)/.test(code)&&/clientAccessToken/.test(code.split('function getMessages_')[1].split('function getPaymentRequest_')[0]),'Live chat can recover a rotated session without dropping the access token boundary.');
+c('Frontend persists refreshed session',/d\.clientSessionToken/.test(chat)&&/localStorage\.setItem\(CHAT_KEY/.test(chat),'A refreshed session token is persisted by the live chat client.');
+c('Frontend sends access token only to same API',/clientAccessToken=/.test(chat)&&/CHAT_API_URL/.test(chat),'Recovery credential is sent over the existing HTTPS /exec API path.');
+c('No frontend server secrets',!/(META_ACCESS_TOKEN|PAYSTACK_SECRET_KEY|ADMIN_PASSWORD|SPREADSHEET_ID)/.test(read('js/app.js')+chat),'Known server credential property names remain absent from frontend JS.');
+c('Function names remain unique',new Set(funcs).size===funcs.length,'No duplicate top-level Apps Script function names detected.');
+c('V49 durable delivery retained',/MESSAGE_DELIVERY_QUEUE/.test(gs)&&/baProcessMessageDeliveryQueue_/.test(gs),'V48/V49 durable delivery engine remains present.');
+c('Tutor wallet session handoff retained',/BrightAceTutorSession\.handoff/.test(read('js/app.js'))&&/consumeHandoff/.test(read('pages/tutor-wallet.html')),'Existing tutor wallet navigation/session behavior remains present.');
+let failed=0;console.log('\nBrightAce V50 Security + Abuse Audit');console.log('====================================');for(const x of checks){console.log((x.ok?'PASS':'FAIL')+'  '+x.name+' — '+x.detail);if(!x.ok)failed++;}console.log(`\nResult: ${failed?'FAIL':'PASS'} (${checks.length} checks, ${failed} failed)`);process.exitCode=failed?1:0;

@@ -1,0 +1,25 @@
+/* BrightAce V53 — production reliability + observability audit. Static by default. */
+const fs=require('fs'),path=require('path');const root=path.resolve(__dirname,'..');const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const checks=[];const c=(name,ok,detail)=>checks.push({name,ok,detail});
+const code=read('backend/Code.gs'),obs=read('backend/BA_Observability.gs'),dep=read('backend/BA_Deployment.gs'),del=read('backend/BA_MessageDelivery.gs'),admin=read('pages/admin-observability.html');
+c('V53 build marker',/2026-09-19-V53-PRODUCTION-RELIABILITY-OBSERVABILITY/.test(code),'Backend is marked V53.');
+c('V53 JSON marker',/brightace-json-v53/.test(code),'Health endpoint advertises V53.');
+c('Deployment metadata',/observabilityEngine:"v53-production-reliability-observability"/.test(dep),'Deployment metadata advertises V53 observability.');
+c('Protected observability API',/function adminObservability_\(token\)/.test(obs)&&/requireAdmin_\(token\)/.test(obs),'Diagnostics require an authenticated admin.');
+c('Safe operational event logging',/baObservabilitySafeMessage_/.test(obs)&&/OPERATIONAL_EVENTS/.test(obs),'Failure logging uses a dedicated operational sheet and redaction.');
+c('Failure categorization',/AUTH_ERROR/.test(obs)&&/PAYMENT_ERROR/.test(obs)&&/DELIVERY_ERROR/.test(obs)&&/DATA_ERROR/.test(obs),'Operational failures are classified.');
+c('Health metadata',/lastErrorAt/.test(obs)&&/deliveryWorkerLastRun/.test(obs),'Health exposes safe operational metadata.');
+c('GET health includes observability',/observability:baObservabilityHealth_\(\)/.test(code),'Public health response contains only safe health metadata.');
+c('GET admin observability',/action==="adminObservability"/.test(code),'GET diagnostic endpoint is present.');
+c('POST admin observability',/body.action === "adminObservability"/.test(code),'POST diagnostic endpoint is present.');
+c('Permission map includes diagnostics',/adminObservability/.test(code)&&/REPORTS:/.test(code),'Admin permission routing includes diagnostics.');
+c('Delivery worker heartbeat',/BA_DELIVERY_WORKER_LAST_RUN/.test(del)&&/BA_DELIVERY_WORKER_LAST_STATUS/.test(del),'Durable delivery worker records heartbeat state.');
+c('Delivery queue summary',/baObservabilityQueueSummary_/.test(obs)&&/MESSAGE_DELIVERY_QUEUE/.test(del),'Admin diagnostics can summarize durable queue state.');
+c('System Health workspace',/System Health/.test(admin)&&/adminObservability/.test(admin),'Protected Admin System Health page is present.');
+c('System Health uses scheduler',/BrightAceScheduler.*admin-observability/.test(admin),'Diagnostics refresh is visibility-aware.');
+c('V52 scheduler retained',/BrightAceScheduler/.test(read('js/app.js'))&&/visibilitychange/.test(read('js/app.js')),'V52 performance scheduler remains.');
+c('V51 financial integrity retained',/baFinancialIntegrity_/.test(read('backend/BA_FinancialIntegrity.gs')),'V51 reconciliation remains.');
+c('V50 session hardening retained',/clientAccessToken/.test(code)&&/clientSessionToken|sessionToken/.test(code),'Session security remains.');
+c('V48 delivery retained',/baEnqueueMessageDelivery_/.test(code)&&/MESSAGE_DELIVERY_QUEUE/.test(del),'Durable messaging remains.');
+c('V47 client history retained',/baClientRequestHistory_/.test(read('backend/BA_ClientHistory.gs')),'Complete client request history remains.');
+let failed=0;console.log('\nBrightAce V53 Production Reliability + Observability Audit');console.log('=======================================================');for(const x of checks){console.log((x.ok?'PASS':'FAIL')+'  '+x.name+' — '+x.detail);if(!x.ok)failed++;}console.log(`\nResult: ${failed?'FAIL':'PASS'} (${checks.length} checks, ${failed} failed)`);process.exitCode=failed?1:0;

@@ -11,3 +11,13 @@ ADMIN_WHATSAPP_PHONE=2547XXXXXXXX
 PRIMARY_TUTOR_NAME=Your Primary Tutor
 PRIMARY_TUTOR_WHATSAPP=2547XXXXXXXX
 BRIGHTACE_VERIFICATION_TEST_WHATSAPP=254725010628
+
+
+Tutor test access: BRIGHTACE_TUTOR_TEST_WHATSAPP=0725010628 (normalized to 254725010628) and BRIGHTACE_TUTOR_TEST_CODE=121212.
+Client test access: BRIGHTACE_VERIFICATION_TEST_WHATSAPP=254725010628.
+Tutor earnings are 50% of the agreed paid client amount. Minimum tutor withdrawal is KSh 2,000. Client web sessions expire after 30 minutes of inactivity and require fresh WhatsApp verification.
+
+# V42 SECURITY — preferred admin password configuration
+# ADMIN_PASSWORD_SHA256 may contain the lowercase SHA-256 hex digest of the admin password.
+# If present, it is preferred over ADMIN_PASSWORD for the legacy single-owner password path.
+# Do not put plaintext passwords, Meta tokens, Paystack secrets, or spreadsheet IDs in frontend JS.
