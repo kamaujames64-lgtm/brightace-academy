@@ -1,27 +1,220 @@
-BrightAce Academy — Live Chat / Background / Payment Copy Fix
+V63 Production Hardening + Security + QA
+Built directly from V62; see V63_PRODUCTION_HARDENING_SECURITY_QA_REPORT.md.
 
-Replace ONLY these files in your working repository, preserving your existing folders:
-- pages/chat.html
-- js/chat.js
-- backend/Code.gs
-- pages/admin.html
-- css/style.css
-- assets/brightace-graduates.jpg
+# V55 — Full End-to-End QA / Production Readiness
 
-Fixes included:
-1. 6-digit WhatsApp verification panel appears immediately after SEND REQUEST and is cache-busted.
-2. Button wording is REQUEST A NEW CODE.
-3. Old chat session key is bumped so stale verified sessions cannot bypass the new verification UI.
-4. Payment link button changes to COPIED ✓ after copying, with a fallback copy method.
-5. Graduation photo is restored and applied subtly across the site plus hero/page-hero.
-6. Live-chat and tutor-chat polling is set to 15 seconds as a conservative starting interval; send states show SENDING… / UPLOADING ATTACHMENT… / SENT ✓.
-7. Backend keeps the verification request visible even if WhatsApp delivery is temporarily misconfigured, so the verification screen can still be reached and a new code can be requested after configuration.
+Build: `2026-09-19-V55-END-TO-END-QA-PRODUCTION-READINESS`  
+API: `brightace-json-v55`
 
-IMPORTANT:
-- After replacing backend/Code.gs, deploy a NEW VERSION of the Apps Script Web App using the SAME deployment URL.
-- Make sure Meta WhatsApp credentials and the approved OTP template are configured in Script Properties before testing code delivery.
-- On GitHub Pages, hard-refresh the browser (Ctrl+F5) after pushing the files.
-- Do not copy this patch into the backup folder.
+V55 continues directly from V54 and adds a protected Super Admin Production QA workspace, read-only backend readiness checks, workflow coverage, and an offline static package audit. It does not change the existing customer-facing design or deliberately run production mutation tests.
 
-7. The admin Work Assignments page uses a dedicated adminListWorkAssignments API action so verified active requests populate independently of the dashboard request list.
-8. The admin dashboard and Work Assignments page should use the same deployed Apps Script /exec URL. If the /exec endpoint returns an HTML sign-in/error page instead of JSON, update the existing web-app deployment to the latest saved Code.gs version and keep the deployment accessible to the web client.
+See `V55_END_TO_END_QA_PRODUCTION_READINESS_REPORT.md`.
+
+---
+
+## V54 — Disaster Recovery + Data Protection
+Build: `2026-09-19-V54-DISASTER-RECOVERY-DATA-PROTECTION`
+
+V54 adds protected Super Admin integrity checks and sanitized recovery snapshots without automatic production overwrite.
+
+# V53 — Production Reliability + Observability
+
+Build: `2026-09-19-V53-PRODUCTION-RELIABILITY-OBSERVABILITY`  
+API marker: `brightace-json-v53`
+
+V53 is based directly on V52. It preserves the V52 visibility-aware scheduler, V51 financial reconciliation, V50 security/session hardening, V49 session recovery, V48 durable messaging, and V47 complete client request history.
+
+### V53 changes
+- Added `backend/BA_Observability.gs` for protected operational diagnostics.
+- Failed API/trigger operations are categorized and persisted without storing message bodies, credentials, access tokens, phone numbers, or payment secrets.
+- Health metadata now exposes build/API identity and delivery-worker heartbeat.
+- Added protected `adminObservability` API action.
+- Added Admin **System Health** workspace with API, delivery queue, worker and recent-failure visibility.
+- Delivery worker now records last run/status/processed count.
+- Existing durable message delivery queue remains unchanged in behavior.
+
+### Deployment
+Deploy the complete `backend/` folder as a new version of the same Apps Script Web App and keep the existing `/exec` URL. Verify `?action=health` returns the V53 build and `brightace-json-v53`.
+
+See `V53_PRODUCTION_RELIABILITY_OBSERVABILITY_REPORT.md`.
+# V52 — Frontend + Mobile Performance
+
+Build: `2026-09-19-V52-FRONTEND-MOBILE-PERFORMANCE`  
+API marker: `brightace-json-v52`
+
+V52 is based directly on V51 and keeps the existing BrightAce design and business workflows intact. It replaces page-level polling intervals with a visibility-aware scheduler that pauses hidden tabs, prevents overlapping refreshes, and refreshes when users return to a workspace.
+
+### V52 changes
+- Adds `BrightAceScheduler` to `js/app.js`.
+- Removes page-level `setInterval` polling from the major client, tutor, and admin workspaces.
+- Pauses background polling while tabs are hidden.
+- Refreshes once when a user returns to a visible workspace.
+- Adds an in-flight guard to prevent overlapping refresh requests.
+- Normalizes high-frequency polling to reduce unnecessary API pressure.
+- Keeps form-focus protections and existing UI behavior.
+
+### Validation
+- V52 frontend/mobile performance audit: `tools/brightace-v52-audit.js`.
+- Production 500-user load results are not claimed unless the deployed `/exec` is reachable and the test is actually executed.
+
+### Deployment
+Deploy the complete `backend/` folder as a new version of the **same** Apps Script Web App and keep the existing `/exec` URL. Verify `?action=health` returns the V52 build and `brightace-json-v52`.
+
+See `V52_FRONTEND_MOBILE_PERFORMANCE_REPORT.md`.
+
+---
+
+# V51 — Financial Integrity + Reconciliation
+
+Build: `2026-09-19-V51-FINANCIAL-INTEGRITY-RECONCILIATION`  
+API marker: `brightace-json-v51`
+
+V51 is based directly on V50 and preserves the V47/V48/V49/V50 client history, durable messaging delivery, tutor wallet session handoff, and client session security work.
+
+### V51 changes
+- Adds a read-only Admin financial integrity/reconciliation endpoint: `adminFinancialIntegrity`.
+- Reconciles confirmed client payments, approved refunds, tutor payouts, tutor payment history, and paid withdrawals by currency.
+- Detects duplicate processor/payment references, orphaned paid withdrawals, payout/history total mismatches, negative ledger values, payout remaining-balance mismatches, refunds against unpaid payments, currency mismatches, and refunds exceeding the original payment.
+- Flags paid client payments, approved refunds, and paid withdrawals that are missing required processor references.
+- Fixes an important mutation-order issue in `adminMarkTutorBalancePaid`: duplicate payment-reference validation now occurs **before** payout ledger rows are modified.
+- The reconciliation engine is strictly read-only; it does not automatically rewrite financial records.
+
+### Validation
+- V51 financial integrity audit is included at `tools/brightace-v51-audit.js`.
+- The production 500-user load test is not claimed unless the deployed `/exec` is reachable and the test is actually executed.
+
+### Deployment
+Deploy the complete `backend/` folder as a new version of the **same** Apps Script Web App and keep the existing `/exec` URL. Verify `?action=health` returns JSON with the V51 build and `brightace-json-v51`.
+
+---
+
+# BrightAce Academy V50
+
+Built from V49 (`2026-09-19-V49-CLIENT-SESSION-RECOVERY-MESSAGING-WALLET`). V50 hardens client-session recovery across the dashboard and Live Chat, removes the remaining legacy `verificationStatus` session boundary, adds controlled message-sync recovery, and adds a 16-check security/abuse release audit.
+
+See `V50_SECURITY_ABUSE_SESSION_HARDENING_REPORT.md`.
+
+# BrightAce Academy V49
+
+Built from V48. V49 fixes client session recovery so a legitimate returning client is not unnecessarily forced through WhatsApp verification again when the browser has a stale/rotated short-lived session token but still holds a valid per-request client access token.
+
+See `V49_CLIENT_SESSION_RECOVERY_MESSAGING_WALLET_REPORT.md`.
+# BrightAce Academy — V48
+
+V48 is based on V47 Client History + 500-User Readiness. It adds durable WhatsApp/message delivery state with bounded retries and hardens tutor Payment Wallet navigation so an already authenticated tutor opens the wallet without being unnecessarily sent through tutor verification again.
+
+Deploy the full `backend/` folder as a new version of the same Apps Script Web App and keep the existing `/exec` URL. After deployment, run `baInstallMessageDeliveryTrigger_()` once in Apps Script to install the one-minute delivery worker.
+
+The package does not claim a real 500-user production stress test has been executed.
+
+# BrightAce Academy v15 — Admin Chat + Selection + Notification Fix
+
+Targeted patch based on v14. Replace only backend/Code.gs, pages/admin.html, and add css/admin-chat.css.
+
+Fixes:
+- Admin request/tutor selections persist during polling instead of resetting.
+- Admin can open a request and chat with the student before assigning work.
+- Admin messages are stored in MESSAGES and sent to the student's WhatsApp when configured.
+- Selected conversation chat auto-refreshes.
+- Added explicit sound-test control and stronger browser-audio unlock path.
+- Tutor financial privacy remains unchanged.
+
+The public pages/SEO files are untouched by this patch.
+
+The supplied ChatGPT shared link could not be retrieved as an image asset; upload the intended photo before adding it as the global static background.
+
+
+## v17 additions
+- Hardened student request submission so saved requests are not lost if WhatsApp notification fails.
+- Persists the start form draft until the request is successfully created.
+- Improved Drive attachment links for admin/student viewing and downloading.
+- Added student refund request form with reason and optional amount/payment request ID.
+- Added Admin Refund Requests section with approve/reject workflow; approved KES/USD refunds can be submitted to Paystack when a verified transaction reference is available. EUR requests are recorded for manual review.
+- Made the Admin ↔ Tutor WhatsApp section explicit and visible.
+
+## WhatsApp verification formatting
+WhatsApp verification uses the existing BrightAce WhatsApp sender configuration (`META_ACCESS_TOKEN` and `META_PHONE_NUMBER_ID`) and does not require any additional OTP Script Property. The verification message is sent through the existing free-form WhatsApp text path.
+
+## Current production Apps Script endpoint wired into this package
+`https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec`
+
+## Important deployment note
+The static website package can be fully prepared here, but a new Apps Script `Code.gs` must be deployed as a new Web App version in the user's Apps Script project before the new backend functions become live. The provided Google Sheet URL could not be inspected from this environment, so the package does not assume or alter any existing sheet rows or production data.
+
+
+### WhatsApp verification delivery
+The existing verification flow is preserved. With the current Script Properties, no new OTP property is required: if an OTP template happens to already exist it is used; otherwise BrightAce uses the existing WhatsApp text verification path. No Meta or Apps Script property change is required by this package.
+
+
+### Work Assignments compatibility
+The Work Assignments page reads the existing `adminListConversations` API and filters active verified work client-side. This keeps the page compatible with an already-deployed Apps Script version while `adminListWorkAssignments` remains available in the source backend.
+
+
+## BrightAce Platform Upgrade — Student, Tutor, Scheduling, Payments & QA
+
+This package preserves the existing BrightAce frontend, verification flow, admin workspace, payment workflow, WhatsApp integration, legal pages and responsive design, while adding:
+- Verified Student/Client Dashboard inside Live Chat.
+- Standalone Tutor Dashboard with WhatsApp OTP login, assigned work, document download, status updates, submissions and admin communication.
+- Tutor recurring availability and Admin scheduling with availability/conflict checks, Zoom link, calendar (.ics) and dashboard-linked appointments.
+- Client invoice/receipt view and payment/transaction visibility; Admin payment records now link to the invoice/receipt document.
+- Quality-control queue with Admin QA approval/revision and completion gating.
+- Scheduled reminder backend function `sendBrightAceScheduledReminders`.
+
+### One-time Apps Script authorization for automatic reminders
+After deploying the updated `Code.gs`, open the Apps Script editor and run `installBrightAceReminderTrigger` once. Google will ask the project owner to authorize the time-driven reminder trigger. No new Script Property is required. The trigger checks confirmed sessions every 15 minutes and sends 24-hour/1-hour WhatsApp reminders using the existing BrightAce WhatsApp configuration.
+
+### Important deployment rule
+The GitHub Pages files and Apps Script deployment are separate. After replacing `Code.gs`, save it and update the existing `/exec` web-app deployment to the latest saved version. Verify `/exec?action=health` returns JSON before testing the new dashboards.
+
+
+## Verification test number
+
+For controlled testing, the optional Script Properties below are supported for both Client and Tutor WhatsApp verification:
+
+- `BRIGHTACE_VERIFICATION_TEST_WHATSAPP` = `254725010628`
+- `BRIGHTACE_VERIFICATION_TEST_CODE` = `121212`
+
+The test code is used **only** when the entered/registered number matches the configured test WhatsApp number. For that designated number, BrightAce bypasses WhatsApp delivery and accepts the configured six-digit test code. Normal clients and tutors continue to use the generated WhatsApp OTP flow.
+
+**Phone format:** use `254725010628` as the stored value. A leading `+` is optional because BrightAce normalizes phone numbers, but the recommended Script Property value is without `+`.
+
+Do not use a fixed test code for real client/tutor accounts.
+
+
+## Current pre-publication platform corrections
+- Client Dashboard is a separate verified page (`pages/client-dashboard.html`) opened from the Live Chat toolbar; its Back to Live Chat button returns to the existing chat.
+- Tutor Dashboard supports project-specific assigned payouts, paid/pending payment visibility, cumulative remaining tutor balance, profile-picture upload, drafts/final submissions, visible work comments, client/admin documents, recurring availability with optional 24-hour days, and scheduled Zoom links.
+- Tutor profile uploads use the `tutorUploadProfile` backend action and are visible to Admin and clients.
+- Admin → Tutors includes dashboard preview tabs for Tutor Dashboard, Client View, and Interactions. Client View filters out private Admin ↔ Tutor messages.
+- Admin navigation is standardized across admin pages. Tutor Portal remains a standalone portal; no tutor workspace is embedded in the main Admin Dashboard.
+- Verification test mode is entirely server-side for the designated test number and does not call Meta:
+  - `BRIGHTACE_VERIFICATION_TEST_WHATSAPP` = `254725010628`
+  - `BRIGHTACE_VERIFICATION_TEST_CODE` = `121212`
+  Remove the test-code property before production launch.
+- Normal WhatsApp verification continues to use the configured Meta template for non-test numbers.
+- Active polling was moved to 30 seconds to reduce Apps Script/Sheets load. This is an optimization, not a guarantee of a specific concurrency level; production capacity still depends on Apps Script, Sheets, Drive, Meta and payment-service quotas and actual load testing.
+
+
+## FINAL PRE-LAUNCH DEPLOYMENT CHECK
+
+The frontend expects the Google Apps Script Web App `/exec` to return JSON. If the browser says
+`BrightAce Apps Script returned HTML instead of JSON`, the saved Code.gs is newer than the deployed
+Web App version (or the Web App URL is not the BrightAce deployment).
+
+Update the existing Web App deployment:
+1. Apps Script -> save `backend/Code.gs`.
+2. Deploy -> Manage deployments.
+3. Edit the existing Web app deployment.
+4. Select **New version** / latest saved version.
+5. Execute as the owner.
+6. Keep the required access setting.
+7. Deploy.
+8. Test the same `/exec?action=health` URL. It must return JSON and include:
+   `"ok":true` and `"build":"2026-09-13-PRELAUNCH-1"`.
+
+Do not publish the GitHub Pages frontend until this health check returns JSON.
+
+
+Tutor test access: BRIGHTACE_TUTOR_TEST_WHATSAPP=0725010628 (normalized to 254725010628) and BRIGHTACE_TUTOR_TEST_CODE=121212.
+Client test access: BRIGHTACE_VERIFICATION_TEST_WHATSAPP=254725010628.
+Tutor earnings are 50% of the agreed paid client amount. Minimum tutor withdrawal is KSh 2,000. Client web sessions expire after 30 minutes of inactivity and require fresh WhatsApp verification.
