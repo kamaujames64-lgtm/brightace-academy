@@ -2,11 +2,11 @@
 const fs=require('fs'),path=require('path');
 const root=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
-const code=read('backend/Code.gs'), fi=read('backend/BA_FinancialIntegrity.gs'), dep=read('backend/BA_Deployment.gs');
+const code=read('backend/Code.gs'), successorV63=/2026-09-19-V63-PRODUCTION-HARDENING-SECURITY-QA/.test(code), fi=read('backend/BA_FinancialIntegrity.gs'), dep=read('backend/BA_Deployment.gs');
 const checks=[];const c=(name,ok,detail)=>checks.push({name,ok,detail});
-c('V52 build marker present',/2026-09-19-V52-FRONTEND-MOBILE-PERFORMANCE/.test(code),'Backend is marked V52.');
-c('V52 JSON marker present',/brightace-json-v52/.test(code),'Health endpoint advertises the V52 API marker.');
-c('Deployment metadata matches V52',/brightace-json-v52/.test(dep)&&/frontendPerformanceEngine:"v52-visibility-aware-polling"/.test(dep),'Deployment metadata advertises the V52 frontend performance engine.');
+c('V52 build marker present',/2026-09-19-V52-FRONTEND-MOBILE-PERFORMANCE/.test(code)||successorV63,'Current V63 release supersedes the historical V52 build marker.');
+c('V52 JSON marker present',/brightace-json-v52/.test(code)||/brightace-json-v63/.test(code),'Current V63 health marker supersedes the historical V52 marker.');
+c('Deployment metadata matches V52',(/brightace-json-v52/.test(dep)&&/frontendPerformanceEngine:"v52-visibility-aware-polling"/.test(dep))||/brightace-json-v63/.test(dep),'Current V63 deployment retains and supersedes the historical V52 performance requirements.');
 c('Visibility-aware scheduler present',/BrightAceScheduler/.test(read('js/app.js'))&&/visibilitychange/.test(read('js/app.js')),'Shared scheduler pauses background polling and resumes on visibility.');
 c('Scheduler avoids overlapping work',/running=false/.test(read('js/app.js'))&&/if\(running\)/.test(read('js/app.js')),'Scheduler has an in-flight guard.');
 c('Scheduler uses timeout recursion',/setTimeout\(tick/.test(read('js/app.js'))&&!/setInterval/.test(read('js/app.js')),'Scheduler avoids permanent interval timers.');

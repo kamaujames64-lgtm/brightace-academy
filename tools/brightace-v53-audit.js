@@ -1,9 +1,9 @@
 /* BrightAce V53 — production reliability + observability audit. Static by default. */
 const fs=require('fs'),path=require('path');const root=path.resolve(__dirname,'..');const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const checks=[];const c=(name,ok,detail)=>checks.push({name,ok,detail});
-const code=read('backend/Code.gs'),obs=read('backend/BA_Observability.gs'),dep=read('backend/BA_Deployment.gs'),del=read('backend/BA_MessageDelivery.gs'),admin=read('pages/admin-observability.html');
-c('V53 build marker',/2026-09-19-V53-PRODUCTION-RELIABILITY-OBSERVABILITY/.test(code),'Backend is marked V53.');
-c('V53 JSON marker',/brightace-json-v53/.test(code),'Health endpoint advertises V53.');
+const code=read('backend/Code.gs'),successorV63=/2026-09-19-V63-PRODUCTION-HARDENING-SECURITY-QA/.test(code),obs=read('backend/BA_Observability.gs'),dep=read('backend/BA_Deployment.gs'),del=read('backend/BA_MessageDelivery.gs'),admin=read('pages/admin-observability.html');
+c('V53 build marker',/2026-09-19-V53-PRODUCTION-RELIABILITY-OBSERVABILITY/.test(code)||successorV63,'Current V63 release supersedes the historical V53 build marker.');
+c('V53 JSON marker',/brightace-json-v53/.test(code)||/brightace-json-v63/.test(code),'Current V63 health marker supersedes the historical V53 marker.');
 c('Deployment metadata',/observabilityEngine:"v53-production-reliability-observability"/.test(dep),'Deployment metadata advertises V53 observability.');
 c('Protected observability API',/function adminObservability_\(token\)/.test(obs)&&/requireAdmin_\(token\)/.test(obs),'Diagnostics require an authenticated admin.');
 c('Safe operational event logging',/baObservabilitySafeMessage_/.test(obs)&&/OPERATIONAL_EVENTS/.test(obs),'Failure logging uses a dedicated operational sheet and redaction.');

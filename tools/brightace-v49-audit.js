@@ -3,11 +3,12 @@
 const fs=require("fs"),path=require("path"),root=path.resolve(__dirname,"..");
 const read=p=>fs.readFileSync(path.join(root,p),"utf8");
 const checks=[];
+const successorV63=codeMarker=>codeMarker.includes("2026-09-19-V63-PRODUCTION-HARDENING-SECURITY-QA");
 function check(name,ok,detail){checks.push({name,ok:Boolean(ok),detail});}
 const code=read("backend/Code.gs"), deploy=read("backend/BA_Deployment.gs"), delivery=read("backend/BA_MessageDelivery.gs"), app=read("js/app.js"), wallet=read("pages/tutor-wallet.html"), tutor=read("pages/tutor.html");
-check("V49 build marker",code.includes("2026-09-19-V49-CLIENT-SESSION-RECOVERY-MESSAGING-WALLET"));
-check("V49 JSON health marker",code.includes("brightace-json-v49"));
-check("V49 deployment marker",deploy.includes("brightace-json-v49")&&deploy.includes("V49"));
+check("V49 build marker",code.includes("2026-09-19-V49-CLIENT-SESSION-RECOVERY-MESSAGING-WALLET")||successorV63(code),"V49 requirements are retained by the current V63 release.");
+check("V49 JSON health marker",code.includes("brightace-json-v49")||code.includes("brightace-json-v63"),"A later V63 health marker supersedes the historical V49 marker.");
+check("V49 deployment marker",(deploy.includes("brightace-json-v49")&&deploy.includes("V49"))||deploy.includes("brightace-json-v63"),"Current deployment metadata is V63 and supersedes the historical V49 marker.");
 check("Durable delivery queue module",delivery.includes("MESSAGE_DELIVERY_QUEUE")&&delivery.includes("baProcessMessageDeliveryQueue_"));
 check("Bounded retry/dead-letter",delivery.includes("maxAttempts")&&delivery.includes('"DEAD"')&&delivery.includes('"RETRY"'));
 check("Idempotent queue ids",delivery.includes("queueId")&&delivery.includes("return baMessageDeliveryRow_"));

@@ -16,8 +16,9 @@ const qa=read('backend/BA_ProductionQA.gs');
 const admin=read('pages/admin.html');
 const qapage=read('pages/admin-production-qa.html');
 const marker='2026-09-19-V55-END-TO-END-QA-PRODUCTION-READINESS';
-if(code.includes(marker))ok('V55 build marker','Code.gs declares the V55 build marker.');else bad('V55 build marker','Expected marker missing from Code.gs.');
-if(code.includes('brightace-json-v55')&&dep.includes('brightace-json-v55'))ok('V55 JSON marker','API marker is present.');else bad('V55 JSON marker','API marker missing.');
+const successorV63=code.includes('2026-09-19-V63-PRODUCTION-HARDENING-SECURITY-QA');
+if(code.includes(marker)||successorV63)ok('V55 build marker',successorV63?'Current V63 release supersedes the historical V55 marker.':'Code.gs declares the V55 build marker.');else bad('V55 build marker','Expected marker missing from Code.gs.');
+if((code.includes('brightace-json-v55')&&dep.includes('brightace-json-v55'))||(code.includes('brightace-json-v63')&&dep.includes('brightace-json-v63')))ok('V55 JSON marker',successorV63?'Current V63 API marker supersedes the historical V55 marker.':'API marker is present.');else bad('V55 JSON marker','API marker missing.');
 for(const f of ['BA_Security.gs','BA_Sessions.gs','BA_RateLimit.gs','BA_Data.gs','BA_Cache.gs','BA_Messages.gs','BA_Sync.gs','BA_Validation.gs','BA_Files.gs','BA_ClientHistory.gs','BA_MessageDelivery.gs','BA_FinancialIntegrity.gs','BA_Observability.gs','BA_DisasterRecovery.gs','BA_ProductionQA.gs']){if(fs.existsSync(path.join(root,'backend',f)))ok('Backend module',f);else bad('Backend module',f);}
 for(const action of ['adminProductionQa','adminRecoveryManifest','adminCreateRecoverySnapshot','adminFinancialIntegrity','adminObservability']){if(code.includes('"'+action+'"'))ok('Action route',action);else bad('Action route',action);}
 if(admin.includes('admin-production-qa.html'))ok('Admin navigation','Production QA workspace linked.');else bad('Admin navigation','Production QA link missing.');
