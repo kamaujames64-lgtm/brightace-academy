@@ -1,47 +1,44 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Secure BrightAce Academy payments through Paystack. Never pay a tutor directly outside the official BrightAce payment process.">
-<link rel="canonical" href="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html">
+<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Secure BrightAce Academy payments through Paystack. Never pay a tutor directly outside the official BrightAce payment process." name="description"/>
+<link href="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html" rel="canonical"/>
 <title>Secure Payment | BrightAce Academy</title>
-<link rel="stylesheet" href="../css/style.css">
-<script src="../js/brightace-api-config.js"></script></head>
-<body>
+<link href="../css/style.css" rel="stylesheet"/>
+<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/></head>
+<body class="client-portal-page">
 <header class="nav"><div class="container nav-inner">
-<a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
-<button class="menu-btn" aria-label="Open menu" onclick="toggleMenu()">☰</button>
+<a class="brand" href="../index.html"><img alt="BrightAce Academy logo" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
+<button aria-label="Open menu" class="menu-btn" onclick="toggleMenu()">☰</button>
 <nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></nav>
 <a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
-
-<main>
+<nav aria-label="Client portal navigation" class="client-portal-nav"><a href="client-dashboard.html">⌂ Dashboard</a><a href="client-tutoring.html">▣ Sessions</a><a href="chat.html">✉ Messages</a><a href="client-resources.html">▤ Resources</a><a class="active" href="client-payments.html">▰ Payments</a></nav><main>
 <section class="page-hero"><div class="container"><div class="eyebrow">SECURE CHECKOUT</div><h1>BrightAce Secure Payment</h1><p>Pay for an agreed BrightAce academic service through the official payment process powered by Paystack.</p></div></section>
 <div class="container" style="margin-top:14px"><div class="client-payment-nav" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 0"><a class="btn btn-outline" href="client-dashboard.html">← CLIENT DASHBOARD</a><a class="btn btn-outline" href="client-payments.html">💳 PAYMENTS</a><a class="btn btn-outline" href="client-tutoring.html">📅 TUTORING</a><a class="btn btn-outline" href="chat.html">💬 LIVE CHAT</a></div></div>
 <section class="section"><div class="container"><div class="payment-shell">
 <div class="payment-safety"><div class="payment-safety-icon">🛡️</div><div><h3>Important Payment Safety Notice</h3><p><strong>Never send payment directly to a tutor's personal bank account, mobile-money account, PayPal account, WhatsApp number, or any other personal payment method.</strong> For your security, BrightAce payments must be made through the official BrightAce payment process.</p><p>Where a service is not fully delivered as agreed, BrightAce may review the case and issue a <strong>partial or full refund where appropriate</strong>, subject to the applicable review and payment terms.</p></div></div>
-
-<div id="paymentNotice" class="chat-notice" hidden></div>
-<div id="paymentLoading" class="payment-loading">Preparing secure payment...</div>
-<div id="paymentRequestForm" class="payment-request-form" hidden>
+<div class="chat-notice" hidden="" id="paymentNotice"></div>
+<div class="payment-loading" id="paymentLoading">Preparing secure payment...</div>
+<div class="payment-request-form" hidden="" id="paymentRequestForm">
 <h2>Enter your payment request</h2>
 <p class="muted">Your tutor should provide you with a BrightAce payment request ID after you agree on the service, price and delivery expectations.</p>
-<form id="requestForm" class="form"><label>Payment Request ID<input id="requestId" required placeholder="Example: BA-REQ-XXXXXXXX"></label><button class="btn btn-primary" type="submit">VIEW PAYMENT REQUEST →</button></form>
+<form class="form" id="requestForm"><label>Payment Request ID<input id="requestId" placeholder="Example: BA-REQ-XXXXXXXX" required=""/></label><button class="btn btn-primary" type="submit">VIEW PAYMENT REQUEST →</button></form>
 </div>
-
-<div id="paymentDetails" class="payment-details" hidden>
+<div class="payment-details" hidden="" id="paymentDetails">
 <div class="payment-status-pill" id="paymentStatus">Payment request</div>
 <h2 id="serviceName">Academic service</h2>
 <div class="payment-detail-grid"><div><span>Student</span><strong id="studentName">—</strong></div><div><span>Tutor</span><strong id="tutorName">—</strong></div><div><span>Amount</span><strong id="paymentAmount">—</strong></div><div><span>Delivery deadline</span><strong id="deliveryDeadline">—</strong></div><div><span>Request ID</span><strong id="paymentRequestId">—</strong></div></div>
-<div id="paymentDescription" class="payment-request-description" style="margin:14px 0;padding:13px;border:1px solid #dce5ec;border-radius:12px;background:#fbfdfe"><strong>Service details</strong><p id="paymentDescriptionText" style="margin:7px 0 0">—</p></div><div class="payment-protection"><strong>BrightAce Service Protection</strong><p>Only pay when the service, price and expected delivery have been agreed with your tutor. Keep your payment reference and use BrightAce chat if you need support or need to raise a service-delivery concern.</p></div>
-<button id="payButton" class="btn btn-primary payment-pay-btn" type="button">🔒 PAY SECURELY WITH PAYSTACK</button>
+<div class="payment-request-description" id="paymentDescription" style="margin:14px 0;padding:13px;border:1px solid #dce5ec;border-radius:12px;background:#fbfdfe"><strong>Service details</strong><p id="paymentDescriptionText" style="margin:7px 0 0">—</p></div><div class="payment-protection"><strong>BrightAce Service Protection</strong><p>Only pay when the service, price and expected delivery have been agreed with your tutor. Keep your payment reference and use BrightAce chat if you need support or need to raise a service-delivery concern.</p></div>
+<button class="btn btn-primary payment-pay-btn" id="payButton" type="button">🔒 PAY SECURELY WITH PAYSTACK</button>
 <p class="payment-small">Your payment is processed by Paystack. BrightAce does not receive or store your card details.</p>
 </div>
-
-<div id="paymentResult" class="payment-result" hidden></div>
+<div class="payment-result" hidden="" id="paymentResult"></div>
 </div></div></section>
 </main>
-<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
-<script src="../js/app.js" defer></script>
+<footer class="footer"><div class="container footer-grid"><div><div class="brand"><img alt="BrightAce Academy" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
+<script defer="" src="../js/app.js"></script>
 <script>
 const PAYMENT_API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec");
 const notice=document.getElementById("paymentNotice");
@@ -99,4 +96,4 @@ document.getElementById("requestForm").addEventListener("submit",async e=>{e.pre
 document.getElementById("payButton").addEventListener("click",async()=>{if(!currentRequest)return;const b=document.getElementById("payButton");b.disabled=true;b.textContent="Preparing Paystack checkout…";try{const p=await initialize(currentRequest.requestId);location.href=p.authorizationUrl;}catch(err){b.disabled=false;b.textContent="🔒 PAY SECURELY WITH PAYSTACK";setNotice(err.message||"Payment could not be started.","error");}});
 load();
 </script>
-</body></html>
+<nav aria-label="Mobile client navigation" class="client-mobile-nav-shared"><a href="client-dashboard.html"><span>⌂</span>Home</a><a href="client-tutoring.html"><span>▣</span>Sessions</a><a href="chat.html"><span>✉</span>Messages</a><a href="client-resources.html"><span>▤</span>Resources</a><a class="active" href="client-payments.html"><span>▰</span>Pay</a></nav></body></html>
