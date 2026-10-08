@@ -136,7 +136,7 @@ The supplied ChatGPT shared link could not be retrieved as an image asset; uploa
 WhatsApp verification uses the existing BrightAce WhatsApp sender configuration (`META_ACCESS_TOKEN` and `META_PHONE_NUMBER_ID`) and does not require any additional OTP Script Property. The verification message is sent through the existing free-form WhatsApp text path.
 
 ## Current production Apps Script endpoint wired into this package
-`https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec`
+`https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec`
 
 ## Important deployment note
 The static website package can be fully prepared here, but a new Apps Script `Code.gs` must be deployed as a new Web App version in the user's Apps Script project before the new backend functions become live. The provided Google Sheet URL could not be inspected from this environment, so the package does not assume or alter any existing sheet rows or production data.

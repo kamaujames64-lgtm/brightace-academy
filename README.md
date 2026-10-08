@@ -211,7 +211,7 @@ The supplied ChatGPT shared link could not be retrieved as an image asset; uploa
 WhatsApp verification uses the existing BrightAce WhatsApp sender configuration (`META_ACCESS_TOKEN` and `META_PHONE_NUMBER_ID`) and does not require any additional OTP Script Property. The verification message is sent through the existing free-form WhatsApp text path.
 
 ## Current production Apps Script endpoint wired into this package
-`https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec`
+`https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec`
 
 ## Important deployment note
 The static website package can be fully prepared here, but a new Apps Script `Code.gs` must be deployed as a new Web App version in the user's Apps Script project before the new backend functions become live. The provided Google Sheet URL could not be inspected from this environment, so the package does not assume or alter any existing sheet rows or production data.
@@ -293,3 +293,68 @@ Do not publish the GitHub Pages frontend until this health check returns JSON.
 Tutor test access: BRIGHTACE_TUTOR_TEST_WHATSAPP=0725010628 (normalized to 254725010628) and BRIGHTACE_TUTOR_TEST_CODE=121212.
 Client test access: BRIGHTACE_VERIFICATION_TEST_WHATSAPP=254725010628.
 Tutor earnings are 50% of the agreed paid client amount. Minimum tutor withdrawal is KSh 2,000. Client web sessions expire after 30 minutes of inactivity and require fresh WhatsApp verification.
+
+
+## V66 Currency + Performance update
+- Client display currency is persisted server-side and defaults to USD.
+- Client invoices and official statements are rendered in the selected display currency; source transaction currency remains immutable and is retained as an audit reference.
+- Added backend `BA_FastIndex.gs` for cache/TextFinder/normalized-column lookup paths on client financial hot paths.
+
+## V66 Phone Country Picker Final Fix — 2026-10-04
+- Country selection now uses ISO code as the unique internal value, preventing shared dial codes such as +1 from selecting the wrong country.
+- The visible phone input contains local/national digits only; the selected dial code remains separate and is included only in the hidden submitted value.
+- The country popup is rendered at the document body level with a fixed high-z-index layer and viewport-aware positioning so surrounding frames/cards cannot clip it.
+
+## V66 Phone Local-Number Lock Fix — 2026-10-04
+- Fixed the country picker jumping away from a manually selected country while the user types a local number.
+- Example: after selecting Kenya (+254), entering `725 010 628` remains Kenya +254; the `7` at the start of the local number is no longer treated as the `+7` country code.
+- Automatic country inference now applies only to initial/pasted values that explicitly start with `+`.
+- The visible field remains local/national only and the hidden submitted field carries the selected international number.
+- Fixed hidden international-value generation to use the selected option's `data-dial` value.
+- Fixed the body-level popup outside-click handling so the menu remains selectable after being moved outside the surrounding frame.
+
+## V66 SPEED + JSON STABILITY — 2026-10-04
+
+The latest package adds a disposable backend speed/index layer (`backend/BA_Speed.gs`), bounded client-history reads, targeted schedule/tutor reads, dashboard cache improvements, service-worker navigation caching, idle/hover page warming, and duplicate-request suppression in the client workspace.
+
+The Apps Script build is now `2026-10-04-V66-SPEED-JSON-STABLE`. If production `/exec` returns HTML instead of JSON, this is a deployment problem rather than a frontend JSON parsing problem: publish a **new version of the SAME Apps Script Web App** and keep the existing `/exec` URL. Verify `/exec?action=health` and `/exec?action=version` return JSON and the new V66 build before testing the portal.
+
+## V66 Client Navigation Consistency Fix — 2026-10-04
+- Removed the “Small steps every day lead to big results!” promotional block from the client sidebar navigation.
+- Restored a visible collapse/expand arrow on the desktop client sidebar; state persists per browser and does not interfere with mobile hamburger navigation.
+- Added “New Request” as a permanent first-class client navigation item on the shared client workspace sidebar and dashboard sidebar.
+- Added “New Request” to the mobile client navigation and legacy client financial/checkout navigation surfaces so the entry is not lost when moving between client pages.
+- Removed the Resources, Sessions, and Messages shortcut buttons that were displayed to the right of the client dashboard search bar.
+- Fixed the shared navigation badge selector so the Messages unread badge attaches to the actual client Messages link.
+
+Changed files: `js/client-portal-pages.js`, `css/client-portal.css`, `pages/client-dashboard.html`, `pages/client-statement.html`, `pages/payment.html`, `pages/receipt.html`, `pages/resource-checkout.html`, `README.md`.
+
+V66 2026-10-04: Currency converter redesigned to match the supplied reference UI; nested V63 production-hardening ZIP removed from distribution.
+
+## V66 Client Navigation Repair — 2026-10-04
+The client workspace now uses one consistent navigation shell across Dashboard, New Request, Requests, Tutoring, Messages, Resources, Work, Progress, Payments, and Profile. The desktop collapse/expand arrow and mobile menu behavior are restored. New Request is present throughout the client navigation. The old navigation promotional quote is removed completely, and the dashboard search bar no longer carries duplicate Resources/Sessions/Messages buttons.
+
+## V66.2 Client runtime stabilization — 2026-10-04
+- Compact currency converter modal with immediate conversion and background FX refresh.
+- Shared client LOG OUT with server session revocation and public-home redirect.
+- Fast client dashboard read-session validation through CacheService before the Sheets fallback.
+- Reliable client sidebar collapse/expand arrow.
+- Compact, viewport-safe profile photo cropper.
+- Client API timeout/message hardened to avoid the misleading 20-second deployment warning.
+
+## V66 Client Runtime / Photo / Currency Removal — 2026-10-05
+- Currency Converter UI and `js/brightace-currency.js` have been removed from the client/site distribution.
+- Client navigation now uses fresh/stale local workspace cache so navigation remains usable while Apps Script refreshes in the background.
+- Client API requests use a bounded retry strategy and preserve the local session on slow responses.
+- Profile photo capture uses the device camera flow and the cropper normalizes supported image inputs to a valid upload format.
+- Client profile upload no longer rejects non-JPEG source images with the old JPEG-only message.
+
+## Spreadsheet setup/alignment — 2026-10-06
+Added `backend/BA_SpreadsheetSchema.gs`.
+
+Run once in Apps Script after opening the project:
+`brightAceSetSpreadsheetIdAndAlign("YOUR_GOOGLE_SHEET_ID")`
+
+This verifies access, stores `SPREADSHEET_ID`, preserves a previous ID as `SPREADSHEET_ID_PREVIOUS` when applicable, and performs non-destructive sheet/header alignment. It never deletes sheets, columns, rows, values, or unrelated Script Properties.
+
+If the ID is already configured, run `brightAceAlignSpreadsheetSchema()`.

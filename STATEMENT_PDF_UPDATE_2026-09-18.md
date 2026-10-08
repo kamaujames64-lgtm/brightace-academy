@@ -22,4 +22,4 @@ This package is based on the latest production-EXEC-endpoint package.
 The ZIP changes both frontend files and `backend/Code.gs`. The Apps Script backend must be saved and deployed as a new version to the production `/exec` deployment before the new statement registration, date-range filtering, and verification features can work.
 
 Production endpoint:
-`https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec`
+`https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec`
