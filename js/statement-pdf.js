@@ -139,6 +139,9 @@
         text(46,y-11,dateText(r.date||r.paidAt||r.createdAt).slice(0,18),6.5,false);
         text(105,y-11,lines((r.direction ? (r.direction==="IN" ? "IN • " : "OUT • ") : "") + (r.type||"Transaction"),12)[0],6.5,false);
         dl.slice(0,3).forEach((ln,k)=>text(181,y-11-k*8,ln,6.2,false));
+        if(r.originalCurrency&&String(r.originalCurrency).toUpperCase()!==String(r.currency).toUpperCase()){
+          text(181,y-11-Math.min(2,dl.length)*8,"Original: "+fmtMoney(r.originalAmount,r.originalCurrency),5.4,false);
+        }
         text(460,y-11,fmtMoney(r.amount,r.currency),6.5,true);
         y-=h;
       }

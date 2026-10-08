@@ -8,7 +8,7 @@
  * IMPORTANT: keep tokens in Apps Script Script Properties. Never put secrets in GitHub Pages JS.
  */
 
-const BRIGHTACE_BUILD="2026-09-19-V63-PRODUCTION-HARDENING-SECURITY-QA";
+const BRIGHTACE_BUILD="2026-10-06-V66-SPREADSHEET-ALIGNED";
 const CONFIG = {
   spreadsheetIdKey: "SPREADSHEET_ID",
   driveFolderIdKey: "CHAT_DRIVE_FOLDER_ID",
@@ -32,6 +32,37 @@ const CONFIG = {
   tutorVerificationTestCodeKey: "BRIGHTACE_TUTOR_TEST_CODE",
   clientSessionTokenPrefix: "BA_CLIENT_SESSION_"
 };
+
+/* BrightAce V66 — self-contained fast phone lookup.
+ * Kept in Code.gs so deployments cannot fail because a separate helper file was omitted.
+ */
+var BA_FAST_INDEX_TTL_=120;
+function baFastRowsForExact_(sheet,header,value,cachePrefix){
+  const target=String(value||"").trim();if(!target)return [];
+  const key=String(cachePrefix)+"|"+target,hit=baCacheGetJson_(key);if(hit&&Array.isArray(hit.rows))return hit.rows;
+  const m=headerMap_(sheet),col=m[header];if(!col)return [];
+  const last=sheet.getLastRow();if(last<2)return [];
+  const rows=[];try{sheet.getRange(2,col,last-1,1).createTextFinder(target).matchEntireCell(true).useRegularExpression(false).findAll().forEach(c=>rows.push(c.getRow()));}catch(e){}
+  baCachePutJson_(key,{rows:rows},BA_FAST_INDEX_TTL_);return rows;
+}
+function baFastRowsForPhone_(sheet,header,phone,cachePrefix){
+  const target=normalizePhone_(phone);if(!target)return [];
+  const exact=baFastRowsForExact_(sheet,header,target,cachePrefix);if(exact.length)return exact;
+  const key=String(cachePrefix)+"|N|"+target,hit=baCacheGetJson_(key);if(hit&&Array.isArray(hit.rows))return hit.rows;
+  const m=headerMap_(sheet),col=m[header],last=sheet.getLastRow(),rows=[];if(!col||last<2)return rows;
+  try{const vals=sheet.getRange(2,col,last-1,1).getValues();for(let i=0;i<vals.length;i++)if(normalizePhone_(vals[i][0])===target)rows.push(i+2);}catch(e){}
+  baCachePutJson_(key,{rows:rows},BA_FAST_INDEX_TTL_);return rows;
+}
+function baFastReadRows_(sheet,rowNumbers){
+  const nums=(rowNumbers||[]).map(Number).filter(n=>n>1).sort((a,b)=>a-b);if(!nums.length)return [];
+  const width=sheet.getLastColumn(),out=[];
+  if(nums[nums.length-1]-nums[0] <= nums.length*4){
+    const vals=sheet.getRange(nums[0],1,nums[nums.length-1]-nums[0]+1,width).getValues();const wanted={};nums.forEach(n=>wanted[n]=1);
+    for(let i=0;i<vals.length;i++)if(wanted[nums[0]+i])out.push({row:nums[0]+i,values:vals[i]});
+  }else nums.forEach(n=>{try{out.push({row:n,values:sheet.getRange(n,1,1,width).getValues()[0]});}catch(e){}});
+  return out;
+}
+function baInvalidateClientFastIndexes_(phone){const p=normalizePhone_(phone);if(!p)return;['BA_FAST_PAY_PHONE','BA_FAST_REFUND_PHONE','BA_FAST_CONV_PHONE','BA_FAST_CLIENT_PHONE'].forEach(k=>{try{CacheService.getScriptCache().remove(k+'|'+p);CacheService.getScriptCache().remove(k+'|N|'+p);}catch(e){}});}
 
 function requireActionPermission_(body){
   const action=String(body&&body.action||"");if(!/^admin/i.test(action)||action==="adminLogin")return true;
@@ -60,12 +91,13 @@ function doGet(e){
     if(p["hub.mode"] === "subscribe") return verifyWebhook_(p);
     const action=String(p.action||"health"); __baAction=action;
     baSecurityGateGet_(p);
-    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v63",time:new Date().toISOString(),observability:baObservabilityHealth_()});
+    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v66",time:new Date().toISOString(),observability:baObservabilityHealth_()});
     if(action==="version") return json_(baDeploymentInfo_());
+    if(action==="fxRates") return baFxRates_();
     if(action==="messages") return getMessages_(p.sessionId,p.clientSessionToken,p.phone,p.afterMessageId,p.clientAccessToken);
-    if(action==="paymentRequest") return getPaymentRequest_(p.requestId,p.clientSessionToken,p.phone);
+    if(action==="paymentRequest") return getPaymentRequest_(p.requestId,p.clientSessionToken,p.phone,p.displayCurrency);
     if(action==="verifyPayment") return verifyPayment_(p.reference);
-    if(action==="clientStatement") return clientStatement_(p.clientSessionToken,p.phone);
+    if(action==="clientStatement") return clientStatement_(p.clientSessionToken,p.phone,p.displayCurrency);
     if(action==="tutorStatement") return tutorStatement_(p.tutorToken);
     if(action==="adminStatement") return adminStatement_(p.adminToken,p.from,p.to);
     if(action==="verifyStatement") return verifyStatement_(p.reference);
@@ -130,6 +162,7 @@ function doPost(e){
     if(body.object === "whatsapp_business_account") return handleWhatsAppWebhook_(body);
     if(body.event && body.data) return handlePaystackWebhook_(body);
     if(body.action === "startChat") return startChat_(body);
+    if(body.action === "clientCreateRequest") return clientCreateRequest_(body);
     if(body.action === "returningClientSendVerification") return returningClientSendVerification_(body);
     if(body.action === "returningClientVerify") return returningClientVerify_(body);
     if(body.action === "verifyChat") return verifyChat_(body);
@@ -188,6 +221,7 @@ function doPost(e){
     if(body.action === "submitRefundRequest") return submitRefundRequest_(body);
     if(body.action === "adminListRefundRequests") return adminListRefundRequests_(body.adminToken);
     if(body.action === "adminReviewRefundRequest") return adminReviewRefundRequest_(body);
+    if(body.action === "clientPortalData") return clientPortalData_(body);
     if(body.action === "clientDashboard") return clientDashboard_(body);
     if(body.action === "clientSubmitFeedback") return clientSubmitFeedback_(body);
     if(body.action === "clientSendComment") return clientSendComment_(body);
@@ -218,6 +252,9 @@ function doPost(e){
     if(body.action === "clientDashboardBootstrap") return clientDashboardBootstrap_(body);
     if(body.action === "clientTouchSession") return clientTouchSession_(body);
     if(body.action === "clientEndSession") return clientEndSession_(body);
+    if(body.action === "clientUploadProfile") return clientUploadProfile_(body);
+    if(body.action === "clientRemoveProfile") return clientRemoveProfile_(body);
+    if(body.action === "clientSetCurrency") return clientSetCurrency_(body);
     if(body.action === "clientGetRequest") return clientGetRequest_(body);
     if(body.action === "adminDeleteWorkHistory") return adminDeleteWorkHistory_(body);
     if(body.action === "tutorAcceptWork") return tutorAcceptWork_(body);
@@ -264,7 +301,7 @@ function parseBody_(e){
 }
 
 function conversationHeaders_(){
-  return ["conversationId","studentName","studentPhone","startedAt","lastMessageAt","status","assignedTutor","whatsappPhone","lastMessageId","studentEmail","workDescription","studentBudget","currency","deadline","assignmentStatus","assignedTutorPhone","tutorPayout","brightAceShare","agreedAmount","agreedCurrency","completedAt","rejectedAt","rejectionReason","verificationStatus","verificationCodeHash","verificationExpiresAt","verificationAttempts","verificationResendCount","verifiedAt","assignedAdminUsername","assignedAdminName","clientAccessToken","tutorWorkStatus","tutorSubmittedAt","tutorSubmissionNote","qaStatus","qaAt","qaBy","qaNotes","clientFeedback","clientFeedbackAt"];
+  return ["conversationId","studentName","studentPhone","startedAt","lastMessageAt","status","assignedTutor","whatsappPhone","lastMessageId","studentEmail","workDescription","studentBudget","currency","deadline","assignmentStatus","assignedTutorPhone","tutorPayout","brightAceShare","agreedAmount","agreedCurrency","completedAt","rejectedAt","rejectionReason","verificationStatus","verificationCodeHash","verificationExpiresAt","verificationAttempts","verificationResendCount","verificationLastSentAt","verifiedAt","assignedAdminUsername","assignedAdminName","clientAccessToken","tutorWorkStatus","tutorSubmittedAt","tutorSubmissionNote","qaStatus","qaAt","qaBy","qaNotes","clientFeedback","clientFeedbackAt"];
 }
 function headerCacheKey_(sh){return "BA_HEADERS_"+sh.getSheetId()}
 function clearHeaderMapCache_(sh){try{CacheService.getScriptCache().remove(headerCacheKey_(sh))}catch(e){}}
@@ -293,7 +330,7 @@ function setByHeader_(sh,row,header,value){const m=headerMap_(sh);if(m[header]){
 function getByHeader_(sh,row,header){const m=headerMap_(sh);return m[header]?sh.getRange(row,m[header]).getValue():""}
 
 function getClientSheet_(){
-  const h=["clientId","clientName","clientPhone","status","createdAt","notes","membershipTier","discountPercent","sessionTokenHash","sessionExpiresAt","lastActivityAt"];
+  const h=["clientId","clientName","clientPhone","status","createdAt","notes","membershipTier","discountPercent","sessionTokenHash","sessionExpiresAt","lastActivityAt","profilePictureUrl","profilePictureFileId","displayCurrency"];
   return ensureColumns_(getSheet_("CLIENTS",h),h);
 }
 function getVerificationTestPhone_(){
@@ -314,12 +351,8 @@ function findAnyClientByPhone_(phone){
   const target=normalizePhone_(phone);if(!target)return null;
   const key="BA_CLIENT_BY_PHONE_"+target;
   try{const cached=safeJson_(CacheService.getScriptCache().get(key)||"");if(cached&&cached.clientPhone===target)return cached;}catch(e){}
-  const sh=getClientSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);
-  for(let i=1;i<rows.length;i++) if(normalizePhone_(rows[i][m.clientPhone-1])===target){
-    const out={row:i+1,clientId:String(rows[i][m.clientId-1]),clientName:String(rows[i][m.clientName-1]||""),clientPhone:target,status:String(rows[i][m.status-1]||"ACTIVE").toUpperCase()};
-    try{CacheService.getScriptCache().put(key,JSON.stringify(out),60)}catch(e){}
-    return out;
-  }
+  const sh=getClientSheet_(),m=headerMap_(sh),matches=baFastRowsForPhone_(sh,'clientPhone',target,'BA_FAST_CLIENT_PHONE');
+  if(matches.length){const row=matches[matches.length-1],values=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0];const out={row:row,clientId:String(values[m.clientId-1]),clientName:String(values[m.clientName-1]||""),clientPhone:target,status:String(values[m.status-1]||"ACTIVE").toUpperCase(),profilePictureUrl:m.profilePictureUrl?String(values[m.profilePictureUrl-1]||""):"",profilePictureFileId:m.profilePictureFileId?String(values[m.profilePictureFileId-1]||""):"",displayCurrency:baNormalizeCurrency_(m.displayCurrency?values[m.displayCurrency-1]:"USD")};try{CacheService.getScriptCache().put(key,JSON.stringify(out),60)}catch(e){}return out;}
   try{CacheService.getScriptCache().put(key,JSON.stringify({notFound:true,clientPhone:target}),30)}catch(e){}
   return null;
 }
@@ -342,7 +375,7 @@ function adminAddClient_(d){
   requireAdmin_(d.adminToken);
   const name=String(d.clientName||"").trim(),phone=normalizePhone_(d.clientPhone||""),notes=String(d.notes||"").trim(),tier=String(d.membershipTier||"STANDARD").toUpperCase(),discount=Math.max(0,Math.min(100,Number(d.discountPercent||0)));
   if(!name)throw new Error("Client name is required.");
-  if(phone.length<7)throw new Error("Enter a valid WhatsApp number.");
+  if(phone.length<7||phone.length>15)throw new Error("Enter a valid international WhatsApp number. Use +countrycode followed by the number.");
   const sh=getClientSheet_(),existing=getClientByPhone_(phone);
   if(existing&&existing.row)throw new Error("WARNING: This WhatsApp number is already registered to client "+String(existing.clientName||"")+" . Use the existing client record or correct the number.");
   const conflicts=whatsappNameConflicts_(phone,name,"CLIENT");if(conflicts.length)throw new Error("WARNING: This WhatsApp number is registered with another different name ("+conflicts.join(", ")+"). Confirm the correct number/name before admitting this client.");
@@ -477,6 +510,73 @@ function startChat_(d){
   return json_({ok:true,conversationId:id,requestStatus:"PENDING_VERIFICATION",verificationRequired:true,message:"Request received. A fresh 6-digit verification code is required to open this live-chat session."});
   }finally{try{lock.releaseLock()}catch(e){}}
 }
+function clientCreateRequest_(d){
+  const phone=normalizePhone_(d.phone||"");
+  const clientSessionToken=String(d.clientSessionToken||"").trim();
+  if(!clientSessionToken)throw new Error("Your verified client session is required.");
+  const client=requireClientSession_(clientSessionToken,phone);
+  const description=String(d.description||d.taskDescription||"").trim();
+  const deadline=String(d.deadline||"").trim();
+  const currency=String(d.currency||"KES").toUpperCase();
+  const budget=Number(d.budget||d.studentBudget||0);
+  const requestKey=String(d.clientRequestId||"").trim();
+  if(description.length<3)throw new Error("Please describe the work you want BrightAce to handle.");
+  if(description.length>12000)throw new Error("The request description is too long.");
+  if(!deadline)throw new Error("Please provide the requested deadline.");
+  if(!["KES","USD","EUR"].includes(currency))throw new Error("Choose KES, USD or EUR.");
+  if(!Number.isFinite(budget)||budget<0)throw new Error("Enter a valid budget.");
+  if(requestKey){
+    const prior=baCacheGetJson_("BA_CLIENT_NEW_REQUEST_"+sha256Hex_(phone+"|"+requestKey));
+    if(prior&&prior.ok)return json_(prior);
+  }
+  const lock=LockService.getScriptLock();
+  if(!lock.tryLock(10000))throw new Error("BrightAce is handling many requests at once. Please try again in a few seconds.");
+  try{
+    const sh=getConversationSheet_(),now=new Date(),id="CHAT-"+now.getTime()+"-"+Utilities.getUuid().replace(/-/g,"").slice(0,6).toUpperCase();
+    const h=headerMap_(sh),row=sh.getLastRow()+1,values=new Array(sh.getLastColumn()).fill("");
+    const accessToken=Utilities.getUuid()+Utilities.getUuid();
+    values[h.conversationId-1]=id;
+    values[h.studentName-1]=String(client.clientName||"Verified Client").trim();
+    values[h.studentPhone-1]=phone;
+    values[h.startedAt-1]=now;
+    values[h.lastMessageAt-1]=now;
+    values[h.status-1]="open";
+    values[h.assignedTutor-1]="Unassigned";
+    values[h.whatsappPhone-1]=phone;
+    values[h.assignmentStatus-1]="NEW_REQUEST";
+    values[h.workDescription-1]=description;
+    values[h.studentBudget-1]=budget;
+    values[h.currency-1]=currency;
+    values[h.deadline-1]=deadline;
+    values[h.agreedAmount-1]=budget;
+    values[h.agreedCurrency-1]=currency;
+    values[h.verificationStatus-1]="VERIFIED";
+    values[h.verifiedAt-1]=now;
+    values[h.clientAccessToken-1]=accessToken;
+    sh.getRange(row,1,1,values.length).setValues([values]);
+    let requestAttachments=[];
+    if(Array.isArray(d.attachments)) requestAttachments=saveAttachments_(id,d.attachments);
+    if(requestAttachments.length){
+      const savedAttachmentMessage=saveMessage_(id,"student",description,"client-dashboard",requestAttachments.length===1?requestAttachments[0]:requestAttachments,client.clientName,phone);
+      setByHeader_(sh,row,"lastMessageId",savedAttachmentMessage.id);
+    }
+    cacheConversation_(row,values,sh,h);
+    try{
+      CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");
+      CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");
+      CacheService.getScriptCache().remove("BA_ADMIN_WORK_HISTORY");
+      CacheService.getScriptCache().remove("BA_ADMIN_QUALITY");
+      CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);
+      CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+phone);
+      baInvalidateClientRequestHistory_(phone);
+    }catch(e){}
+    const result={ok:true,conversationId:id,requestStatus:"NEW_REQUEST",request:{conversationId:id,studentName:String(client.clientName||"Verified Client"),studentPhone:phone,workDescription:description,studentBudget:budget,currency:currency,deadline:deadline,assignmentStatus:"NEW_REQUEST",verificationStatus:"VERIFIED"},message:"Your new request has been submitted to BrightAce Admin for review, discussion and tutor assignment."};
+    try{notifyAdminOfNewRequest_(id,String(client.clientName||"Verified Client"),phone,description,budget,currency,deadline)}catch(e){console.error("Admin WhatsApp notification failed: "+(e&&e.message||e))}
+    if(requestKey)baCachePutJson_("BA_CLIENT_NEW_REQUEST_"+sha256Hex_(phone+"|"+requestKey),result,300);
+    return json_(result);
+  }finally{try{lock.releaseLock()}catch(e){}}
+}
+
 function sendVerificationCode_(conversationId,phone){
   const id=String(conversationId||"").trim(), target=normalizePhone_(phone||"");
   if(!id||!target)throw new Error("Verification request and WhatsApp number are required.");
@@ -486,9 +586,12 @@ function sendVerificationCode_(conversationId,phone){
   if(isWhatsAppBlocked_(target))throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
   const code=isVerificationTestCodeEnabledFor_(target)?getVerificationTestCode_():generateVerificationCode_(target);
   const sh=getConversationSheet_();
+  const recentRaw=getByHeader_(sh,c.row,"verificationLastSentAt"),recent=recentRaw?new Date(recentRaw).getTime():0;
+  if(recent && Date.now()-recent<30*1000) throw new Error("Please wait 30 seconds before requesting another verification code.");
   setByHeader_(sh,c.row,"verificationCodeHash",sha256Hex_(code));
   setByHeader_(sh,c.row,"verificationExpiresAt",new Date(Date.now()+10*60*1000));
   setByHeader_(sh,c.row,"verificationAttempts",0);
+  setByHeader_(sh,c.row,"verificationLastSentAt",new Date());
   const sent=isVerificationTestCodeEnabledFor_(target)
     ? {testMode:true,skipped:true,message:"Test verification code configured; WhatsApp delivery bypassed for the designated client number."}
     : sendWhatsAppVerificationTemplate_(target,code);
@@ -510,7 +613,7 @@ function returningClientSendVerification_(d){
   const name=String(d.name||"").trim();
   const phone=normalizePhone_(d.phone||"");
   if(!name)throw new Error("Enter the name used on your BrightAce request.");
-  if(phone.length<7)throw new Error("Enter a valid WhatsApp number.");
+  if(phone.length<7||phone.length>15)throw new Error("Enter a valid international WhatsApp number. Use +countrycode followed by the number.");
   if(isWhatsAppBlocked_(phone))throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
   const client=getClientByPhone_(phone);
   if(!client)throw new Error("No BrightAce client record was found for this WhatsApp number. If this is your first request, please use Start your support request.");
@@ -555,11 +658,10 @@ function verifyChat_(d){
   const id=String(d.conversationId||"").trim(),code=String(d.code||"").trim(); if(!id||!/^[0-9]{6}$/.test(code)) throw new Error("Enter the 6-digit verification code sent to WhatsApp.");
   const c=findConversation_(id); if(!c) throw new Error("Verification request not found.");
   if(String(c.verificationStatus||"").toUpperCase()==="VERIFIED"){
-    const sh=getConversationSheet_(),existing=String(getByHeader_(sh,c.row,"clientAccessToken")||"")||Utilities.getUuid()+Utilities.getUuid();
-    setByHeader_(sh,c.row,"clientAccessToken",existing);
-    const client=getClientByPhone_(c.studentPhone),clientSession=issueClientSession_(client,c.studentPhone);
-    // A fresh verification is treated as a fresh live-chat access session.
-    return json_({ok:true,verified:true,clientAccessToken:existing,clientSessionToken:clientSession.clientSessionToken,clientSessionExpiresAt:clientSession.expiresAt,message:"WhatsApp verified successfully. Your BrightAce live chat is connected."});
+    // Never treat an already-verified record as proof of a new OTP.
+    // An existing authenticated session should continue through the normal
+    // session endpoints; a fresh live-chat entry must request a new code.
+    throw new Error("This WhatsApp request is already verified. Continue with your active BrightAce session or request a new verification code.");
   }
   const expiry=c.row?getByHeader_(getConversationSheet_(),c.row,"verificationExpiresAt"):""; if(expiry && new Date(expiry).getTime()<Date.now()) throw new Error("That verification code has expired. Request a new code.");
   const attempts=Number(c.row?getByHeader_(getConversationSheet_(),c.row,"verificationAttempts"):0)||0; if(attempts>=3) throw new Error("Too many incorrect attempts. Request a new verification code.");
@@ -677,26 +779,27 @@ function getMessages_(id,clientSessionToken,phone,afterMessageId,clientAccessTok
   const key=baMessageCacheKey_(id);
   let cached=baCacheGetJson_(key);
   if(!Array.isArray(cached)){cached=readConversationMessages_(c.conversationId);baCachePutJson_(key,cached,300);}
-  const sync=baSyncResponse_(cached,afterMessageId);
+  // Live Chat is strictly Client ↔ BrightAce Admin. Tutor/work-comment
+  // messages live in the client workspace (My Tutor & Sessions / Assignments & Work)
+  // and must never leak into this chat stream.
+  const liveChatMessages=cached.filter(function(x){
+    const sender=String(x.sender||'').toLowerCase();
+    return sender==='student'||sender==='admin';
+  });
+  const sync=baSyncResponse_(liveChatMessages,afterMessageId);
   const out={ok:true,messages:sync.messages.map(x=>Object.assign({},x,{attachment:hydrateAttachment_(x.attachment)})),syncCursor:sync.syncCursor};
   if(auth.clientSessionToken)out.clientSessionToken=auth.clientSessionToken;
   return json_(out);
 }
-function getPaymentRequest_(requestId,clientSessionToken,phone){
+function getPaymentRequest_(requestId,clientSessionToken,phone,displayCurrency){
   if(!requestId) return json_({ok:false,error:"Payment request ID is required."});
   const p=findPaymentRequest_(requestId);
   if(!p) return json_({ok:false,error:"Payment request not found."});
   const c=clientConversationFromSession_({conversationId:p.conversationId,clientSessionToken:clientSessionToken,phone:phone});
+  const profile=getClientByPhone_(phone),target=baNormalizeCurrency_(displayCurrency||profile?.displayCurrency||"USD"),view=baMoneyDisplay_(p.amount,p.currency,target);
   return json_({ok:true,request:{
-    requestId:p.requestId,
-    service:p.service,
-    amount:Number(p.amount),
-    currency:p.currency,
-    studentName:p.studentName,
-    tutor:p.tutor,
-    deliveryDeadline:p.deliveryDeadline,
-    status:p.status,
-    description:p.description
+    requestId:p.requestId,service:p.service,amount:view.amount,currency:view.currency,originalAmount:view.originalAmount,originalCurrency:view.originalCurrency,
+    studentName:p.studentName,tutor:p.tutor,deliveryDeadline:p.deliveryDeadline,status:p.status,description:p.description
   }});
 }
 
@@ -866,9 +969,10 @@ function findPaymentRequest_(requestId){
 }
 
 function findPaymentByReference_(reference){
+  const target=String(reference||"").trim();if(!target)return null;
   const sh=getPaymentSheet_(),lastRow=sh.getLastRow();
   if(lastRow<2)return null;
-  const cell=sh.getRange(2,12,lastRow-1,1).createTextFinder(String(reference))
+  const cell=sh.getRange(2,12,lastRow-1,1).createTextFinder(target)
     .matchEntireCell(true).useRegularExpression(false).findNext();
   if(!cell)return null;
   const row=cell.getRow();
@@ -883,6 +987,7 @@ function updatePaymentFields_(row,fields){
   const sh=getPaymentSheet_();
   const map={status:11,paystackReference:12,authorizationUrl:13,paidAt:15,refundStatus:16,refundAmount:17,refundReason:18,serviceDescription:19};
   Object.keys(fields).forEach(k=>{if(map[k]) sh.getRange(row,map[k]).setValue(fields[k]);});
+  try{const phone=normalizePhone_(sh.getRange(row,4).getValue());baInvalidateClientFastIndexes_(phone);CacheService.getScriptCache().remove("BA_PAYMENT_"+String(sh.getRange(row,1).getValue()));}catch(e){}
 }
 
 function toPaystackMinorUnit_(amount,currency){
@@ -1130,26 +1235,67 @@ function adminAssignWork_(d){
 
 /* ===================== CLIENT DASHBOARD ===================== */
 /* ===================== CLIENT SESSION FOUNDATION ===================== */
-function issueClientSession_(client,phone){
-  const token=Utilities.getUuid()+Utilities.getUuid(),hash=sha256Hex_(token),expires=new Date(Date.now()+30*60*1000),sh=getClientSheet_(),now=new Date();
-  if(client&&client.row){setByHeader_(sh,client.row,"sessionTokenHash",hash);setByHeader_(sh,client.row,"sessionExpiresAt",expires);setByHeader_(sh,client.row,"lastActivityAt",now);}
-  else CacheService.getScriptCache().put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify({phone:normalizePhone_(phone),expiresAt:expires.getTime(),lastActivityAt:now.getTime()}),1800);
-  return {clientSessionToken:token,expiresAt:expires.toISOString()};
+function baClientSessionSnapshot_(client,phone){
+  const c=client||{};
+  return {clientId:String(c.clientId||c.id||''),clientName:String(c.clientName||''),clientPhone:normalizePhone_(phone||c.clientPhone||''),clientEmail:String(c.clientEmail||c.email||''),status:String(c.status||'ACTIVE').toUpperCase(),profilePictureUrl:String(c.profilePictureUrl||''),displayCurrency:String(c.displayCurrency||'USD').toUpperCase(),row:Number(c.row||0)||0};
 }
-function requireClientSession_(token,phone){
-  const target=normalizePhone_(phone||""); if(!token||!target)throw new Error("Your client session has expired. Please verify your WhatsApp number again.");
-  if(isWhatsAppBlocked_(target))throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
-  const c=getClientByPhone_(target); if(!c)throw new Error("Client record not found. Please start a new verified chat.");
-  const hash=sha256Hex_(String(token)),now=Date.now(),maxIdle=30*60*1000;
-  if(c.row){
-    const sh=getClientSheet_(),stored=String(getByHeader_(sh,c.row,"sessionTokenHash")||""),lastRaw=getByHeader_(sh,c.row,"lastActivityAt"),last=lastRaw?new Date(lastRaw).getTime():0;
-    if(!stored||stored!==hash||!last||now-last>maxIdle)throw new Error("Your client session has expired after inactivity. Please verify your WhatsApp number again.");
-    const exp=new Date(now+maxIdle);setByHeader_(sh,c.row,"sessionExpiresAt",exp);
-  } else {
-    const raw=CacheService.getScriptCache().get(CONFIG.clientSessionTokenPrefix+hash),cached=safeJson_(raw||""),last=Number(cached.lastActivityAt||cached.expiresAt-maxIdle||0);
-    if(!cached||cached.phone!==target||!last||now-last>maxIdle)throw new Error("Your client session has expired after inactivity. Please verify your WhatsApp number again.");
-    cached.lastActivityAt=now;cached.expiresAt=now+maxIdle;CacheService.getScriptCache().put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify(cached),1800);
+function issueClientSession_(client,phone){
+  const token=Utilities.getUuid()+Utilities.getUuid(),hash=sha256Hex_(token),now=Date.now(),expiresAt=now+30*60*1000,target=normalizePhone_(phone),cache=CacheService.getScriptCache();
+  const snapshot=baClientSessionSnapshot_(client,target);
+  // V66 concurrency hardening: CacheService is the hot-path session store.
+  // Sheets remains the source of truth, but authenticated reads no longer write
+  // the CLIENTS row on every request. This is important for hundreds of users.
+  cache.put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify({phone:target,expiresAt:expiresAt,lastActivityAt:now,lastSheetSyncAt:now,client:snapshot}),1800);
+  if(client&&client.row){
+    const sh=getClientSheet_();
+    setByHeader_(sh,client.row,'sessionTokenHash',hash);
+    setByHeader_(sh,client.row,'sessionExpiresAt',new Date(expiresAt));
+    setByHeader_(sh,client.row,'lastActivityAt',new Date(now));
   }
+  return {clientSessionToken:token,expiresAt:new Date(expiresAt).toISOString()};
+}
+function baRefreshClientSessionCache_(hash,cached,now){
+  const maxIdle=30*60*1000,exp=now+maxIdle;
+  cached.lastActivityAt=now;cached.expiresAt=exp;
+  CacheService.getScriptCache().put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify(cached),1800);
+  // Persist activity at most once every five minutes per session.
+  const lastSync=Number(cached.lastSheetSyncAt||0);
+  if(now-lastSync>=5*60*1000 && cached.client&&cached.client.row){
+    try{
+      const sh=getClientSheet_();
+      setByHeader_(sh,cached.client.row,'sessionExpiresAt',new Date(exp));
+      setByHeader_(sh,cached.client.row,'lastActivityAt',new Date(now));
+      cached.lastSheetSyncAt=now;
+      CacheService.getScriptCache().put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify(cached),1800);
+    }catch(e){console.error('Client session sheet sync deferred: '+String(e&&e.message||e));}
+  }
+  return exp;
+}
+function requireClientSessionReadOnly_(token,phone){return requireClientSession_(token,phone);}
+function requireClientSession_(token,phone){
+  const target=normalizePhone_(phone||''),rawToken=String(token||'').trim();
+  if(!rawToken||!target)throw new Error('Your client session has expired. Please verify your WhatsApp number again.');
+  if(isWhatsAppBlocked_(target))throw new Error('Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.');
+  const hash=sha256Hex_(rawToken),now=Date.now(),maxIdle=30*60*1000,cache=CacheService.getScriptCache();
+  let cached=safeJson_(cache.get(CONFIG.clientSessionTokenPrefix+hash)||'');
+  if(cached&&cached.phone===target){
+    const last=Number(cached.lastActivityAt||0),exp=Number(cached.expiresAt||0);
+    if(last&&now-last<=maxIdle&&exp>now){
+      if(String(cached.client?.status||'ACTIVE').toUpperCase()==='SUSPENDED')throw new Error('Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.');
+      const client=Object.assign({},cached.client||{},{row:Number(cached.client?.row||0)||0,clientPhone:target});
+      baRefreshClientSessionCache_(hash,cached,now);
+      return client;
+    }
+  }
+  // Cache miss recovery: validate against the canonical CLIENTS row once, then
+  // repopulate the disposable token cache for subsequent high-speed requests.
+  const c=getClientByPhone_(target);
+  if(!c)throw new Error('Client record not found. Please start a new verified chat.');
+  const sh=c.row?getClientSheet_():null,stored=c.row?String(getByHeader_(sh,c.row,'sessionTokenHash')||''):'',lastRaw=c.row?getByHeader_(sh,c.row,'lastActivityAt'):'';
+  const sheetLast=lastRaw?new Date(lastRaw).getTime():0;
+  if(!stored||stored!==hash||!sheetLast||now-sheetLast>maxIdle)throw new Error('Your client session has expired after inactivity. Please verify your WhatsApp number again.');
+  cached={phone:target,lastActivityAt:now,expiresAt:now+maxIdle,lastSheetSyncAt:now,client:baClientSessionSnapshot_(c,target)};
+  cache.put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify(cached),1800);
   return c;
 }
 function clientConversationFromSession_(d){
@@ -1170,14 +1316,52 @@ function clientGetRequest_(d){
   }
   if(!Array.isArray(payments)){
     const ps=getPaymentSheet_(),m=headerMap_(ps),rows=baRowsByConversationId_(ps,m.conversationId,cid);
-    payments=rows.map(function(x){const p=rowPayment_(x.values,x.row);return {requestId:p.requestId,service:p.service,amount:p.amount,currency:p.currency,status:p.status,reference:p.paystackReference,createdAt:p.createdAt,paidAt:p.paidAt,deliveryDeadline:p.deliveryDeadline,invoiceUrl:'receipt.html?request='+encodeURIComponent(p.requestId)}});
+    payments=rows.map(function(x){const p=rowPayment_(x.values,x.row);return {requestId:p.requestId,conversationId:p.conversationId,service:p.service,serviceDescription:p.serviceDescription,amount:p.amount,currency:p.currency,status:p.status,reference:p.paystackReference,createdAt:p.createdAt,paidAt:p.paidAt,deliveryDeadline:p.deliveryDeadline,refundStatus:p.refundStatus,refundAmount:p.refundAmount,refundReason:p.refundReason,invoiceUrl:'receipt.html?request='+encodeURIComponent(p.requestId)}});
     baCachePutJson_(paymentKey,payments,30);
   }
   const tutor=tutorProfileByPhone_(resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''));
   return json_({ok:true,request:Object.assign({},c,{messages,documents:docs,schedules:schedules,payments:payments,tutorProfile:tutor||null})});
 }
 
-function clientTouchSession_(d){const c=requireClientSession_(d.clientSessionToken,d.phone),exp=new Date(Date.now()+30*60*1000);setByHeader_(getClientSheet_(),c.row,"sessionExpiresAt",exp);return json_({ok:true,clientId:c.clientId,expiresAt:exp.toISOString()});}
+function clientTouchSession_(d){const c=requireClientSession_(d.clientSessionToken,d.phone),hash=sha256Hex_(String(d.clientSessionToken||'')),now=Date.now(),cached=safeJson_(CacheService.getScriptCache().get(CONFIG.clientSessionTokenPrefix+hash)||'');const exp=cached?baRefreshClientSessionCache_(hash,cached,now):now+30*60*1000;return json_({ok:true,clientId:c.clientId,expiresAt:new Date(exp).toISOString()});}
+function clientSetCurrency_(d){
+  const c=requireClientSession_(d.clientSessionToken,d.phone),currency=baNormalizeCurrency_(d.currency);
+  const sh=getClientSheet_();setByHeader_(sh,c.row,"displayCurrency",currency);
+  const phone=normalizePhone_(c.clientPhone||d.phone);
+  try{CacheService.getScriptCache().remove("BA_CLIENT_BY_PHONE_"+phone);CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);}catch(e){}
+  return json_({ok:true,currency:currency});
+}
+function clientProfileImageFileName_(phone){return "CLIENT_PROFILE_"+normalizePhone_(phone)+"_"+Utilities.getUuid().replace(/-/g,"")+".jpg";}
+function clientTrashProfileFile_(fileId){const id=String(fileId||"").trim();if(!id)return;try{const file=DriveApp.getFileById(id);file.setTrashed(true);}catch(e){console.error("Client profile cleanup failed: "+e);}}
+function clientUploadProfile_(d){
+  const phone=normalizePhone_(d.phone||""),token=String(d.clientSessionToken||"").trim(),a=d.profilePicture;
+  const client=requireClientSession_(token,phone);
+  if(!a||!a.dataUrl)throw new Error("Choose a profile picture first.");
+  let mime=String(a.mimeType||"").toLowerCase(),dataUrl=String(a.dataUrl||"");
+  const headerMatch=dataUrl.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);if(headerMatch)mime=String(headerMatch[1]).toLowerCase();
+  const allowed={"image/jpeg":true,"image/png":true,"image/webp":true,"image/gif":true,"image/bmp":true,"image/avif":true,"image/heic":true,"image/heif":true};
+  if(!/^data:image\/[a-z0-9.+-]+;base64,/i.test(dataUrl)||!allowed[mime])throw new Error("Please choose a valid image file (JPG, PNG, WebP, GIF or another supported image format).");
+  const raw=dataUrl.split(",").pop();let bytes;try{bytes=Utilities.base64Decode(raw)}catch(e){throw new Error("Invalid profile picture data.");}
+  if(bytes.length>5*1024*1024)throw new Error("Profile picture must be smaller than 5 MB.");
+  if(["image/jpeg","image/png","image/webp","image/gif"].includes(mime) && !tutorImageSignatureValid_(bytes,mime))throw new Error("The selected profile image could not be validated. Please choose the photo again.");
+  const lock=LockService.getScriptLock();lock.waitLock(10000);
+  try{
+    const sh=getClientSheet_(),oldId=String(getByHeader_(sh,client.row,"profilePictureFileId")||"");
+    const ext={"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif","image/bmp":"bmp","image/avif":"avif","image/heic":"heic","image/heif":"heif"}[mime]||"img";const blob=Utilities.newBlob(bytes,mime,clientProfileImageFileName_(phone).replace(/\.jpg$/i,'.'+ext));
+    const saved=saveBlob_(blob,mime,blob.getName(),"CLIENT_PROFILE_"+phone);
+    const thumb="https://drive.google.com/thumbnail?id="+encodeURIComponent(saved.fileId)+"&sz=w512";
+    setByHeader_(sh,client.row,"profilePictureUrl",thumb);setByHeader_(sh,client.row,"profilePictureFileId",saved.fileId);
+    clientTrashProfileFile_(oldId);
+    try{CacheService.getScriptCache().remove("BA_CLIENT_BY_PHONE_"+phone);CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);}catch(e){}
+    return json_({ok:true,profilePictureUrl:thumb});
+  }finally{lock.releaseLock();}
+}
+function clientRemoveProfile_(d){
+  const phone=normalizePhone_(d.phone||""),token=String(d.clientSessionToken||"");const client=requireClientSession_(token,phone),sh=getClientSheet_(),oldId=String(getByHeader_(sh,client.row,"profilePictureFileId")||"");
+  clientTrashProfileFile_(oldId);setByHeader_(sh,client.row,"profilePictureUrl","");setByHeader_(sh,client.row,"profilePictureFileId","");
+  try{CacheService.getScriptCache().remove("BA_CLIENT_BY_PHONE_"+phone);CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);}catch(e){}
+  return json_({ok:true,profilePictureUrl:""});
+}
 function clientEndSession_(d){const phone=normalizePhone_(d.phone||""),token=String(d.clientSessionToken||"");const c=phone?getClientByPhone_(phone):null;if(c&&c.row){setByHeader_(getClientSheet_(),c.row,"sessionTokenHash","");setByHeader_(getClientSheet_(),c.row,"sessionExpiresAt","");}if(token)try{CacheService.getScriptCache().remove(CONFIG.clientSessionTokenPrefix+sha256Hex_(token))}catch(e){}return json_({ok:true,signedOut:true});}
 
 function clientAuthConversation_(d){
@@ -1222,163 +1406,114 @@ function collectConversationAttachments_(conversationId){
 }
 function clientDashboardBootstrap_(d){
   const id=String(d.conversationId||"").trim(),phone=normalizePhone_(d.phone||"").trim(),sessionToken=String(d.clientSessionToken||"").trim(),accessToken=String(d.clientAccessToken||"").trim();
-  if(!id||!phone)throw new Error("Your client session could not be restored. Please return to Live Chat and verify your WhatsApp number again.");
-  const c=findConversation_(id);
-  if(!c||normalizePhone_(c.studentPhone)!==phone)throw new Error("Your verified client session could not be restored. Please verify your WhatsApp number again.");
+  if(!phone)throw new Error("Your client session could not be restored. Please verify your WhatsApp number again.");
 
-  // V49: verificationStatus on an individual request is NOT the session boundary.
-  // Older requests can legitimately have legacy/missing verificationStatus values.
-  // The secure recovery order is: valid client session token first, then the
-  // per-request clientAccessToken issued after WhatsApp verification. The latter
-  // can recover a fresh client session when a browser loses/rotates its session token.
+  // V66 recovery order: the verified 30-minute client session is the primary
+  // credential. A stale/missing conversation ID must never invalidate a valid
+  // client session. The request ID is only used to preserve the current request
+  // context when it is still available.
   let client=null,activeToken="";
   if(sessionToken){
     try{client=requireClientSession_(sessionToken,phone);activeToken=sessionToken}catch(e){client=null}
   }
 
-  if(!client && accessToken && String(c.clientAccessToken||"")===accessToken){
-    const candidate=getClientByPhone_(phone);
-    if(!candidate)throw new Error("Your verified client session could not be restored. Please verify your WhatsApp number again.");
-    const clientSheet=getClientSheet_();
-    const last=candidate.row?new Date(getByHeader_(clientSheet,candidate.row,"lastActivityAt")||0).getTime():0;
-    const verifiedAt=new Date(c.verifiedAt||0).getTime();
-    const activityAt=last||verifiedAt;
-    if(!activityAt || Date.now()-activityAt>30*60*1000)throw new Error("Your client session has expired after 30 minutes of inactivity. Please verify your WhatsApp number again.");
-    const issued=issueClientSession_(candidate,phone);
-    client=candidate;activeToken=issued.clientSessionToken;
+  let c=id?findConversation_(id):null;
+  if(c && normalizePhone_(c.studentPhone)!==phone)c=null;
+  if(!client && accessToken){
+    // Recovery path for a browser that lost the session token but retained the
+    // per-request access token. Do not require the saved request ID if it is stale.
+    if(!c)c=findConversationByPhone_(phone);
+    if(c && String(c.clientAccessToken||"")===accessToken){
+      const candidate=getClientByPhone_(phone);
+      if(candidate){
+        const clientSheet=getClientSheet_();
+        const last=candidate.row?new Date(getByHeader_(clientSheet,candidate.row,"lastActivityAt")||0).getTime():0;
+        const verifiedAt=new Date(c.verifiedAt||0).getTime();
+        const activityAt=last||verifiedAt;
+        if(activityAt && Date.now()-activityAt<=30*60*1000){
+          const issued=issueClientSession_(candidate,phone);client=candidate;activeToken=issued.clientSessionToken;
+        }
+      }
+    }
   }
 
   if(!client)throw new Error("Your verified client session could not be restored. Please verify your WhatsApp number again.");
+
+  // If the stored request no longer exists, use the latest active request for
+  // context. The dashboard itself still loads the complete request history.
+  if(!c)c=findConversationByPhone_(phone);
+  if(!c){
+    // A valid client account can legitimately exist before its first request.
+    const profile=getClientByPhone_(phone);
+    if(!profile)throw new Error("Your client record could not be found. Please verify your WhatsApp number again.");
+    const exp=new Date(Date.now()+30*60*1000);
+    if(profile.row){setByHeader_(getClientSheet_(),profile.row,"lastActivityAt",new Date());setByHeader_(getClientSheet_(),profile.row,"sessionExpiresAt",exp);}
+    return json_({ok:true,clientSessionToken:activeToken,clientSessionExpiresAt:exp.toISOString(),clientAccessToken:"",student:{name:profile.clientName||"Verified Client",phone:phone,profilePictureUrl:String(profile.profilePictureUrl||""),displayCurrency:baNormalizeCurrency_(profile.displayCurrency)}});
+  }
+
   const sh=getConversationSheet_(),existing=String(getByHeader_(sh,c.row,"clientAccessToken")||"");
   const token=existing||accessToken||Utilities.getUuid()+Utilities.getUuid();
   if(!existing)setByHeader_(sh,c.row,"clientAccessToken",token);
   const exp=new Date(Date.now()+30*60*1000);
   if(client.row){setByHeader_(getClientSheet_(),client.row,"lastActivityAt",new Date());setByHeader_(getClientSheet_(),client.row,"sessionExpiresAt",exp);}
-  return json_({ok:true,clientAccessToken:token,clientSessionToken:activeToken,clientSessionExpiresAt:exp.toISOString()});
+  return json_({ok:true,clientAccessToken:token,clientSessionToken:activeToken,clientSessionExpiresAt:exp.toISOString(),profilePictureUrl:String(client.profilePictureUrl||"")});
 }
 function clientAllMessages_(phone){
   const target=normalizePhone_(phone),ck='BA_CLIENT_MSGS_'+target;
   const hit=baCacheGetJson_(ck); if(Array.isArray(hit))return hit;
-  const ids=baConversationIdsForPhone_(target),out=[];
-  ids.forEach(function(id){ const list=readConversationMessages_(id); if(Array.isArray(list))out.push.apply(out,list); });
-  out.sort(function(a,b){return new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime()});
-  const result=out.slice(-200); baCachePutJson_(ck,result,10); return result;
-}
-function clientDashboard_(d){
-  const clientSessionToken=String(d.clientSessionToken||"").trim(), phone=normalizePhone_(d.phone||""), accessToken=String(d.clientAccessToken||"").trim();
-  let c;
-  if(clientSessionToken){
-    try{
-      c=requireClientSession_(clientSessionToken,phone);
-    }catch(sessionErr){
-      // V49 recovery: a valid per-request access token can re-establish the
-      // short-lived client session without forcing WhatsApp verification again.
-      const id=String(d.conversationId||"").trim(),candidate=id?findConversation_(id):null;
-      if(!candidate||normalizePhone_(candidate.studentPhone)!==phone||!accessToken||String(candidate.clientAccessToken||"")!==accessToken)throw sessionErr;
-      const profile=getClientByPhone_(phone);
-      if(!profile)throw sessionErr;
-      const last=profile.row?new Date(getByHeader_(getClientSheet_(),profile.row,"lastActivityAt")||0).getTime():0;
-      const verifiedAt=new Date(candidate.verifiedAt||0).getTime(),activityAt=last||verifiedAt;
-      if(!activityAt||Date.now()-activityAt>30*60*1000)throw sessionErr;
-      const issued=issueClientSession_(profile,phone);
-      c=candidate;
-      d.clientSessionToken=issued.clientSessionToken;
-    }
-  }else{
-    c=clientAuthConversation_(d);
-    const profile=getClientByPhone_(phone||c.studentPhone);
-    if(profile){
-      const issued=issueClientSession_(profile,phone||c.studentPhone);
-      d.clientSessionToken=issued.clientSessionToken;
-    }
-  }
-
-  const dashKey="BA_CLIENT_DASH_"+c.clientPhone;
-  try{
-    const hit=CacheService.getScriptCache().get(dashKey);
-    if(hit){
-      const cached=safeJson_(hit);
-      if(cached&&Array.isArray(cached.requests))return json_(Object.assign({ok:true,clientSessionToken:String(d.clientSessionToken||"")},cached));
-    }
-  }catch(e){}
-
-  /*
-   * V47 CONTRACT:
-   * Every request ever created for this verified WhatsApp number is returned.
-   * We do not filter by verificationStatus, assignment status, open/closed state,
-   * or age. The only way a request disappears is permanent Super Admin deletion.
-   */
-  const requests=baClientRequestHistory_(c.studentPhone);
-
-  const tsh=getTutorSheet_(),tr=tsh.getDataRange().getValues(),tm=headerMap_(tsh),profiles={};
-  for(let i=1;i<tr.length;i++){
-    const tp=normalizePhone_(tr[i][tm.tutorPhone-1]||"");
-    if(tp)profiles[tp]={
-      profilePictureUrl:tutorProfilePictureUrl_(tm.profilePictureUrl?String(tr[i][tm.profilePictureUrl-1]||""):""),
-      description:tm.description?String(tr[i][tm.description-1]||""):""
-    };
-  }
-  requests.forEach(function(x){
-    const p=profiles[normalizePhone_(x.tutorPhone)]||null;
-    x.tutorProfilePictureUrl=p&&p.profilePictureUrl||"";
-    x.tutorDescription=p&&p.description||"";
+  const ids=baConversationIdsForPhone_(target),allowed={};ids.forEach(function(id){allowed[String(id)]=1;});
+  if(!ids.length)return [];
+  // V66 client-page speed fix: scan the recent MESSAGES tail once instead of
+  // performing one Sheet read for every conversation. This is substantially
+  // faster for clients with many historical requests.
+  const sh=getSheet_("MESSAGES",messageHeaders_()),last=sh.getLastRow();
+  if(last<2)return [];
+  const m=headerMap_(sh),rows=baLastRows_(sh,Math.min(3000,last-1)),out=[];
+  rows.forEach(function(r){
+    const cid=String(r[m.conversationId-1]||''); if(!allowed[cid])return;
+    out.push({id:String(r[m.messageId-1]||''),sessionId:cid,conversationId:cid,sender:String(r[m.sender-1]||''),text:String(r[m.text-1]||''),source:String(r[m.source-1]||''),timestamp:r[m.timestamp-1],status:String(r[m.status-1]||'received'),attachment:hydrateAttachment_(r[m.attachmentJson-1]?safeJson_(r[m.attachmentJson-1]):null),senderName:m.senderName?String(r[m.senderName-1]||''):"",senderPhone:m.senderPhone?String(r[m.senderPhone-1]||''):""});
   });
-
-  /*
-   * Payments remain bounded to the client's phone and schedules to the client's
-   * conversation IDs. This keeps the historical request list authoritative while
-   * avoiding a full dashboard reconstruction from the Conversations matrix.
-   */
-  const payments=[], paymentSheet=getPaymentSheet_(),pm=headerMap_(paymentSheet);
-  if(pm.studentPhone){
-    const pCells=paymentSheet.getRange(2,pm.studentPhone,Math.max(0,paymentSheet.getLastRow()-1),1)
-      .createTextFinder(normalizePhone_(c.studentPhone)).matchEntireCell(true).useRegularExpression(false).findAll();
-    pCells.forEach(function(cell){
-      try{
-        const row=cell.getRow(),p=rowPayment_(paymentSheet.getRange(row,1,1,paymentSheet.getLastColumn()).getValues()[0],row);
-        payments.push({requestId:p.requestId,service:p.service,amount:p.amount,currency:p.currency,status:p.status,reference:p.paystackReference,createdAt:p.createdAt,paidAt:p.paidAt,deliveryDeadline:p.deliveryDeadline,invoiceUrl:"receipt.html?request="+encodeURIComponent(p.requestId)});
-      }catch(e){}
-    });
-  }
-
-  const schedules=[], scheduleSheet=getScheduleSheet_(),sm=headerMap_(scheduleSheet);
-  const requestIds={};requests.forEach(x=>{requestIds[String(x.conversationId)]=true});
-  if(scheduleSheet.getLastRow()>1){
-    const sRows=scheduleSheet.getDataRange().getValues();
-    for(let i=1;i<sRows.length;i++){
-      const sid=String(sRows[i][sm.conversationId-1]||"");
-      const sp=normalizePhone_(sm.studentPhone?sRows[i][sm.studentPhone-1]:"");
-      if((sid&&requestIds[sid])||(sp&&sp===normalizePhone_(c.studentPhone))){
-        try{schedules.push(rowSchedule_(sRows[i],i+1));}catch(e){}
-      }
-    }
-  }
-
-  const allClientMessages=clientAllMessages_(c.studentPhone);
-  const currentRequest=requests[0]||null;
-  const messages=(currentRequest?allClientMessages.filter(x=>x.sessionId===currentRequest.conversationId):[]).slice(-100);
-  const docs=allClientMessages.filter(x=>x.attachment).flatMap(x=>
-    (Array.isArray(x.attachment)?x.attachment:[x.attachment]).map(a=>Object.assign({messageId:x.id,sender:x.sender,timestamp:x.timestamp},a))
-  ).slice(-100);
-  const submissions=allClientMessages
-    .filter(x=>String(x.sender||"").toLowerCase()==="tutor"&&x.attachment)
-    .map(x=>Object.assign({},x,{submissionType:(String(x.text||"").match(/\[([A-Z]+)\]/)||[])[1]||"WORK"}));
-
-  const response={
-    student:{name:c.clientName||c.studentName,phone:c.clientPhone||c.studentPhone},
-    requests:requests,
-    messages:messages,
-    documents:docs,
-    uploadedDocuments:docs.filter(x=>String(x.sender||"").toLowerCase()!=="tutor"),
-    tutorSubmissions:submissions,
-    payments:payments,
-    schedules:schedules,
-    currentRequest:currentRequest,
-    invoiceReceipts:payments.map(x=>({requestId:x.requestId,url:x.invoiceUrl,status:x.status}))
-  };
-  try{CacheService.getScriptCache().put(dashKey,JSON.stringify(response),15)}catch(e){}
-  return json_(Object.assign({ok:true,clientSessionToken:String(d.clientSessionToken||"")},response));
+  out.sort(function(a,b){return new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime()});
+  const result=out.slice(-300); baCachePutJson_(ck,result,10); return result;
 }
+function clientPortalData_(d){
+  const phone=normalizePhone_(d.phone||''), token=String(d.clientSessionToken||'').trim(), access=String(d.clientAccessToken||'').trim();
+  if(!phone) throw new Error('Your verified client session could not be restored. Please verify your WhatsApp number again.');
+  const client=requireClientSession_(token,phone);
+  const cacheKey='BA_CLIENT_DASH_'+phone;
+  try{const hit=safeJson_(CacheService.getScriptCache().get(cacheKey)||'');if(hit&&Array.isArray(hit.requests))return json_(Object.assign({ok:true,clientSessionToken:token},hit));}catch(e){}
+  const convSh=getConversationSheet_(), cm=headerMap_(convSh), convRows=convSh.getDataRange().getValues(), requests=[];
+  for(let i=1;i<convRows.length;i++){
+    const r=convRows[i];
+    if(normalizePhone_(r[cm.studentPhone-1]||'')!==phone) continue;
+    const c=rowConversation_(r,i+1,convSh,cm);
+    requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});
+  }
+  requests.sort(function(a,b){return new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime();});
+  const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
+  const msgSh=getSheet_('MESSAGES',messageHeaders_()), mm=headerMap_(msgSh), msgRows=msgSh.getDataRange().getValues(), messages=[];
+  for(let i=1;i<msgRows.length;i++){
+    const r=msgRows[i],cid=String(r[mm.conversationId-1]||''); if(!ids[cid]) continue;
+    messages.push({id:String(r[mm.messageId-1]||''),sessionId:cid,conversationId:cid,sender:String(r[mm.sender-1]||''),text:String(r[mm.text-1]||''),source:String(r[mm.source-1]||''),timestamp:r[mm.timestamp-1],status:String(r[mm.status-1]||'received'),attachment:hydrateAttachment_(mm.attachmentJson?safeJson_(r[mm.attachmentJson-1]||''):null),senderName:mm.senderName?String(r[mm.senderName-1]||''):'',senderPhone:mm.senderPhone?String(r[mm.senderPhone-1]||''):''});
+  }
+  messages.sort(function(a,b){return new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime();});
+  const docs=[]; const submissions=[];
+  messages.forEach(function(x){if(x.attachment)(Array.isArray(x.attachment)?x.attachment:[x.attachment]).forEach(function(a){docs.push(Object.assign({messageId:x.id,conversationId:x.conversationId,sessionId:x.conversationId,sender:x.sender,timestamp:x.timestamp},a));});if(String(x.sender||'').toLowerCase()==='tutor'&&x.attachment)submissions.push(Object.assign({},x,{submissionType:(String(x.text||'').match(/\[([A-Z]+)\]/)||[])[1]||'WORK'}));});
+  const paySh=getPaymentSheet_(), pm=headerMap_(paySh), payRows=paySh.getDataRange().getValues(), payments=[];
+  for(let i=1;i<payRows.length;i++){const r=payRows[i];if(normalizePhone_(r[pm.studentPhone-1]||'')!==phone)continue;try{const p=rowPayment_(r,i+1);payments.push({requestId:p.requestId,conversationId:p.conversationId,service:p.service,serviceDescription:p.serviceDescription,amount:p.amount,currency:p.currency,status:p.status,reference:p.paystackReference,createdAt:p.createdAt,paidAt:p.paidAt,deliveryDeadline:p.deliveryDeadline,refundStatus:p.refundStatus,refundAmount:p.refundAmount,refundReason:p.refundReason,invoiceUrl:'receipt.html?request='+encodeURIComponent(p.requestId)});}catch(e){}}
+  payments.sort(function(a,b){return new Date(b.paidAt||b.createdAt||0).getTime()-new Date(a.paidAt||a.createdAt||0).getTime();});
+  const schedSh=getScheduleSheet_(), sm=headerMap_(schedSh), schedRows=schedSh.getDataRange().getValues(), schedules=[];
+  for(let i=1;i<schedRows.length;i++){const r=schedRows[i],sp=sm.studentPhone?normalizePhone_(r[sm.studentPhone-1]||''):'' ,cid=sm.conversationId?String(r[sm.conversationId-1]||''):'';if(sp!==phone&&!ids[cid])continue;try{schedules.push(rowSchedule_(r,i+1));}catch(e){}}
+  schedules.sort(function(a,b){return new Date(String(a.date||'')+'T'+String(a.startTime||'00:00')).getTime()-new Date(String(b.date||'')+'T'+String(b.startTime||'00:00')).getTime();});
+  const profiles=baTutorProfilesFast_(requests); requests.forEach(function(x){const p=profiles[normalizePhone_(x.tutorPhone)]||null;x.tutorProfilePictureUrl=p?.profilePictureUrl||'';x.tutorDescription=p?.description||'';});
+  const currentRequest=requests.find(x=>String(x.conversationId||'')===String(d.conversationId||''))||requests[0]||null;
+  const clientProfile=getClientByPhone_(phone);
+  const response={student:{name:client.clientName||'Verified Client',phone:phone,profilePictureUrl:String(clientProfile?.profilePictureUrl||''),displayCurrency:baNormalizeCurrency_(clientProfile?.displayCurrency||'USD')},requests,messages:messages.slice(-500),currentRequestMessages:currentRequest?messages.filter(x=>x.conversationId===currentRequest.conversationId).slice(-100):messages.slice(-100),documents:docs.slice(-200),uploadedDocuments:docs.filter(x=>String(x.sender||'').toLowerCase()!=='tutor').slice(-200),tutorSubmissions:submissions.slice(-200),payments,schedules,currentRequest,invoiceReceipts:payments.map(x=>({requestId:x.requestId,url:x.invoiceUrl,status:x.status}))};
+  try{CacheService.getScriptCache().put(cacheKey,JSON.stringify(response),30);}catch(e){}
+  return json_(Object.assign({ok:true,clientSessionToken:token},response));
+}
+
+function clientDashboard_(d){ return clientPortalData_(d); }
 
 function clientSendComment_(d){
   const c=d.clientSessionToken?clientConversationFromSession_(d):clientAuthConversation_(d),text=String(d.text||"").trim();let attachments=[];
@@ -1432,15 +1567,32 @@ function getTutorContact_(tutorId){
   }
   return {tutorId:id,name:"Tutor",email:"",phone:""};
 }
-function buildClientStatement_(token,phone,from,to){
-  const c=requireClientSession_(token,phone),range=statementRange_(from,to),ps=getPaymentSheet_(),rows=ps.getDataRange().getValues(),out=[];let email=String(c.studentEmail||"");
-  for(let i=1;i<rows.length;i++){
-    const p=rowPayment_(rows[i],i+1);if(normalizePhone_(p.studentPhone)!==c.clientPhone)continue;
+function buildClientStatement_(token,phone,from,to,displayCurrency){
+  const c=requireClientSession_(token,phone),profile=getClientByPhone_(phone),targetCurrency=baNormalizeCurrency_(displayCurrency||profile?.displayCurrency||"USD"),range=statementRange_(from,to),ps=getPaymentSheet_(),out=[];let email=String(c.studentEmail||'');
+  const paymentRows=baFastRowsForPhone_(ps,'studentPhone',c.clientPhone,'BA_FAST_PAY_PHONE');
+  baFastReadRows_(ps,paymentRows).forEach(function(item){
+    const p=rowPayment_(item.values,item.row);
     if(!email&&p.email)email=String(p.email);
-    if(inStatementRange_(p.paidAt||p.createdAt,range))out.push({requestId:p.requestId,service:p.service,amount:p.amount,currency:p.currency,status:p.status,reference:p.paystackReference||"",createdAt:p.createdAt,paidAt:p.paidAt});
-  }
-  out.sort((a,b)=>new Date(b.paidAt||b.createdAt||0)-new Date(a.paidAt||a.createdAt||0));
-  return {type:"CLIENT",party:{id:c.clientId,name:c.clientName||"Client",email:email,phone:c.clientPhone},transactions:out,range:range};
+    const status=String(p.status||'PENDING').toUpperCase(),date=p.paidAt||p.createdAt;
+    // Client statements are financial records: include only completed/paid payments.
+    if(status==='PAID'&&inStatementRange_(p.paidAt||date,range)){
+      {const v=baMoneyDisplay_(p.amount,p.currency,targetCurrency);out.push({date:p.paidAt||date,type:'PAYMENT',direction:'IN',requestId:p.requestId,service:p.service,details:p.serviceDescription||p.service,amount:v.amount,currency:v.currency,originalAmount:v.originalAmount,originalCurrency:v.originalCurrency,status:'PAID',reference:p.paystackReference||'',createdAt:p.createdAt,paidAt:p.paidAt,refundStatus:p.refundStatus||'NONE'});}
+    }
+  });
+  // Refund activity is retained for transparency. Approved refunds are completed
+  // outgoing transactions; pending/rejected requests remain visible as activity.
+  const rs=getRefundSheet_(),rm=headerMap_(rs);
+  const refundRows=baFastRowsForPhone_(rs,'studentPhone',c.clientPhone,'BA_FAST_REFUND_PHONE');
+  baFastReadRows_(rs,refundRows).forEach(function(item){
+    const rr=item.values,i=item.row-1;
+    const created=rm.createdAt?rr[rm.createdAt-1]:rr[10],reviewed=rm.reviewedAt?rr[rm.reviewedAt-1]:rr[11],status=String(rm.status?rr[rm.status-1]:rr[9]||'PENDING').toUpperCase();
+    const date=status==='APPROVED'?(reviewed||created):created;if(!inStatementRange_(date,range))return;
+    const requested=Number(rm.requestedAmount?rr[rm.requestedAmount-1]:rr[6]||0),approved=Number(rm.approvedAmount?rr[rm.approvedAmount-1]:rr[12]||0);
+    const originalCurrency=String(rm.currency?rr[rm.currency-1]:rr[7]||'KES').toUpperCase(),originalAmount=status==='APPROVED'&&approved>0?approved:requested,v=baMoneyDisplay_(originalAmount,originalCurrency,targetCurrency);
+    out.push({date:date,type:'REFUND',direction:status==='APPROVED'?'OUT':'PENDING',requestId:String(rm.paymentRequestId?rr[rm.paymentRequestId-1]:rr[2]||''),refundId:String(rm.refundId?rr[rm.refundId-1]:rr[0]||''),service:'Refund',details:String(rm.reason?rr[rm.reason-1]:rr[8]||'Refund request'),amount:v.amount,currency:v.currency,originalAmount:v.originalAmount,originalCurrency:v.originalCurrency,status:status,reference:String(rm.paystackRefundId?rr[rm.paystackRefundId-1]:rr[14]||''),createdAt:created,paidAt:status==='APPROVED'?reviewed||created:''});
+  });
+  out.sort((a,b)=>new Date(b.date||b.paidAt||b.createdAt||0)-new Date(a.date||a.paidAt||a.createdAt||0));
+  return {type:'CLIENT',party:{id:c.clientId,name:c.clientName||'Client',email:email,phone:c.clientPhone},transactions:out,range:range};
 }
 function buildTutorStatement_(token,from,to){
   const p=requireTutor_(token),range=statementRange_(from,to),ps=getTutorPaymentHistorySheet_(),rows=ps.getDataRange().getValues(),m=headerMap_(ps),out=[];
@@ -1498,7 +1650,7 @@ function buildAdminStatement_(token,from,to){
 }
 function registerStatement_(d){
   const type=String(d.statementType||"").toUpperCase(),from=d.from,to=d.to;let built;
-  if(type==="CLIENT")built=buildClientStatement_(d.clientSessionToken,d.phone,from,to);
+  if(type==="CLIENT")built=buildClientStatement_(d.clientSessionToken,d.phone,from,to,d.displayCurrency);
   else if(type==="TUTOR")built=buildTutorStatement_(d.tutorToken,from,to);
   else if(type==="OWNER")built=buildAdminStatement_(d.adminToken,from,to);
   else throw new Error("Invalid statement type.");
@@ -1506,7 +1658,9 @@ function registerStatement_(d){
   const canonical=JSON.stringify({reference:ref,type:built.type,party:built.party,range:built.range,transactions:built.transactions});
   const hash=sha256Hex_(canonical),sh=getSheet_("STATEMENT_REGISTRY",["statementReference","statementType","partyName","partyId","email","phone","fromDate","toDate","generatedAt","transactionCount","integrityHash","status"]);
   sh.appendRow([ref,built.type,String(built.party.name||""),String(built.party.id||""),String(built.party.email||""),String(built.party.phone||""),built.range.from,built.range.to,now,built.transactions.length,hash,"VALID"]);
-  const verifyUrl="https://kamaujames64-lgtm.github.io/brightace-academy/pages/verify-statement.html?ref="+encodeURIComponent(ref);
+  const props=PropertiesService.getScriptProperties();
+  const verifyBase=String(props.getProperty('BRIGHTACE_PUBLIC_BASE_URL')||'https://kamaujames64-lgtm.github.io/brightace-academy').replace(/\/$/,'');
+  const verifyUrl=verifyBase+'/pages/verify-statement.html?ref='+encodeURIComponent(ref);
   return json_({ok:true,statementReference:ref,integrityHash:hash,verificationUrl:verifyUrl,generatedAt:now,party:built.party,transactions:built.transactions,range:built.range,type:built.type});
 }
 function verifyStatement_(reference){
@@ -1515,7 +1669,7 @@ function verifyStatement_(reference){
   for(let i=1;i<rows.length;i++)if(String(rows[i][0]||"")===ref)return json_({ok:true,verified:String(rows[i][11]||"VALID").toUpperCase()==="VALID",statement:{reference:ref,type:String(rows[i][1]||""),name:String(rows[i][2]||""),id:String(rows[i][3]||""),email:String(rows[i][4]||""),phone:String(rows[i][5]||""),fromDate:String(rows[i][6]||""),toDate:String(rows[i][7]||""),generatedAt:rows[i][8]||"",transactionCount:Number(rows[i][9]||0),integrityHash:String(rows[i][10]||""),status:String(rows[i][11]||"VALID").toUpperCase()}});
   return json_({ok:false,error:"Statement reference not found."});
 }
-function clientStatement_(token,phone,from,to){const built=buildClientStatement_(token,phone,from,to);return json_({ok:true,client:built.party,transactions:built.transactions,range:built.range});}
+function clientStatement_(token,phone,from,to,displayCurrency){const built=buildClientStatement_(token,phone,from,to,displayCurrency);return json_({ok:true,client:built.party,displayCurrency:baNormalizeCurrency_(displayCurrency||built.transactions[0]?.currency||"USD"),transactions:built.transactions,range:built.range});}
 function tutorStatement_(token,from,to){const built=buildTutorStatement_(token,from,to);return json_({ok:true,tutor:built.party,transactions:built.transactions,range:built.range});}
 function adminStatement_(token,from,to){const built=buildAdminStatement_(token,from,to);return json_({ok:true,admin:built.party,transactions:built.transactions,range:built.range});}
 
@@ -1537,7 +1691,12 @@ function tutorDeclineWork_(d){
 }
 
 /* ===================== TUTOR DASHBOARD ===================== */
-function generateVerificationCode_(phone){ return String(Math.floor(100000+Math.random()*900000)); }
+function generateVerificationCode_(phone){
+  // Apps Script cryptographically random bytes; never use Math.random for authentication codes.
+  const bytes=Utilities.getUuid().replace(/-/g,'').slice(0,12);
+  const n=(parseInt(bytes,16)%900000)+100000;
+  return String(n);
+}
 function getTutorVerificationTestPhone_(){
   const configured=normalizePhone_(PropertiesService.getScriptProperties().getProperty(CONFIG.tutorVerificationTestPhoneKey)||"0725010628");
   return configured||"254725010628";
@@ -1840,9 +1999,11 @@ function adminCreateSchedule_(d){
   const tutorPhone=normalizePhone_(chosen?.tutorPhone||d.tutorPhone||c.assignedTutorPhone||resolveTutorPhone_(tutorName,""));
   if(!tutorName)throw new Error("Select a tutor.");
   if(!tutorPhone)throw new Error("The selected tutor does not have a WhatsApp number configured.");
+  const zoomLink=String(d.zoomLink||"").trim();
+  if(!/^https?:\/\/(?:www\.)?(?:zoom\.us|zoom\.com)\/\S+/i.test(zoomLink))throw new Error("A valid Zoom meeting link is required for every online tutoring session.");
   // Admin appointments are authoritative. Tutor availability is advisory only; the appointment is still sent.
   const sh=getScheduleSheet_(),id="SCH-"+Utilities.getUuid().replace(/-/g,"").slice(0,10).toUpperCase(),now=new Date();
-  sh.appendRow([id,c.conversationId,tutorPhone,tutorName,String(d.date),String(d.startTime),String(d.endTime),String(d.timezone||"Africa/Nairobi"),String(d.zoomLink||"").trim(),"CONFIRMED",c.studentName,String(d.notes||"").trim(),now,now,"","",c.studentPhone]);
+  sh.appendRow([id,c.conversationId,tutorPhone,tutorName,String(d.date),String(d.startTime),String(d.endTime),String(d.timezone||"Africa/Nairobi"),zoomLink,"CONFIRMED",c.studentName,String(d.notes||"").trim(),now,now,"","",c.studentPhone]);
   setByHeader_(getConversationSheet_(),c.row,"assignmentStatus",c.assignmentStatus==="COMPLETED"?"COMPLETED":"SCHEDULED");
   const msg="📅 BrightAce tutoring session confirmed\n\nDate: "+d.date+"\nTime: "+d.startTime+"–"+d.endTime+" "+String(d.timezone||"Africa/Nairobi")+(d.zoomLink?"\nZoom: "+d.zoomLink:"")+"\n\nPlease use your BrightAce dashboard for the appointment details.";
   const saved=saveMessage_(c.conversationId,"admin",msg,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);
@@ -2506,22 +2667,37 @@ function getRefundSheet_(){
   return ensureColumns_(getSheet_("REFUND_REQUESTS",["refundId","conversationId","paymentRequestId","studentName","studentPhone","studentEmail","requestedAmount","currency","reason","status","createdAt","reviewedAt","approvedAmount","adminNote","paystackRefundId"]),["refundId","conversationId","paymentRequestId","studentName","studentPhone","studentEmail","requestedAmount","currency","reason","status","createdAt","reviewedAt","approvedAmount","adminNote","paystackRefundId"]);
 }
 function submitRefundRequest_(d){
-  const c=findConversation_(d.conversationId);
-  if(!c) throw new Error("Conversation not found.");
-  const reason=String(d.reason||"").trim();
-  if(!reason) throw new Error("Please provide a reason for the refund request.");
+  const c=clientConversationFromSession_(d);
+  if(!c) throw new Error('Conversation not found.');
+  const reason=String(d.reason||'').trim();
+  if(!reason) throw new Error('Please provide a reason for the refund request.');
   const amount=Number(d.amount||0);
-  if(amount<0) throw new Error("Refund amount cannot be negative.");
-  const currency=String(d.currency||c.agreedCurrency||c.currency||"KES").toUpperCase();
-  const sh=getRefundSheet_();
-  const id="REF-"+Utilities.getUuid().replace(/-/g,"").slice(0,10).toUpperCase();
-  sh.appendRow([id,c.conversationId,String(d.paymentRequestId||""),c.studentName,c.studentPhone,String(d.studentEmail||""),amount,currency,reason,"PENDING",new Date(),"",0,"",""]);
-  const msg="💳 Refund request received. BrightAce Admin will review your request and the reason provided. You will be contacted through this chat/WhatsApp with the outcome.";
-  const saved=saveMessage_(c.conversationId,"admin",msg,"refund",null); updateConversation_(c.conversationId,new Date(),saved.id);
-  try{sendWhatsAppText_(normalizePhone_(c.studentPhone),"BrightAce Refund Team:\n\n"+msg)}catch(e){console.error(e)}
-  const adminPhone=normalizePhone_(PropertiesService.getScriptProperties().getProperty(CONFIG.adminWhatsAppKey)||"");
-  if(adminPhone){try{sendWhatsAppText_(adminPhone,"💳 New refund request\n\nRefund ID: "+id+"\nWork ID: "+c.conversationId+"\nStudent: "+c.studentName+"\nAmount requested: "+currency+" "+amount.toFixed(2)+"\n\nReason:\n"+reason)}catch(e){console.error(e)}}
-  return json_({ok:true,refund:{refundId:id,status:"PENDING"}});
+  if(!isFinite(amount)||amount<=0) throw new Error('Refund amount must be greater than zero.');
+  const currency=String(d.currency||c.agreedCurrency||c.currency||'KES').toUpperCase();
+  const paymentRequestId=String(d.paymentRequestId||'').trim();
+  if(!paymentRequestId) throw new Error('Select the paid payment you want reviewed.');
+  const payment=findPaymentRequest_(paymentRequestId);
+  if(!payment||normalizePhone_(payment.studentPhone)!==normalizePhone_(c.studentPhone))throw new Error('The selected payment does not belong to this client.');
+  if(String(payment.status||'').toUpperCase()!=='PAID')throw new Error('Only a completed paid transaction can be submitted for a refund.');
+  const paidAmount=Number(payment.amount||0);if(!(paidAmount>0))throw new Error('The selected payment has no refundable amount.');
+  if(amount>paidAmount+0.000001)throw new Error('Refund amount cannot exceed the amount originally paid.');
+  const sh=getRefundSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);let alreadyApproved=0;
+  for(let i=1;i<rows.length;i++){
+    if(String(m.paymentRequestId?rows[i][m.paymentRequestId-1]:'')!==paymentRequestId)continue;
+    const st=String(m.status?rows[i][m.status-1]:rows[i][9]||'').toUpperCase();
+    if(st==='PENDING')throw new Error('A refund request for this payment is already pending review.');
+    if(st==='APPROVED')alreadyApproved+=Number(m.approvedAmount?rows[i][m.approvedAmount-1]:rows[i][12]||0);
+  }
+  if(amount+alreadyApproved>paidAmount+0.000001)throw new Error('The requested refund exceeds the remaining refundable balance on this payment.');
+  const id='REF-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
+  sh.appendRow([id,c.conversationId,paymentRequestId,c.studentName,c.studentPhone,String(d.studentEmail||c.studentEmail||''),amount,currency,reason,'PENDING',new Date(),'',0,'','']);baInvalidateClientFastIndexes_(c.studentPhone);
+  const msg='💳 Refund request received. BrightAce Admin will review your request and the reason provided. You will be contacted through this chat/WhatsApp with the outcome.';
+  const saved=saveMessage_(c.conversationId,'admin',msg,'refund',null); updateConversation_(c.conversationId,new Date(),saved.id);
+  try{CacheService.getScriptCache().remove('BA_CLIENT_DASH_'+normalizePhone_(c.studentPhone));CacheService.getScriptCache().remove('BA_PAYMENTS_'+String(c.conversationId));}catch(e){}
+  try{sendWhatsAppText_(normalizePhone_(c.studentPhone),'BrightAce Refund Team:\n\n'+msg)}catch(e){console.error(e)}
+  const adminPhone=normalizePhone_(PropertiesService.getScriptProperties().getProperty(CONFIG.adminWhatsAppKey)||'');
+  if(adminPhone){try{sendWhatsAppText_(adminPhone,'💳 New refund request\n\nRefund ID: '+id+'\nWork ID: '+c.conversationId+'\nStudent: '+c.studentName+'\nAmount requested: '+currency+' '+amount.toFixed(2)+'\n\nReason:\n'+reason)}catch(e){console.error(e)}}
+  return json_({ok:true,refund:{refundId:id,status:'PENDING'}});
 }
 function adminListRefundRequests_(token){
   requireAdmin_(token); const sh=getRefundSheet_(),rows=sh.getDataRange().getValues(),out=[];
@@ -2546,12 +2722,12 @@ function adminReviewRefundRequest_(d){
   const sh=getRefundSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh); let row=-1,obj=null;
   for(let i=1;i<rows.length;i++) if(String(rows[i][m.refundId-1])===id){row=i+1;obj={conversationId:String(rows[i][m.conversationId-1]||""),paymentRequestId:String(rows[i][m.paymentRequestId-1]||""),studentPhone:String(rows[i][m.studentPhone-1]||""),requestedAmount:Number(rows[i][m.requestedAmount-1]||0),currency:String(rows[i][m.currency-1]||"KES").toUpperCase()};break;}
   if(row<0) throw new Error("Refund request not found.");
-  if(decision==="REJECT"){setByHeader_(sh,row,"status","REJECTED");setByHeader_(sh,row,"reviewedAt",new Date());setByHeader_(sh,row,"adminNote",note||"Refund request rejected after review.");const msg="Your BrightAce refund request has been reviewed and was not approved at this time."+(note?" Reason: "+note:"");const saved=saveMessage_(obj.conversationId,"admin",msg,"refund",null);updateConversation_(obj.conversationId,new Date(),saved.id);try{sendWhatsAppText_(normalizePhone_(obj.studentPhone),"BrightAce Refund Team:\n\n"+msg)}catch(e){}return json_({ok:true,status:"REJECTED"});}
+  if(decision==="REJECT"){setByHeader_(sh,row,"status","REJECTED");setByHeader_(sh,row,"reviewedAt",new Date());setByHeader_(sh,row,"adminNote",note||"Refund request rejected after review.");baInvalidateClientFastIndexes_(obj.studentPhone);const msg="Your BrightAce refund request has been reviewed and was not approved at this time."+(note?" Reason: "+note:"");const saved=saveMessage_(obj.conversationId,"admin",msg,"refund",null);updateConversation_(obj.conversationId,new Date(),saved.id);try{sendWhatsAppText_(normalizePhone_(obj.studentPhone),"BrightAce Refund Team:\n\n"+msg)}catch(e){}return json_({ok:true,status:"REJECTED"});}
   const amount=Number(d.approvedAmount||obj.requestedAmount||0); if(!(amount>0)) throw new Error("Approved refund amount must be greater than 0.");
   if(obj.currency!=="KES" && obj.currency!=="USD") throw new Error("Paystack refunds in this BrightAce setup are available for KES or USD. Review EUR refunds manually.");
   const p=findPaymentRequest_(obj.paymentRequestId); if(!p || !p.paystackReference) throw new Error("No verified Paystack transaction reference is linked to this refund request.");
   const ref=paystackRefund_(p.paystackReference,amount,obj.currency);
-  setByHeader_(sh,row,"status","APPROVED");setByHeader_(sh,row,"reviewedAt",new Date());setByHeader_(sh,row,"approvedAmount",amount);setByHeader_(sh,row,"adminNote",note||"Refund approved.");setByHeader_(sh,row,"paystackRefundId",String(ref.id||ref.reference||""));
+  setByHeader_(sh,row,"status","APPROVED");setByHeader_(sh,row,"reviewedAt",new Date());setByHeader_(sh,row,"approvedAmount",amount);setByHeader_(sh,row,"adminNote",note||"Refund approved.");setByHeader_(sh,row,"paystackRefundId",String(ref.id||ref.reference||""));baInvalidateClientFastIndexes_(obj.studentPhone);
   const msg="Your BrightAce refund request has been approved for "+obj.currency+" "+amount.toFixed(2)+". The refund has been submitted through the payment processor.";const saved=saveMessage_(obj.conversationId,"admin",msg,"refund",null);updateConversation_(obj.conversationId,new Date(),saved.id);try{sendWhatsAppText_(normalizePhone_(obj.studentPhone),"BrightAce Refund Team:\n\n"+msg)}catch(e){}
   return json_({ok:true,status:"APPROVED",approvedAmount:amount,currency:obj.currency,paystackRefundId:String(ref.id||ref.reference||"")});
 }
@@ -2565,7 +2741,7 @@ function adminDeletePaymentNotification_(d){
 
 function adminListPayments_(token){requireAdmin_(token);const sh=getPaymentSheet_(),rows=sh.getDataRange().getValues(),out=[];for(let i=rows.length-1;i>=1;i--){const p=rowPayment_(rows[i],i+1);out.push({requestId:p.requestId,conversationId:p.conversationId,studentName:p.studentName,studentPhone:p.studentPhone,studentEmail:p.email,tutor:p.tutor,service:p.service,description:p.serviceDescription,amount:p.amount,currency:p.currency,deliveryDeadline:p.deliveryDeadline,status:p.status,createdAt:p.createdAt,paidAt:p.paidAt,paidAmount:String(p.status).toUpperCase()==="PAID"?p.amount:0,pendingBalance:String(p.status).toUpperCase()==="PAID"?0:p.amount,refundStatus:p.refundStatus})}return json_({ok:true,payments:out.slice(0,100)})}
 function adminCreatePaymentRequest_(d){
-  requireAdmin_(d.adminToken);if(!d.conversationId)throw new Error("Select a student request.");if(!d.studentEmail)throw new Error("Student email is required for Paystack checkout.");if(!d.service)throw new Error("Service is required.");if(Number(d.amount)<=0)throw new Error("Amount must be greater than zero.");const currency=String(d.currency||"KES").toUpperCase();if(["KES","USD","EUR"].indexOf(currency)<0)throw new Error("Choose KES, USD or EUR.");if(currency==="EUR")throw new Error("EUR can be recorded as a BrightAce budget, but Paystack's Kenya integration currently supports KES and USD for direct checkout. Use KES or USD for a Paystack payment request.");const c=findConversation_(d.conversationId);if(!c)throw new Error("Student request not found.");const amount=Number(d.amount),tutorPayout=Math.round(amount*.50*100)/100,brightAce=Math.round(amount*.50*100)/100;const csh=getConversationSheet_();setByHeader_(csh,c.row,"agreedAmount",amount);setByHeader_(csh,c.row,"agreedCurrency",currency);setByHeader_(csh,c.row,"tutorPayout",tutorPayout);setByHeader_(csh,c.row,"brightAceShare",brightAce);setByHeader_(csh,c.row,"assignmentStatus",c.assignmentStatus==="ASSIGNED"?"ASSIGNED":"PAYMENT_PENDING");const sh=getPaymentSheet_(),now=new Date(),requestId="BA-REQ-"+Utilities.formatDate(now,Session.getScriptTimeZone()||"GMT","yyyyMMdd-HHmmss")+"-"+Utilities.getUuid().replace(/-/g,"").slice(0,6).toUpperCase();sh.appendRow([requestId,c.conversationId,c.studentName,c.studentPhone,String(d.studentEmail).trim(),c.assignedTutor||"BrightAce Tutor",String(d.service).trim(),amount,currency,String(d.deliveryDeadline||c.deadline||"").trim(),"PENDING","","",now,"","NONE",0,"",String(d.description||c.workDescription||"").trim()]);const paymentUrl="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html?request="+encodeURIComponent(requestId);const paymentMessage="🛡️ BrightAce secure payment request\n\nService: "+String(d.service).trim()+"\nAmount: "+currency+" "+amount.toFixed(2)+(d.deliveryDeadline?"\nDelivery deadline: "+String(d.deliveryDeadline).trim():"")+"\n\nPay securely here:\n"+paymentUrl+"\n\nNever send payment directly to a tutor. This payment request is linked to your BrightAce conversation.";let whatsappSent=false;const saved=saveMessage_(c.conversationId,"admin",paymentMessage,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);if(d.sendWhatsApp===true)CacheService.getScriptCache().put("BA_PAYMENT_DELIVERY_"+requestId,JSON.stringify({conversationId:c.conversationId,phone:c.studentPhone,text:paymentMessage}),120);return json_({ok:true,paymentRequest:{requestId,conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,studentEmail:String(d.studentEmail).trim(),tutor:c.assignedTutor||"BrightAce Tutor",service:String(d.service).trim(),description:String(d.description||c.workDescription||"").trim(),amount,currency,deliveryDeadline:String(d.deliveryDeadline||c.deadline||"").trim(),status:"PENDING",paymentUrl,whatsappSent,messageId:saved.id,whatsappQueued:d.sendWhatsApp===true,tutorPayout,brightAceShare:brightAce}})}
+  requireAdmin_(d.adminToken);if(!d.conversationId)throw new Error("Select a student request.");if(!d.studentEmail)throw new Error("Student email is required for Paystack checkout.");if(!d.service)throw new Error("Service is required.");if(Number(d.amount)<=0)throw new Error("Amount must be greater than zero.");const currency=String(d.currency||"KES").toUpperCase();if(["KES","USD","EUR"].indexOf(currency)<0)throw new Error("Choose KES, USD or EUR.");if(currency==="EUR")throw new Error("EUR can be recorded as a BrightAce budget, but Paystack's Kenya integration currently supports KES and USD for direct checkout. Use KES or USD for a Paystack payment request.");const c=findConversation_(d.conversationId);if(!c)throw new Error("Student request not found.");const amount=Number(d.amount),tutorPayout=Math.round(amount*.50*100)/100,brightAce=Math.round(amount*.50*100)/100;const csh=getConversationSheet_();setByHeader_(csh,c.row,"agreedAmount",amount);setByHeader_(csh,c.row,"agreedCurrency",currency);setByHeader_(csh,c.row,"tutorPayout",tutorPayout);setByHeader_(csh,c.row,"brightAceShare",brightAce);setByHeader_(csh,c.row,"assignmentStatus",c.assignmentStatus==="ASSIGNED"?"ASSIGNED":"PAYMENT_PENDING");const sh=getPaymentSheet_(),now=new Date(),requestId="BA-REQ-"+Utilities.formatDate(now,Session.getScriptTimeZone()||"GMT","yyyyMMdd-HHmmss")+"-"+Utilities.getUuid().replace(/-/g,"").slice(0,6).toUpperCase();sh.appendRow([requestId,c.conversationId,c.studentName,c.studentPhone,String(d.studentEmail).trim(),c.assignedTutor||"BrightAce Tutor",String(d.service).trim(),amount,currency,String(d.deliveryDeadline||c.deadline||"").trim(),"PENDING","","",now,"","NONE",0,"",String(d.description||c.workDescription||"").trim()]);baInvalidateClientFastIndexes_(c.studentPhone);const paymentUrl="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html?request="+encodeURIComponent(requestId);const paymentMessage="🛡️ BrightAce secure payment request\n\nService: "+String(d.service).trim()+"\nAmount: "+currency+" "+amount.toFixed(2)+(d.deliveryDeadline?"\nDelivery deadline: "+String(d.deliveryDeadline).trim():"")+"\n\nPay securely here:\n"+paymentUrl+"\n\nNever send payment directly to a tutor. This payment request is linked to your BrightAce conversation.";let whatsappSent=false;const saved=saveMessage_(c.conversationId,"admin",paymentMessage,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);if(d.sendWhatsApp===true)CacheService.getScriptCache().put("BA_PAYMENT_DELIVERY_"+requestId,JSON.stringify({conversationId:c.conversationId,phone:c.studentPhone,text:paymentMessage}),120);return json_({ok:true,paymentRequest:{requestId,conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,studentEmail:String(d.studentEmail).trim(),tutor:c.assignedTutor||"BrightAce Tutor",service:String(d.service).trim(),description:String(d.description||c.workDescription||"").trim(),amount,currency,deliveryDeadline:String(d.deliveryDeadline||c.deadline||"").trim(),status:"PENDING",paymentUrl,whatsappSent,messageId:saved.id,whatsappQueued:d.sendWhatsApp===true,tutorPayout,brightAceShare:brightAce}})}
 
 function deliverPaymentRequest_(d){
   requireAdmin_(d.adminToken);const id=String(d.requestId||"").trim(),q=safeJson_(CacheService.getScriptCache().get("BA_PAYMENT_DELIVERY_"+id)||"");
@@ -2695,7 +2871,7 @@ function saveAttachment_(sessionId,a){
   const bytes=Utilities.base64Decode(encoded);
   if(bytes.length>CONFIG.maxFileBytes) throw new Error("Attachment is larger than 25 MB.");
   const mime=String(a.mimeType||header.slice(5,-7)||"application/octet-stream").toLowerCase();
-  baThreatSecureUploadCheck_(a.name,mime,bytes);
+  baSecureUploadCheck_(a.name,mime,bytes);baThreatCheckArchive_(bytes,mime,a.name);
   const safeName=String(a.name||"attachment").replace(/[^A-Za-z0-9._ -]/g,"_").slice(0,160)||"attachment";
   const blob=Utilities.newBlob(bytes,mime,safeName);
   return saveBlob_(blob,mime,safeName,sessionId);
@@ -2760,26 +2936,31 @@ function sha256Hex_(value){
   return bytes.map(b=>{const n=b<0?b+256:b;return ('0'+n.toString(16)).slice(-2)}).join('');
 }
 function normalizePhone_(phone){
-  let p=String(phone||"").replace(/[^0-9]/g,"");
+  // BrightAce stores WhatsApp numbers in international digits-only E.164 form.
+  // Accept +country-code, 00country-code, spaces/dashes/parentheses and the
+  // existing Kenyan local forms for backward compatibility. Other local numbers
+  // without a country code remain intentionally unmodified because a country
+  // cannot be inferred safely.
+  let raw=String(phone==null?"":phone).trim();
+  let p=raw.replace(/[^0-9]/g,"");
   if(p.indexOf("00")===0)p=p.slice(2);
-  // Accept common Kenyan formats while preserving already-international numbers.
-  if(p.indexOf("254")===0)return p;
-  if(/^0[17]\d{8}$/.test(p))return "254"+p.slice(1);
-  if(/^[17]\d{8}$/.test(p))return "254"+p;
+  if(/^0[17]\d{8}$/.test(p))p="254"+p.slice(1);
+  else if(/^[17]\d{8}$/.test(p))p="254"+p;
+  if(p.length<7 || p.length>15)return p;
   return p;
 }
 function safeJson_(s){try{return JSON.parse(s)}catch(e){return null}}
 function cacheConversation_(row,values,sh,m){try{const obj=rowConversation_(values,row,sh,m);CacheService.getScriptCache().put("BA_CONV_"+obj.conversationId,JSON.stringify(obj),300)}catch(e){}}
 function findConversation_(id){
-  const key="BA_CONV_"+String(id||"");try{const cached=safeJson_(CacheService.getScriptCache().get(key)||"");if(cached&&cached.conversationId)return cached}catch(e){}
-  const sh=getConversationSheet_(),last=sh.getLastRow();if(last<2)return null;const m=headerMap_(sh),cell=sh.getRange(2,m.conversationId,last-1,1).createTextFinder(String(id)).matchEntireCell(true).useRegularExpression(false).findNext();
+  const target=String(id||"").trim();if(!target)return null;
+  const key="BA_CONV_"+target;try{const cached=safeJson_(CacheService.getScriptCache().get(key)||"");if(cached&&cached.conversationId)return cached}catch(e){}
+  const sh=getConversationSheet_(),last=sh.getLastRow();if(last<2)return null;const m=headerMap_(sh);if(!m.conversationId)return null;const cell=sh.getRange(2,m.conversationId,last-1,1).createTextFinder(target).matchEntireCell(true).useRegularExpression(false).findNext();
   if(!cell)return null;const row=cell.getRow(),obj=rowConversation_(sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],row,sh,m);try{CacheService.getScriptCache().put(key,JSON.stringify(obj),300)}catch(e){}return obj;
 }
 
 function findConversationByPhone_(phone){
-  const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);
-  for(let i=rows.length-1;i>=1;i--) if(normalizePhone_(rows[i][m.studentPhone-1])===phone&&String(rows[i][m.status-1])!=="closed") return rowConversation_(rows[i],i+1,sh,m);
-  return null;
+  const target=normalizePhone_(phone||"");if(!target)return null;const sh=getConversationSheet_(),m=headerMap_(sh),rows=baFastRowsForPhone_(sh,'studentPhone',target,'BA_FAST_CONV_PHONE');
+  for(let i=rows.length-1;i>=0;i--){const row=rows[i],values=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0];if(String(values[m.status-1]||"")!=="closed")return rowConversation_(values,row,sh,m);}return null;
 }
 function rowConversation_(r,row,sh,m){return {row:row,conversationId:String(r[m.conversationId-1]||""),studentName:String(r[m.studentName-1]||""),studentPhone:String(r[m.studentPhone-1]||""),startedAt:r[m.startedAt-1]||"",lastMessageAt:r[m.lastMessageAt-1]||"",status:String(r[m.status-1]||"open"),assignedTutor:String(r[m.assignedTutor-1]||"Unassigned"),whatsappPhone:String(r[m.whatsappPhone-1]||r[m.studentPhone-1]||""),studentEmail:String(m.studentEmail?r[m.studentEmail-1]||"":""),workDescription:String(r[m.workDescription-1]||""),studentBudget:Number(r[m.studentBudget-1]||0),currency:String(r[m.currency-1]||"KES").toUpperCase(),deadline:String(r[m.deadline-1]||""),assignmentStatus:String(r[m.assignmentStatus-1]||"NEW_REQUEST"),assignedTutorPhone:String(r[m.assignedTutorPhone-1]||""),tutorPayout:Number(r[m.tutorPayout-1]||0),brightAceShare:Number(r[m.brightAceShare-1]||0),agreedAmount:Number(r[m.agreedAmount-1]||r[m.studentBudget-1]||0),agreedCurrency:String(r[m.agreedCurrency-1]||r[m.currency-1]||"KES").toUpperCase(),completedAt:m.completedAt?r[m.completedAt-1]:"",rejectedAt:m.rejectedAt?r[m.rejectedAt-1]:"",rejectionReason:m.rejectionReason?String(r[m.rejectionReason-1]||""):"",verificationStatus:m.verificationStatus?String(r[m.verificationStatus-1]||"").toUpperCase():"",verificationCodeHash:m.verificationCodeHash?String(r[m.verificationCodeHash-1]||""):"",verificationExpiresAt:m.verificationExpiresAt?r[m.verificationExpiresAt-1]:"",verificationAttempts:m.verificationAttempts?Number(r[m.verificationAttempts-1]||0):0,verificationResendCount:m.verificationResendCount?Number(r[m.verificationResendCount-1]||0):0,verifiedAt:m.verifiedAt?r[m.verifiedAt-1]:"",assignedAdminUsername:m.assignedAdminUsername?String(r[m.assignedAdminUsername-1]||""):"",assignedAdminName:m.assignedAdminName?String(r[m.assignedAdminName-1]||""):"",
 clientAccessToken:m.clientAccessToken?String(r[m.clientAccessToken-1]||""):"",
@@ -2798,12 +2979,12 @@ function findConversationByTutorPhone_(phone){
   for(let i=rows.length-1;i>=1;i--){if(String(rows[i][m.status-1]||"").toLowerCase()==="closed")continue;const assigned=normalizePhone_(rows[i][m.assignedTutorPhone-1]||"");if(assigned===target)return rowConversation_(rows[i],i+1,sh,m);const assignedName=String(rows[i][m.assignedTutor-1]||"").trim();if(!assigned&&primaryPhone&&target===primaryPhone&&primaryName&&assignedName===primaryName)return rowConversation_(rows[i],i+1,sh,m)}
   return null;
 }
-function updateConversation_(id,lastTime,lastMessageId){const c=findConversation_(id);if(!c)return;try{const phone=normalizePhone_(c.studentPhone);CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+phone);baCacheRemove_('BA_SCHEDULES_'+String(id));baCacheRemove_('BA_PAYMENTS_'+String(id));if(c.assignedTutorPhone)CacheService.getScriptCache().remove("BA_TUTOR_DASH_"+normalizePhone_(c.assignedTutorPhone));}catch(e){}const sh=getConversationSheet_(),m=headerMap_(sh);sh.getRange(c.row,m.lastMessageAt,1,2).setValues([[lastTime,lastMessageId||""]]);c.lastMessageAt=lastTime;c.lastMessageId=lastMessageId||"";try{CacheService.getScriptCache().put("BA_CONV_"+String(id),JSON.stringify(c),300);CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_HISTORY");CacheService.getScriptCache().remove("BA_ADMIN_QUALITY")}catch(e){}}
+function updateConversation_(id,lastTime,lastMessageId){const c=findConversation_(id);if(!c)return;try{const phone=normalizePhone_(c.studentPhone);CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+phone);baCacheRemove_('BA_SCHEDULES_'+String(id));baCacheRemove_('BA_PAYMENTS_'+String(id));baInvalidateClientSpeedCaches_(phone,id);if(c.assignedTutorPhone)CacheService.getScriptCache().remove("BA_TUTOR_DASH_"+normalizePhone_(c.assignedTutorPhone));}catch(e){}const sh=getConversationSheet_(),m=headerMap_(sh);sh.getRange(c.row,m.lastMessageAt,1,2).setValues([[lastTime,lastMessageId||""]]);c.lastMessageAt=lastTime;c.lastMessageId=lastMessageId||"";try{CacheService.getScriptCache().put("BA_CONV_"+String(id),JSON.stringify(c),300);CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_HISTORY");CacheService.getScriptCache().remove("BA_ADMIN_QUALITY")}catch(e){}}
 
 function updateMessageStatus_(s){
-  if(!s.id)return;
+  const target=String(s&&s.id||"").trim();if(!target)return;
   const sh=getSheet_("MESSAGES",messageHeaders_()),last=sh.getLastRow();if(last<2)return;
-  const cell=sh.getRange(2,1,last-1,1).createTextFinder(String(s.id)).matchEntireCell(true).useRegularExpression(false).findNext();
+  const cell=sh.getRange(2,1,last-1,1).createTextFinder(target).matchEntireCell(true).useRegularExpression(false).findNext();
   if(cell)sh.getRange(cell.getRow(),7).setValue(s.status||"sent");
 }
 

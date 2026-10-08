@@ -122,3 +122,36 @@ window.BrightAceTutorSession = window.BrightAceTutorSession || {
   consumeHandoff: function(){var t="",at=0;try{t=sessionStorage.getItem(this.handoffKey)||localStorage.getItem(this.handoffKey)||"";at=Number(sessionStorage.getItem(this.handoffAtKey)||localStorage.getItem(this.handoffAtKey)||0);}catch(e){}if(t&&at&&Date.now()-at>120000)t="";if(t)this.set(t);try{sessionStorage.removeItem(this.handoffKey);localStorage.removeItem(this.handoffKey);sessionStorage.removeItem(this.handoffAtKey);localStorage.removeItem(this.handoffAtKey)}catch(e){}return t;}
 };
 document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e.target.closest('a[href="tutor-wallet.html"]'):null;if(a&&window.BrightAceTutorSession)window.BrightAceTutorSession.handoff();},true);
+
+/* BrightAce V66 — instant repeat navigation.
+ * Static pages/assets are handled by sw.js; these hints warm the next likely
+ * workspace pages while the browser is idle. API calls are never prefetched.
+ */
+(function(){
+  "use strict";
+  function registerFastNavigation(){
+    if(!('serviceWorker' in navigator))return;
+    try{
+      var base=location.pathname.indexOf('/pages/')>=0?'../':'./';
+      navigator.serviceWorker.register(base+'sw.js',{scope:base}).catch(function(){});
+    }catch(e){}
+  }
+  function prefetch(url){
+    try{
+      var u=new URL(url,location.href);
+      if(u.origin!==location.origin||!/^https?:$/.test(u.protocol)||!/\.html$/i.test(u.pathname)||u.href===location.href)return;
+      if(prefetch.seen[u.href])return;prefetch.seen[u.href]=1;
+      fetch(u.href,{credentials:'same-origin',cache:'default'}).catch(function(){});
+    }catch(e){}
+  }
+  prefetch.seen=Object.create(null);
+  function warm(){
+    var links=[].slice.call(document.querySelectorAll('.ba-client-sidebar a[href],.tutor-nav a[href],.admin-topnav-pro a[href],.navx a[href],#siteNav a[href]'));
+    var current=location.href,unique=[];
+    links.forEach(function(a){try{var u=new URL(a.href,location.href);if(u.href!==current&&u.origin===location.origin&&!unique.some(function(x){return x===u.href}))unique.push(u.href)}catch(e){}});
+    var i=0;function next(){if(i>=Math.min(unique.length,8))return;prefetch(unique[i++]);if('requestIdleCallback'in window)requestIdleCallback(next,{timeout:800});else setTimeout(next,120)}
+    if('requestIdleCallback'in window)requestIdleCallback(next,{timeout:1200});else setTimeout(next,250);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){registerFastNavigation();warm()},{once:true});else{registerFastNavigation();warm()}
+  document.addEventListener('pointerover',function(e){var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(a)prefetch(a.href)},{passive:true});
+})();

@@ -8,18 +8,18 @@ function baDeploymentInfo_(){
     ok:true,
     service:"BrightAce Academy Live Chat",
     build:BRIGHTACE_BUILD,
-    api:"brightace-json-v63",
+    api:"brightace-json-v66",
     protocol:"json",
     statementEngine:"comprehensive-v44",
     scalabilityEngine:"v43+v46",
     securityEngine:"v42+v45+v46+v50",
     financialIntegrityEngine:"v51-reconciliation",
-    frontendPerformanceEngine:"v52-visibility-aware-polling",
+    frontendPerformanceEngine:"v66-sw-prefetch-dedup",
     observabilityEngine:"v53-production-reliability-observability",
     disasterRecoveryEngine:"v54-disaster-recovery-data-protection",
     productionQaEngine:"v55-end-to-end-qa-production-readiness",
     resourceEngine:"v61-timed-resource-access",
-    productionHardeningEngine:"v63-production-readiness-security-qa"
+    productionHardeningEngine:"v63-production-readiness-security-qa+v66-speed"
   };
 }
 

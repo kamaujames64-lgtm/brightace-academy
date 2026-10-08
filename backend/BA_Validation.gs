@@ -1,6 +1,7 @@
 /* BrightAce V42 — centralized request validation. Keep business rules in Code.gs; this layer blocks malformed/oversized input before business logic. */
 const BA_ACTION_LIMITS_={
   startChat:{name:160,task:12000},
+  clientCreateRequest:{description:12000,deadline:200},
   sendMessage:{text:12000},
   adminSendMessage:{text:12000},
   tutorAddWorkComment:{text:12000},
@@ -22,7 +23,8 @@ function baValidateActionInput_(body){
   const cfg=BA_ACTION_LIMITS_[a];if(cfg)Object.keys(cfg).forEach(k=>{if(Object.prototype.hasOwnProperty.call(d,k))baLimitString_(d[k],cfg[k],k.replace(/([A-Z])/g,' $1'),false)});
   if(d.conversationId!=null)baLimitString_(d.conversationId,180,'Conversation ID',false);
   if(d.requestId!=null)baLimitString_(d.requestId,180,'Request ID',false);
-  if(d.phone!=null){const p=normalizePhone_(d.phone);if(p && (p.length<7||p.length>18))throw new Error('Enter a valid WhatsApp number.');}
+  if(d.phone!=null){const p=normalizePhone_(d.phone);if(p && (p.length<7||p.length>15))throw new Error('Enter a valid international WhatsApp number. Use +countrycode followed by the number.');}
+  if(d.currency!=null && !/^[A-Za-z]{3}$/.test(String(d.currency)))throw new Error('Invalid currency code.');
   if(d.code!=null && !/^\d{0,6}$/.test(String(d.code)))throw new Error('Verification code must contain digits only.');
   if(Array.isArray(d.attachments))baValidateAttachmentList_(d.attachments);
   if(d.attachment&&typeof d.attachment==='object')baValidateAttachmentList_([d.attachment]);

@@ -61,9 +61,15 @@ function baProcessMessageDeliveryQueue_(limit){
   }
   return json_({ok:true,processed:out.length,results:out});
 }
+function baInitializeDeliveryWorkerObservability_(){
+  const props=PropertiesService.getScriptProperties();
+  if(!props.getProperty("BA_DELIVERY_WORKER_LAST_STATUS"))props.setProperty("BA_DELIVERY_WORKER_LAST_STATUS","NOT_RUN");
+  if(!props.getProperty("BA_DELIVERY_WORKER_LAST_PROCESSED"))props.setProperty("BA_DELIVERY_WORKER_LAST_PROCESSED","0");
+  return {status:props.getProperty("BA_DELIVERY_WORKER_LAST_STATUS"),lastRun:props.getProperty("BA_DELIVERY_WORKER_LAST_RUN")||"",processed:Number(props.getProperty("BA_DELIVERY_WORKER_LAST_PROCESSED")||0)};
+}
 function baInstallMessageDeliveryTrigger_(){
-  const triggers=ScriptApp.getProjectTriggers();for(let i=0;i<triggers.length;i++)if(triggers[i].getHandlerFunction()==="baProcessMessageDeliveryQueueTrigger_")return "EXISTS";
-  ScriptApp.newTrigger("baProcessMessageDeliveryQueueTrigger_").timeBased().everyMinutes(1).create();return "CREATED";
+  const triggers=ScriptApp.getProjectTriggers();for(let i=0;i<triggers.length;i++)if(triggers[i].getHandlerFunction()==="baProcessMessageDeliveryQueueTrigger_"){baInitializeDeliveryWorkerObservability_();return "EXISTS";}
+  ScriptApp.newTrigger("baProcessMessageDeliveryQueueTrigger_").timeBased().everyMinutes(1).create();baInitializeDeliveryWorkerObservability_();return "CREATED";
 }
 function baProcessMessageDeliveryQueueTrigger_(){
   const started=Date.now();

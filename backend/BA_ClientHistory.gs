@@ -9,56 +9,35 @@
  * - Dashboard cache is invalidated when a request is created/deleted.
  */
 function baClientRequestHistory_(phone){
-  const target=normalizePhone_(phone||"");
+  const target=normalizePhone_(phone||'');
   if(!target)return [];
   const cacheKey="BA_CLIENT_REQUEST_HISTORY_"+target;
   const hit=baCacheGetJson_(cacheKey);
   if(Array.isArray(hit))return hit;
 
-  const ids=baConversationIdsForPhone_(target);
-  const out=[];
-  ids.forEach(function(id){
+  // Fast path: locate all matching conversation rows once, then read them in
+  // bounded batches instead of calling findConversation_ / getRange() once per
+  // request. This matters greatly for clients with long request histories.
+  const sh=getConversationSheet_(),m=headerMap_(sh),rowNumbers=baFastRowsForPhone_(sh,'studentPhone',target,'BA_FAST_CONV_PHONE');
+  const rows=baFastReadRows_(sh,rowNumbers),out=[];
+  rows.forEach(function(item){
     try{
-      const c=findConversation_(id);
-      if(!c) return; // permanently deleted requests naturally disappear
-      if(normalizePhone_(c.studentPhone)!==target) return;
-      const tutorPhone=resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||"");
+      const c=rowConversation_(item.values,item.row,sh,m);
+      if(!c||normalizePhone_(c.studentPhone)!==target)return;
+      const tutorPhone=resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||'');
       out.push({
-        conversationId:c.conversationId,
-        studentName:c.studentName,
-        studentPhone:c.studentPhone,
-        workDescription:c.workDescription,
-        assignmentStatus:c.assignmentStatus,
-        tutorWorkStatus:c.tutorWorkStatus,
-        tutor:c.assignedTutor,
-        assignedTutor:c.assignedTutor,
-        tutorPhone:tutorPhone,
-        deadline:c.deadline,
-        requestedAt:c.startedAt,
-        lastMessageAt:c.lastMessageAt,
-        completedAt:c.completedAt,
-        rejectedAt:c.rejectedAt,
-        rejectionReason:c.rejectionReason,
-        qaStatus:c.qaStatus,
-        feedback:c.clientFeedback,
-        assignedAdminName:c.assignedAdminName,
-        studentBudget:c.studentBudget,
-        agreedAmount:c.agreedAmount,
-        currency:c.currency,
-        agreedCurrency:c.agreedCurrency,
-        tutorPayout:c.tutorPayout,
-        brightAceShare:c.brightAceShare,
-        status:c.status
+        conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,
+        workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,
+        tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:tutorPhone,deadline:c.deadline,
+        requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,
+        rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,
+        assignedAdminName:c.assignedAdminName,studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,
+        currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status
       });
-    }catch(e){
-      console.error("V47 client history row skipped: "+String(e&&e.message||e));
-    }
+    }catch(e){console.error("V66 client history row skipped: "+String(e&&e.message||e));}
   });
-  out.sort(function(a,b){
-    return new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime();
-  });
-  baCachePutJson_(cacheKey,out,30);
-  return out;
+  out.sort(function(a,b){return new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime();});
+  baCachePutJson_(cacheKey,out,10); return out;
 }
 
 function baInvalidateClientRequestHistory_(phone){

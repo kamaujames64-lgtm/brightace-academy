@@ -16,7 +16,7 @@ function baConversationIdsForPhone_(phone){
   if(Array.isArray(hit))return hit;
   const sh=getConversationSheet_(),last=sh.getLastRow();
   if(last<2)return [];
-  const m=headerMap_(sh),cells=sh.getRange(2,m.studentPhone,last-1,1)
+  const m=headerMap_(sh);if(!m.studentPhone||last<2)return [];const cells=sh.getRange(2,m.studentPhone,last-1,1)
     .createTextFinder(target).matchEntireCell(true).useRegularExpression(false).findAll();
   const ids=[];
   cells.forEach(function(cell){
@@ -30,9 +30,10 @@ function baInvalidateClientConversationIndex_(phone){
   const target=normalizePhone_(phone||''); if(target)baCacheRemove_('BA_CLIENT_CONV_IDS_'+target);
 }
 function baRowsByConversationId_(sh,conversationColumn,conversationId){
-  const last=sh.getLastRow(); if(last<2)return [];
+  const target=String(conversationId||'').trim();
+  const last=sh.getLastRow(); if(last<2||!target||!conversationColumn)return [];
   const cells=sh.getRange(2,conversationColumn,last-1,1)
-    .createTextFinder(String(conversationId)).matchEntireCell(true).useRegularExpression(false).findAll();
+    .createTextFinder(target).matchEntireCell(true).useRegularExpression(false).findAll();
   return cells.map(function(cell){
     const row=cell.getRow();
     return {row:row,values:sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0]};

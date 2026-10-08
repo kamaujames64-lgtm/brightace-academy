@@ -21,14 +21,14 @@
 
 @media(max-width:700px){.chat-toolbar{flex-wrap:wrap}}
 </style>
-<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/></head>
+<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
 <body class="client-portal-page" data-client-page="messages">
 <header class="nav"><div class="container nav-inner">
 <a class="brand" href="../index.html"><img alt="BrightAce Academy logo" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
 <button aria-label="Open menu" class="menu-btn" onclick="toggleMenu()">☰</button>
 <nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a class="active" href="chat.html">Live Chat</a></nav>
 <a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
-<nav aria-label="Client portal navigation" class="client-portal-nav"><a href="client-dashboard.html">⌂ Dashboard</a><a href="client-tutoring.html">▣ Sessions</a><a class="active" href="chat.html">✉ Messages</a><a href="client-resources.html">▤ Resources</a><a href="client-payments.html">▰ Payments</a></nav><main><section class="page-hero"><div class="container"><div class="eyebrow">DIRECT SUPPORT</div><h1>BrightAce Live Chat</h1><p>Submit your academic support request, verify your WhatsApp number, then connect securely with BrightAce live chat.</p></div></section>
+<div class="client-chat-channel-bar" aria-label="Client chat channel"><span>✉</span><strong>Live Chat — BrightAce Admin</strong><small>Client ↔ Admin support only</small></div><main><section class="page-hero"><div class="container"><div class="eyebrow">CLIENT ↔ ADMIN SUPPORT</div><h1>BrightAce Live Chat</h1><p>This chat is exclusively between you and BrightAce Admin. Your tutor sessions, assignments and tutor messages are kept inside your private Dashboard workspace.</p></div></section>
 <section class="section"><div class="container"><div class="chat-shell">
 <div class="chat-head"><div class="chat-person"><div class="chat-avatar">🎓</div><div><strong>BrightAce Academy</strong><div class="chat-status">● Secure Academic Support</div></div></div><span class="admin-badge">Private Support</span></div>
 <div class="chat-notice" hidden="" id="chatNotice"></div>
@@ -36,9 +36,9 @@
 <div class="returning-entry"><button class="btn btn-outline returning-client-trigger" id="showReturningClientBtn" type="button">Already a returning user? →</button></div>
 <form class="form" id="startForm">
 <label>Client / Student Name<input autocomplete="name" id="studentName" placeholder="Your name" required=""/></label>
-<label>WhatsApp number<input autocomplete="tel" id="studentPhone" placeholder="+254 7XX XXX XXX" required=""/></label>
+<label>WhatsApp number (include country code)<input autocomplete="tel" id="studentPhone" placeholder="+1 202 555 0123 or +254 7XX XXX XXX" required=""/></label>
 <label>Task / Work Description<textarea id="taskDescription" placeholder="Describe the assignment, tutoring, analysis, research, website, or other academic support you need..."></textarea></label>
-<div class="admin-form-grid"><label>Student Budget<input id="studentBudget" min="0" placeholder="Your budget" step="0.01" type="number"/></label><label>Currency<select id="studentCurrency" required=""><option value="KES">KES — Kenyan Shilling</option><option value="USD">USD — US Dollar</option><option value="EUR">EUR — Euro</option></select></label></div>
+<div class="admin-form-grid"><label>Student Budget<input id="studentBudget" min="0" placeholder="Your budget" step="0.01" type="number"/></label><label>Currency<select id="studentCurrency" required=""><option value="USD" selected>USD — US Dollar</option><option value="KES">KES — Kenyan Shilling</option><option value="EUR">EUR — Euro</option></select></label></div>
 <label>Deadline<input id="studentDeadline" placeholder="e.g. 12 September 2026, 5:00 PM"/></label>
 <label class="consent"><input id="consent" required="" type="checkbox"/> <span>I agree that BrightAce may use the provided contact details to respond to this support request.</span></label>
 <button class="btn btn-primary" id="startChatBtn" type="submit">SEND REQUEST →</button>
@@ -49,7 +49,7 @@
 <p class="chat-helper">Enter the name and WhatsApp number you previously used with BrightAce. We’ll send a fresh verification code to your WhatsApp.</p>
 <form class="form" id="returningClientForm">
 <label>Client / Student Name<input autocomplete="name" id="returningClientName" placeholder="Your name" required=""/></label>
-<label>WhatsApp number<input autocomplete="tel" id="returningClientPhone" placeholder="+254 7XX XXX XXX" required=""/></label>
+<label>WhatsApp number (include country code)<input autocomplete="tel" id="returningClientPhone" placeholder="+1 202 555 0123 or +254 7XX XXX XXX" required=""/></label>
 <button class="btn btn-primary" id="returningClientBtn" type="submit">SEND VERIFICATION CODE →</button>
 </form>
 <div class="verification-panel" id="returningVerificationArea" style="display:none">
@@ -71,11 +71,11 @@
 <div class="verification-actions"><button class="btn btn-primary" id="verifyBtn" type="submit">VERIFY &amp; CONNECT</button><button class="btn btn-outline" id="resendBtn" type="button">REQUEST A NEW CODE</button></div><p class="verification-help">You can request a new verification code up to 3 times.</p></form>
 <div class="chat-notice" hidden="" id="verificationNotice"></div>
 </div>
-<div class="chat-area" id="chatArea" style="display:none"><div class="chat-toolbar"><span>Conversation with <strong id="studentDisplay">Student</strong></span><div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap"><button class="client-dashboard-toggle" id="clientDashboardBtn" type="button">📊 MY DASHBOARD</button><button class="chat-exit-btn" id="exitChatBtn" type="button">← Exit live chat</button></div></div>
+<div class="chat-area" id="chatArea" style="display:none"><div class="chat-toolbar"><span>Conversation with <strong id="studentDisplay">Student</strong></span><div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap"><button class="client-dashboard-toggle" id="clientDashboardBtn" type="button">📊 DASHBOARD</button><button class="chat-exit-btn" id="exitChatBtn" type="button">← Exit live chat</button><button class="chat-exit-btn" id="chatLogoutBtn" type="button">LOG OUT</button></div></div>
 <div aria-live="polite" class="chat-body" id="chatBody"></div>
 <form class="chat-input" id="messageForm"><div class="attachment-preview" hidden="" id="attachmentPreview"></div><div class="composer-tools"><button id="emojiBtn" title="Emoji" type="button">😊</button><button id="attachBtn" title="Attach file" type="button">📎</button><button id="photoBtn" title="Photo" type="button">📷</button><input hidden="" id="fileInput" multiple="" type="file"/></div><input aria-label="Message" autocomplete="off" id="messageInput" placeholder="Type a message..."/><button aria-label="Send" class="send-btn">➤</button></form><div class="chat-footnote">You can send text, images and common documents. Files are optional and can be viewed or downloaded manually.</div>
 <div class="chat-notice info" style="margin:20px 16px 0">For payments, invoices, receipts or refund requests, open <a href="client-payments.html"><strong>Payments &amp; Invoices</strong></a>.</div></div>
 </div>
 </div></section></main>
 <footer class="footer"><div class="container footer-grid"><div><div class="brand"><img alt="BrightAce Academy" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div><div><h3>Legal</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
-<script defer="" src="../js/app.js"></script><script defer="" src="../js/chat.js"></script><nav aria-label="Mobile client navigation" class="client-mobile-nav-shared"><a href="client-dashboard.html"><span>⌂</span>Home</a><a href="client-tutoring.html"><span>▣</span>Sessions</a><a class="active" href="chat.html"><span>✉</span>Messages</a><a href="client-resources.html"><span>▤</span>Resources</a><a href="client-payments.html"><span>▰</span>Pay</a></nav><script src="../js/client-portal-pages.js"></script></body></html>
+<script defer="" src="../js/app.js"></script><script defer="" src="../js/chat.js?v=20261002b?v=20261002"></script><script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>

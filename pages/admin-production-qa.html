@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="../css/style.css"><script src="../js/brightace-api-config.js"></script><script src="../js/app.js"></script>
 <style>
 :root{--ink:#10263f;--line:#dfe7ee;--muted:#718394}.qa-wrap{max-width:1180px;margin:28px auto;padding:0 18px}.qa-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.eyebrow{font-weight:900;letter-spacing:.08em;font-size:.75rem;color:var(--muted)}.qa-head h1{margin:.2rem 0}.small{color:var(--muted);font-size:.84rem}.qa-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 7px 24px rgba(16,38,63,.06);padding:18px}.metric span{display:block;color:var(--muted);font-size:.82rem;font-weight:800}.metric strong{display:block;font-size:1.35rem;color:var(--ink);margin-top:6px}.panel{margin-top:16px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btnx{border:0;border-radius:10px;padding:10px 14px;font-weight:900;cursor:pointer;background:var(--ink);color:#fff}.btnx.secondary{background:#eef3f7;color:var(--ink)}.status-ok{color:#17633b}.status-bad{color:#a51d2d}.status-warn{color:#8a5a00}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.88rem}th,td{text-align:left;padding:10px;border-bottom:1px solid #edf1f5;vertical-align:top}th{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.pill{font-weight:900}.note{background:#f7fafc;border-radius:12px;padding:13px}.matrix td:nth-child(2){font-weight:900}.matrix code{white-space:normal}@media(max-width:800px){.qa-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.qa-head{flex-direction:column}}@media(max-width:480px){.qa-grid{grid-template-columns:1fr}}
-</style></head>
+</style><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
 <body>
 <header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><span class="admin-top-label">PRIVATE ADMIN CONTROL CENTER</span></div></header>
 <main class="qa-wrap">
@@ -18,7 +18,7 @@
 </main>
 <script>
 (function(){
- const API=window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec";
+ const API=window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec";
  const $=id=>document.getElementById(id);
  const token=()=>window.BrightAceAdminSession?.get?.()||localStorage.getItem("brightace_admin_active_token_v4")||sessionStorage.getItem("brightace_admin_active_token_v4")||"";
  const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
@@ -26,4 +26,4 @@
  async function readiness(){const t=token();if(!t){location.replace('admin-login.html?return=admin-production-qa');return}try{$('readinessBox').textContent='Running protected production-readiness checks…';const b=new URLSearchParams();b.set('payload',JSON.stringify({action:'adminProductionReadiness',adminToken:t}));const r=await fetch(API,{method:'POST',body:b,cache:'no-store'});const d=await r.json();if(!d.ok&&d.summary===undefined)throw Error(d.error||'Production readiness check failed.');const s=d.summary||{};$('readinessBox').textContent=`${s.failed||0?'Readiness has '+(s.failed||0)+' failed check(s).':'Readiness checks passed.'} ${s.passed||0}/${s.total||0} checks passed. Manual release gates remain listed in the deployment report.`;$('readinessBox').className='note small '+(s.failed?'status-bad':'status-ok');}catch(e){$('readinessBox').textContent=e.message||'Production readiness could not be loaded.';$('readinessBox').className='note small status-bad'}}
  $('run').onclick=run;$('readiness').onclick=readiness;if(token())run();
 })();
-</script></body></html>
+</script><script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>

@@ -7,14 +7,14 @@
 <link href="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html" rel="canonical"/>
 <title>Secure Payment | BrightAce Academy</title>
 <link href="../css/style.css" rel="stylesheet"/>
-<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/></head>
+<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
 <body class="client-portal-page">
 <header class="nav"><div class="container nav-inner">
 <a class="brand" href="../index.html"><img alt="BrightAce Academy logo" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
 <button aria-label="Open menu" class="menu-btn" onclick="toggleMenu()">☰</button>
 <nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></nav>
 <a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
-<nav aria-label="Client portal navigation" class="client-portal-nav"><a href="client-dashboard.html">⌂ Dashboard</a><a href="client-tutoring.html">▣ Sessions</a><a href="chat.html">✉ Messages</a><a href="client-resources.html">▤ Resources</a><a class="active" href="client-payments.html">▰ Payments</a></nav><main>
+<nav aria-label="Client portal navigation" class="client-portal-nav"><a href="client-dashboard.html">⌂ Dashboard</a><a href="client-new-request.html">＋ New Request</a><a href="client-tutoring.html">▣ Sessions</a><a href="chat.html">✉ Messages</a><a href="client-resources.html">▤ Resources</a><a class="active" href="client-payments.html">▰ Payments</a></nav><main>
 <section class="page-hero"><div class="container"><div class="eyebrow">SECURE CHECKOUT</div><h1>BrightAce Secure Payment</h1><p>Pay for an agreed BrightAce academic service through the official payment process powered by Paystack.</p></div></section>
 <div class="container" style="margin-top:14px"><div class="client-payment-nav" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 0"><a class="btn btn-outline" href="client-dashboard.html">← CLIENT DASHBOARD</a><a class="btn btn-outline" href="client-payments.html">💳 PAYMENTS</a><a class="btn btn-outline" href="client-tutoring.html">📅 TUTORING</a><a class="btn btn-outline" href="chat.html">💬 LIVE CHAT</a></div></div>
 <section class="section"><div class="container"><div class="payment-shell">
@@ -40,7 +40,7 @@
 <footer class="footer"><div class="container footer-grid"><div><div class="brand"><img alt="BrightAce Academy" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
 <script defer="" src="../js/app.js"></script>
 <script>
-const PAYMENT_API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec");
+const PAYMENT_API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec");
 const notice=document.getElementById("paymentNotice");
 const loading=document.getElementById("paymentLoading");
 const formBox=document.getElementById("paymentRequestForm");
@@ -48,7 +48,7 @@ const details=document.getElementById("paymentDetails");
 const result=document.getElementById("paymentResult");
 let currentRequest=null;
 function setNotice(text,type="info"){notice.textContent=text;notice.className="chat-notice "+type;notice.hidden=!text;}
-function money(amount,currency){return new Intl.NumberFormat(undefined,{style:"currency",currency:currency||"KES"}).format(Number(amount||0));}
+function money(amount,currency){const a=Number(amount||0),c=String(currency||"USD").toUpperCase();let t;try{t=new Intl.NumberFormat(undefined,{style:"currency",currency:c}).format(a)}catch(e){t=c+" "+a.toFixed(2)}return `<span data-fx-amount="${a}" data-fx-from="${c}">${t}</span>`;}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
 async function getRequest(id){
   const r=await fetch(PAYMENT_API+"?action=paymentRequest&requestId="+encodeURIComponent(id)+"&clientSessionToken="+encodeURIComponent(clientSession?.clientSessionToken||"")+"&phone="+encodeURIComponent(clientSession?.phone||""));
@@ -96,4 +96,4 @@ document.getElementById("requestForm").addEventListener("submit",async e=>{e.pre
 document.getElementById("payButton").addEventListener("click",async()=>{if(!currentRequest)return;const b=document.getElementById("payButton");b.disabled=true;b.textContent="Preparing Paystack checkout…";try{const p=await initialize(currentRequest.requestId);location.href=p.authorizationUrl;}catch(err){b.disabled=false;b.textContent="🔒 PAY SECURELY WITH PAYSTACK";setNotice(err.message||"Payment could not be started.","error");}});
 load();
 </script>
-<nav aria-label="Mobile client navigation" class="client-mobile-nav-shared"><a href="client-dashboard.html"><span>⌂</span>Home</a><a href="client-tutoring.html"><span>▣</span>Sessions</a><a href="chat.html"><span>✉</span>Messages</a><a href="client-resources.html"><span>▤</span>Resources</a><a class="active" href="client-payments.html"><span>▰</span>Pay</a></nav></body></html>
+<nav aria-label="Mobile client navigation" class="client-mobile-nav-shared"><a href="client-dashboard.html"><span>⌂</span>Home</a><a href="client-new-request.html"><span>＋</span>New Request</a><a href="client-tutoring.html"><span>▣</span>Sessions</a><a href="chat.html"><span>✉</span>Messages</a><a href="client-resources.html"><span>▤</span>Resources</a><a class="active" href="client-payments.html"><span>▰</span>Pay</a></nav><script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>

@@ -19,7 +19,7 @@ body{background:var(--ba-bg);min-height:100vh}
 .ba-login-footer{text-align:center;color:#718394;font-size:.78rem;margin-top:18px}
 </style>
 
-<script src="../js/brightace-api-config.js"></script></head>
+<script src="../js/brightace-api-config.js"></script><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
 <body>
 <header class="nav">
   <div class="container nav-inner">
@@ -46,7 +46,7 @@ body{background:var(--ba-bg);min-height:100vh}
 <footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
 <script src="../js/app.js"></script>
 <script>
-const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec");
+const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec");
 const KEY="brightace_admin_token_v4";
 const form=document.getElementById("loginForm"), notice=document.getElementById("notice"), btn=document.getElementById("signIn");
 function setNotice(t,type){notice.textContent=t;notice.className="chat-notice "+type;notice.hidden=!t}
@@ -58,12 +58,18 @@ form.addEventListener("submit",async function(e){
     const payload={action:"adminLogin",username:document.getElementById("username").value.trim()||"owner",password:document.getElementById("password").value};
     const r=await fetch(API,{method:"POST",body:new URLSearchParams({payload:JSON.stringify(payload)}),cache:"no-store"});
     const raw=await r.text();let d;
-    try{d=JSON.parse(raw)}catch(err){throw Error("BrightAce /exec returned HTML instead of JSON during admin sign-in. Redeploy the latest V46 backend as a NEW version of the SAME Web App (Execute as: Me; Who has access: Anyone) and keep the existing /exec URL.")}
+    try{d=JSON.parse(raw)}catch(err){throw Error("BrightAce /exec returned HTML instead of JSON during admin sign-in. Verify that the SAME production Web App is running the latest V66 backend (Execute as: Me; appropriate access) and keep the existing /exec URL.")}
     if(!d.ok)throw Error(d.error||"Sign in failed");
     if(!d.adminToken)throw Error("Admin sign-in succeeded but no session token was returned.");
-    // Replace any stale/legacy browser session before installing the newly authenticated token.
+    // Install the token, then immediately prove that the SAME production backend
+    // can consume it before redirecting. This prevents the frustrating state where
+    // a token is visibly created but the admin workspace rejects it on the next request.
     if(window.BrightAceAdminSession) window.BrightAceAdminSession.set(d.adminToken);
     else {sessionStorage.removeItem(KEY);localStorage.removeItem(KEY);sessionStorage.removeItem("brightace_admin_token_v3");localStorage.removeItem("brightace_admin_token_v3");sessionStorage.setItem(KEY,d.adminToken);localStorage.setItem(KEY,d.adminToken);}
+    const verifyBody=new URLSearchParams({payload:JSON.stringify({action:"adminSessionProfile",adminToken:d.adminToken})});
+    const vr=await fetch(API,{method:"POST",body:verifyBody,cache:"no-store"});
+    const vraw=await vr.text();let vd;try{vd=JSON.parse(vraw)}catch(err){throw Error("BrightAce issued the admin sign-in token, but the production /exec endpoint did not return JSON when validating it. Keep the SAME Web App /exec deployment and deploy the latest V66 backend version.")}
+    if(!vd.ok||!vd.admin)throw Error(vd.error||"The BrightAce admin sign-in token could not be activated. Please deploy the latest V66 backend to the existing /exec deployment.");
     setNotice("Admin sign-in successful. Opening the private admin area…","success");
     location.replace("admin.html");
   }catch(err){
@@ -72,4 +78,4 @@ form.addEventListener("submit",async function(e){
   }
 });
 </script>
-</body></html>
+<script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>

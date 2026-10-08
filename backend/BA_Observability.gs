@@ -44,11 +44,11 @@ function baObservabilityHealth_(){
   const props=PropertiesService.getScriptProperties();
   return {
     build:BRIGHTACE_BUILD,
-    api:"brightace-json-v53",
+    api:"brightace-json-v66",
     lastErrorAt:props.getProperty("BA_LAST_ERROR_AT")||"",
     lastErrorCategory:props.getProperty("BA_LAST_ERROR_CATEGORY")||"",
     deliveryWorkerLastRun:props.getProperty("BA_DELIVERY_WORKER_LAST_RUN")||"",
-    deliveryWorkerLastStatus:props.getProperty("BA_DELIVERY_WORKER_LAST_STATUS")||"UNKNOWN",
+    deliveryWorkerLastStatus:props.getProperty("BA_DELIVERY_WORKER_LAST_STATUS")||"NOT_RUN",
     deliveryWorkerLastProcessed:Number(props.getProperty("BA_DELIVERY_WORKER_LAST_PROCESSED")||0),
     checkedAt:new Date().toISOString()
   };

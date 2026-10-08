@@ -1,0 +1,19 @@
+BrightAce Academy country flag font
+
+The country flag artwork is derived from Twemoji and redistributed through Mozilla's
+Twemoji COLR/CPAL project. BrightAce uses a subset of the Twemoji Mozilla color font,
+limited to the regional-indicator characters needed by the BrightAce country picker.
+
+Source project:
+https://github.com/mozilla/twemoji-colr
+
+Visual artwork license:
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Mozilla project code license:
+Apache License 2.0
+
+Subset/build note:
+The bundled BrightAce font is a technical subset of Twemoji Mozilla containing only
+regional-indicator flag glyphs and their ligature rules needed for country flags.
