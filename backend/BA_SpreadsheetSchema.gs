@@ -124,6 +124,8 @@ function brightAceRequiredSpreadsheetSchema_() {
     {name:'RESOURCES', headers:['resourceId','title','category','description','priceUSD','driveFileId','fileName','thumbnailFileId','thumbnailFileName','published','accessLevel','sortOrder','createdAt','updatedAt','accessDurationDays'], phoneHeaders:[]},
     {name:'RESOURCE_PURCHASES', headers:['purchaseId','resourceId','resourceTitle','customerName','customerEmail','customerPhone','amountUSD','currency','status','provider','providerReference','authorizationUrl','createdAt','paidAt','refundedAt','refundAmountUSD','refundReference','accessRevokedAt'], phoneHeaders:['customerPhone']},
     {name:'RESOURCE_ACCESS', headers:['accessId','purchaseId','resourceId','customerEmail','customerPhone','accessStatus','firstGrantedAt','lastAccessAt','accessCount','lastDownloadAt','downloadCount','lastUserAgent','expiresAt'], phoneHeaders:['customerPhone']},
+    {name:'RESOURCE_PROMOTIONS', headers:['promoId','title','category','description','audience','educationalValue','mediaType','mediaUrl','sortOrder','published','createdAt','updatedAt'], phoneHeaders:[]},
+    {name:'RESOURCE_REQUESTS', headers:['requestId','clientId','clientName','clientPhone','clientEmail','category','topic','objectives','details','status','adminResponse','deliveryFileId','deliveryFileName','createdAt','updatedAt','deliveredAt','lastUpdatedBy','requestKey'], phoneHeaders:['clientPhone']},
     {name:'BLOCKED_WHATSAPP', headers:['phone','type','reason','blockedAt','blockedBy','active'], phoneHeaders:['phone']},
     {name:'OPERATIONAL_EVENTS', headers:['timestamp','build','action','severity','category','message','durationMs','source'], phoneHeaders:[]},
     {name:'STATEMENT_REGISTRY', headers:['statementReference','statementType','partyName','partyId','email','phone','fromDate','toDate','generatedAt','transactionCount','integrityHash','status'], phoneHeaders:['phone']},
@@ -133,6 +135,11 @@ function brightAceRequiredSpreadsheetSchema_() {
     {name:'ACTIVITY_LOG', headers:['timestamp','actorType','actor','action','detail'], phoneHeaders:[]},
     {name:'ADMIN_ACTIVITY', headers:['timestamp','adminUsername','adminName','role','action','details'], phoneHeaders:[]},
     {name:'TUTOR_PAYOUTS', headers:['payoutId','tutorId','tutorName','workId','paymentRequestId','amount','currency','status','createdAt','paidAt','paymentReference','note','paidAmount','remainingAmount'], phoneHeaders:[]},
-    {name:'MESSAGE_DELIVERY_QUEUE', headers:['queueId','messageId','conversationId','channel','recipientPhone','payloadJson','status','attempts','createdAt','sentAt','lastError'], phoneHeaders:['recipientPhone']}
+    {name:'MESSAGE_DELIVERY_QUEUE', headers:['queueId','messageId','conversationId','channel','recipientPhone','payloadJson','status','attempts','createdAt','sentAt','lastError'], phoneHeaders:['recipientPhone']},
+    // Explicit compatibility tabs used by deployment verification. Operational
+    // handlers continue using the canonical plural tables above.
+    {name:'REFUNDS', headers:['refundId','conversationId','paymentRequestId','studentName','studentPhone','studentEmail','requestedAmount','currency','reason','status','createdAt','reviewedAt','approvedAmount','adminNote','paystackRefundId'], phoneHeaders:['studentPhone']},
+    {name:'TUTOR_WALLET', headers:['walletId','tutorId','tutorName','mobileProvider','mobileNumber','paypalEmail','payoneerEmail','bankName','accountName','accountNumber','branchCode','swiftCode','preferredMethod','updatedAt','status'], phoneHeaders:['mobileNumber']},
+    {name:'SCHEDULE', headers:['scheduleId','conversationId','tutorPhone','tutorName','date','startTime','endTime','timezone','zoomLink','status','studentName','notes','createdAt','confirmedAt','reminder24Sent','reminder1Sent','studentPhone'], phoneHeaders:['tutorPhone','studentPhone']}
   ];
 }

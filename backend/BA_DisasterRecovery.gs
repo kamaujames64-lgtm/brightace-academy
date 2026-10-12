@@ -20,7 +20,9 @@ function baRecoverySheetSpecs_(){
     {name:"MESSAGE_DELIVERY_QUEUE",critical:true},
     {name:"RESOURCES",critical:true},
     {name:"RESOURCE_PURCHASES",critical:true},
-    {name:"RESOURCE_ACCESS",critical:true}
+    {name:"RESOURCE_ACCESS",critical:true},
+    {name:"RESOURCE_PROMOTIONS",critical:true},
+    {name:"RESOURCE_REQUESTS",critical:true}
   ];
 }
 

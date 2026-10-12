@@ -1,4 +1,4 @@
-/* BrightAce V60 — deployment consistency helpers.
+/* BrightAce V85 — deployment consistency helpers.
    Public version/health metadata contains no credentials or customer data.
    It exists so the frontend and deployment-check tool can distinguish a stale
    Apps Script /exec deployment from an application-level JSON error. */
@@ -8,7 +8,7 @@ function baDeploymentInfo_(){
     ok:true,
     service:"BrightAce Academy Live Chat",
     build:BRIGHTACE_BUILD,
-    api:"brightace-json-v66",
+    api:"brightace-json-v85",
     protocol:"json",
     statementEngine:"comprehensive-v44",
     scalabilityEngine:"v43+v46",
@@ -19,7 +19,7 @@ function baDeploymentInfo_(){
     disasterRecoveryEngine:"v54-disaster-recovery-data-protection",
     productionQaEngine:"v55-end-to-end-qa-production-readiness",
     resourceEngine:"v61-timed-resource-access",
-    productionHardeningEngine:"v63-production-readiness-security-qa+v66-speed"
+    productionHardeningEngine:"v85-session-feedback-finance-messaging+v66-speed"
   };
 }
 
