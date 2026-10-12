@@ -1,3 +1,29 @@
+# BrightAce Academy V67 — Promotional Resources & Secure Client Requests
+
+## Added in this package
+- Public Resources page now displays administrator-managed promotional entries only; it no longer renders the paid catalog or checkout buttons.
+- New `RESOURCE_PROMOTIONS` sheet stores public titles, categories, descriptions, intended audiences, educational value, media type, media reference, sort order and publication state.
+- New `RESOURCE_REQUESTS` sheet stores client-owned requests, status, admin response and delivery metadata. Both sheets are included in the non-destructive spreadsheet schema alignment and disaster-recovery critical data set.
+- Existing authenticated client dashboard Resources page now supports request submission, request history, administrative response visibility, and authenticated downloads for delivered files.
+- Existing Admin Resources page now supports promotional entry management and resource request review/status/delivery workflows alongside the pre-existing paid catalog, sales, refund and analytics tools.
+- Added server-side session/ownership checks, administrator authorization, input validation, duplicate-submit throttling, explicit status-transition validation, and a 4 MB maximum for securely streamed delivered files.
+- Promotional images/videos can be referenced by an HTTPS URL or Google Drive file ID. Promotional Drive media must be intentionally shared as viewer-accessible; private learning materials must not be entered as promotional media.
+
+## Request status model
+`Submitted → Under review → Awaiting clarification / Approved / Declined`; `Awaiting clarification → Under review / Approved / Declined`; `Approved → In preparation / Declined`; `In preparation → Delivered / Approved`. `Delivered` and `Declined` are terminal states in this initial workflow. A request cannot be marked Delivered without an assigned Drive file. Clients can download a delivered file only through a server-side ownership-checked endpoint while the file remains accessible to the Apps Script service account.
+
+## Deployment
+Deploy the complete `backend/` folder as a new version of the existing Apps Script Web App and keep the existing `/exec` URL. The build marker is `2026-10-11-V67-RESOURCE-REQUEST-WORKFLOW`; after deployment verify `?action=health` reports `brightace-json-v67`. Run the existing spreadsheet alignment function against the configured spreadsheet to create the two new sheets non-destructively, or allow the backend sheet helpers to create them when first used. No production deployment or live data changes were performed as part of this ZIP edit.
+
+## Limitations to review
+- Client attachment uploads are not included because the current client portal has no generic secure attachment upload control; the request form accepts text details. Admin delivery uses an existing Google Drive file ID rather than uploading the learning file through the browser.
+- Secure delivery currently supports files up to 4 MB because the Apps Script JSON response base64-encodes file content. Larger files need a separate signed/authorized streaming architecture before use.
+- Public promotional media stored in Drive must be deliberately made viewable by the public. Do not point these fields at client-specific documents.
+- Legacy paid catalog, Paystack purchase, refund and access features remain in the admin/backend, but paid catalog items are no longer rendered on the public Resources page. Direct checkout routes remain in the package as legacy paths.
+- Live Apps Script/Sheets/Drive permissions and browser end-to-end checks require deployment and authorized test accounts; they were not run in this local build.
+
+---
+
 # V63 Production Hardening
 
 Built directly from V62. This release focuses on production security, operational readiness, QA correctness, recovery checks, and safe load-test tooling while preserving existing functionality/design. See `V63_PRODUCTION_HARDENING_SECURITY_QA_REPORT.md`.
@@ -211,7 +237,7 @@ The supplied ChatGPT shared link could not be retrieved as an image asset; uploa
 WhatsApp verification uses the existing BrightAce WhatsApp sender configuration (`META_ACCESS_TOKEN` and `META_PHONE_NUMBER_ID`) and does not require any additional OTP Script Property. The verification message is sent through the existing free-form WhatsApp text path.
 
 ## Current production Apps Script endpoint wired into this package
-`https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec`
+`https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec`
 
 ## Important deployment note
 The static website package can be fully prepared here, but a new Apps Script `Code.gs` must be deployed as a new Web App version in the user's Apps Script project before the new backend functions become live. The provided Google Sheet URL could not be inspected from this environment, so the package does not assume or alter any existing sheet rows or production data.
@@ -342,19 +368,12 @@ The client workspace now uses one consistent navigation shell across Dashboard, 
 - Compact, viewport-safe profile photo cropper.
 - Client API timeout/message hardened to avoid the misleading 20-second deployment warning.
 
-## V66 Client Runtime / Photo / Currency Removal — 2026-10-05
-- Currency Converter UI and `js/brightace-currency.js` have been removed from the client/site distribution.
-- Client navigation now uses fresh/stale local workspace cache so navigation remains usable while Apps Script refreshes in the background.
-- Client API requests use a bounded retry strategy and preserve the local session on slow responses.
-- Profile photo capture uses the device camera flow and the cropper normalizes supported image inputs to a valid upload format.
-- Client profile upload no longer rejects non-JPEG source images with the old JPEG-only message.
 
-## Spreadsheet setup/alignment — 2026-10-06
-Added `backend/BA_SpreadsheetSchema.gs`.
+## 2026-10-09 V3 performance repair
+- Removed the N×Work-ID schedule lookup from the client/tutor hot path. Client schedules now use one indexed `studentPhone` lookup, with a bounded legacy fallback only when no phone-indexed rows exist.
+- Added `clientPortalSummary` for the Dashboard so the first dashboard paint no longer loads the full message history, payment history, attachments and tutor-profile payload.
+- Added a 60-second browser summary cache with background refresh. Other client pages continue to use the full authenticated portal dataset.
+- Reduced the standalone Tutor & Sessions request timeout from 25s to 9s so a genuinely slow backend cannot leave the page appearing frozen for 25 seconds.
+- Bumped the production build to `2026-10-09-V66-CLIENT-TUTOR-BOOKING-PERF-V3` and the service-worker/client JS cache versions.
 
-Run once in Apps Script after opening the project:
-`brightAceSetSpreadsheetIdAndAlign("YOUR_GOOGLE_SHEET_ID")`
-
-This verifies access, stores `SPREADSHEET_ID`, preserves a previous ID as `SPREADSHEET_ID_PREVIOUS` when applicable, and performs non-destructive sheet/header alignment. It never deletes sheets, columns, rows, values, or unrelated Script Properties.
-
-If the ID is already configured, run `brightAceAlignSpreadsheetSchema()`.
+**Deployment check:** publish the complete `backend/` folder as a new version of the SAME Apps Script Web App, keep the existing `/exec` URL, and confirm `/exec?action=health` reports the V3 build before testing.
