@@ -21,7 +21,16 @@
 
 @media(max-width:700px){.chat-toolbar{flex-wrap:wrap}}
 </style>
-<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
+<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script><style id="ba-otp-six-boxes-v83">
+.ba-otp-source{position:absolute!important;opacity:0!important;pointer-events:none!important;width:1px!important;height:1px!important;padding:0!important;margin:0!important;border:0!important;clip-path:inset(50%)!important;overflow:hidden!important}
+.ba-otp-boxes{display:flex;align-items:center;gap:clamp(7px,2vw,12px);margin:10px 0 16px;max-width:100%}
+.ba-otp-box{width:clamp(40px,11vw,54px);height:clamp(48px,12vw,60px);box-sizing:border-box;border:1.5px solid #cbd9e9;border-radius:12px;background:linear-gradient(180deg,#fff,#f8fbff);color:#082b55;text-align:center;font:800 clamp(21px,5vw,27px)/1 inherit;box-shadow:0 2px 6px rgba(8,43,85,.04);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.ba-otp-box:focus{border-color:#f4b51b;background:#fffdf6;box-shadow:0 0 0 3px rgba(255,191,36,.22)}
+.ba-otp-box[aria-invalid=true]{border-color:#c83c3c;background:#fff8f8}
+.ba-otp-boxes:focus-within{filter:drop-shadow(0 2px 4px rgba(8,43,85,.05))}
+@media(max-width:380px){.ba-otp-boxes{gap:6px}.ba-otp-box{width:39px;height:46px;border-radius:9px}}
+</style>
+</head>
 <body class="client-portal-page" data-client-page="messages">
 <header class="nav"><div class="container nav-inner">
 <a class="brand" href="../index.html"><img alt="BrightAce Academy logo" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
@@ -78,4 +87,30 @@
 </div>
 </div></section></main>
 <footer class="footer"><div class="container footer-grid"><div><div class="brand"><img alt="BrightAce Academy" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="subjects.html">Subjects</a><a href="resources.html">Resources</a><a href="how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="homework-help.html">Homework Help</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div><div><h3>Legal</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
-<script defer="" src="../js/app.js"></script><script defer="" src="../js/chat.js?v=20261002b?v=20261002"></script><script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>
+<script defer="" src="../js/app.js"></script><script defer="" src="../js/chat.js?v=20261002b?v=20261002"></script><script src="../js/brightace-composer.js?v=20261002b" defer></script><script id="ba-otp-six-boxes-v83">
+(function(){
+  var ids=['code','verificationCode','returningVerificationCode'];
+  function mount(source){
+    if(!source||source.dataset.baOtpMounted==='1')return;
+    source.dataset.baOtpMounted='1';source.classList.add('ba-otp-source');source.removeAttribute('required');source.removeAttribute('pattern');source.setAttribute('aria-hidden','true');source.setAttribute('tabindex','-1');
+    var wrap=document.createElement('div');wrap.className='ba-otp-boxes';wrap.setAttribute('role','group');wrap.setAttribute('aria-label','Enter the six-digit verification code');
+    var boxes=[];
+    for(var i=0;i<6;i++){
+      var b=document.createElement('input');b.type='text';b.inputMode='numeric';b.maxLength=1;b.autocomplete=i===0?'one-time-code':'off';b.pattern='[0-9]';b.className='ba-otp-box';b.setAttribute('aria-label','Verification digit '+(i+1)+' of 6');b.setAttribute('data-digit',String(i));b.required=true;
+      b.addEventListener('input',function(e){var idx=boxes.indexOf(e.currentTarget);var raw=e.currentTarget.value.replace(/\D/g,'');if(raw.length>1){distribute(raw,idx);return;}e.currentTarget.value=raw.slice(-1);sync();if(e.currentTarget.value&&idx<5)boxes[idx+1].focus();});
+      b.addEventListener('keydown',function(e){var idx=boxes.indexOf(e.currentTarget);if(e.key==='Backspace'&&!e.currentTarget.value&&idx>0){boxes[idx-1].focus();boxes[idx-1].value='';sync();}else if(e.key==='ArrowLeft'&&idx>0){e.preventDefault();boxes[idx-1].focus();}else if(e.key==='ArrowRight'&&idx<5){e.preventDefault();boxes[idx+1].focus();}});
+      b.addEventListener('paste',function(e){var t=(e.clipboardData||window.clipboardData).getData('text');if(t){e.preventDefault();distribute(t,boxes.indexOf(e.currentTarget));}});
+      boxes.push(b);wrap.appendChild(b);
+    }
+    function sync(){source.value=boxes.map(function(b){return b.value;}).join('').slice(0,6);source.dispatchEvent(new Event('input',{bubbles:true}));source.dispatchEvent(new Event('change',{bubbles:true}));}
+    function distribute(raw,start){var digits=String(raw).replace(/\D/g,'').slice(0,6);for(var j=0;j<6;j++)boxes[j].value='';for(var k=0;k<digits.length&&start+k<6;k++)boxes[start+k].value=digits[k];sync();boxes[Math.min(start+digits.length,5)].focus();}
+    source.parentNode.insertBefore(wrap,source.nextSibling);
+    var form=source.closest('form');if(form)form.addEventListener('submit',function(e){sync();if(source.value.length!==6||!/^[0-9]{6}$/.test(source.value)){e.preventDefault();e.stopImmediatePropagation();var first=boxes.find(function(b){return !b.value;})||boxes[0];first.setCustomValidity('Enter all six digits.');first.reportValidity();first.focus();setTimeout(function(){first.setCustomValidity('');},1000);return;}},true);
+    source.addEventListener('change',function(){var v=source.value.replace(/\D/g,'').slice(0,6);for(var j=0;j<6;j++)boxes[j].value=v[j]||'';});
+    boxes.forEach(function(b){b.addEventListener('input',function(){b.setCustomValidity('');});});
+  }
+  function init(){ids.forEach(function(id){mount(document.getElementById(id));});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body></html>

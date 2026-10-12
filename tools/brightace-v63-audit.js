@@ -8,8 +8,8 @@ const read=p=>fs.readFileSync(path.join(root,p),"utf8");
 const text=files.map(f=>fs.readFileSync(path.join(backend,f),"utf8")).join("\n");
 const code=read("backend/Code.gs"),sec=read("backend/BA_Security.gs"),qa=read("backend/BA_ProductionQA.gs"),hard=read("backend/BA_ProductionHardening.gs"),deploy=read("backend/BA_Deployment.gs"),threat=read("backend/BA_ThreatDefense.gs");
 const checks=[]; const c=(name,ok,detail)=>checks.push({name,ok:Boolean(ok),detail});
-c("V63 build marker",code.includes("2026-09-19-V63-PRODUCTION-HARDENING-SECURITY-QA"),"Code.gs identifies the V63 release.");
-c("V63 JSON marker",code.includes("brightace-json-v63")&&deploy.includes("brightace-json-v63"),"Health/version use the V63 JSON marker.");
+c("V85 build marker",code.includes("2026-10-12-V85-INTEGRATED-SESSION-FEEDBACK-FINANCE-MESSAGING-REPAIR"),"Code.gs identifies the V85 release.");
+c("V85 JSON marker",code.includes("brightace-json-v85")&&deploy.includes("brightace-json-v85"),"Health/version use the V85 JSON marker.");
 c("Production readiness endpoint",code.includes('adminProductionReadiness')&&hard.includes('function adminProductionReadiness_'),"Super Admin readiness endpoint is wired.");
 c("Production readiness allowlisted",sec.includes("adminProductionReadiness"),"New operational action is covered by the central allowlists.");
 c("Central security gates",code.includes("baSecurityGateGet_(p)")&&code.includes("baSecurityGatePost_(body)"),"GET/POST requests pass centralized security gates.");
@@ -26,5 +26,5 @@ c("QA bug fixed",!qaFn.includes("out.push")&&qaFn.includes("finalFail"),"Product
 const names=[];for(const m of text.matchAll(/(?:^|\n)\s*function\s+([A-Za-z0-9_$]+)\s*\(/g))names.push(m[1]);
 const dup=names.filter((n,i)=>names.indexOf(n)!==i);c("Unique top-level function names",dup.length===0,dup.length?`Duplicates: ${[...new Set(dup)].join(", ")}`:`${names.length} unique functions detected.`);
 let failed=checks.filter(x=>!x.ok).length;
-console.log(JSON.stringify({release:"V63",ok:failed===0,total:checks.length,passed:checks.length-failed,failed,checks,backendFiles:files.length,functions:names.length},null,2));
+console.log(JSON.stringify({release:"V85",ok:failed===0,total:checks.length,passed:checks.length-failed,failed,checks,backendFiles:files.length,functions:names.length},null,2));
 process.exitCode=failed?1:0;
