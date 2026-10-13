@@ -150,3 +150,45 @@ body.client-portal-page{background:#f5f8fc;min-height:100vh;overflow-x:hidden}
 .ba-book-session-form input,.ba-book-session-form select,.ba-book-session-form textarea{width:100%;box-sizing:border-box;padding:11px;border:1px solid #d5e0e8;border-radius:9px;font:inherit;background:#f7fafc}
 @media(max-width:900px){.ba-book-session-form .ba-form-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.ba-book-session-form .ba-form-grid{grid-template-columns:1fr}}
+
+
+/* V86 cross-page control sizing: compact, consistent action buttons. */
+.btn,
+a.btn,
+button.btn,
+input[type="submit"],
+input[type="button"],
+button:not(.icon-btn):not(.nav-toggle):not(.menu-toggle):not(.chat-send):not(.emoji-btn):not(.attachment-btn) {
+  box-sizing: border-box;
+  min-height: 34px;
+  height: auto !important;
+  width: auto !important;
+  max-width: 100%;
+  padding: 7px 12px;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 750;
+  white-space: normal;
+}
+.btn { display: inline-flex; align-items: center; justify-content: center; }
+input[type="submit"], input[type="button"] { cursor: pointer; }
+.btn-sm, .button-sm { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+.icon-btn, .nav-toggle, .menu-toggle, .chat-send, .emoji-btn, .attachment-btn {
+  width: 36px !important;
+  min-width: 36px;
+  height: 36px !important;
+  min-height: 36px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+@media (max-width: 640px) {
+  .btn, a.btn, button.btn, input[type="submit"], input[type="button"],
+  button:not(.icon-btn):not(.nav-toggle):not(.menu-toggle):not(.chat-send):not(.emoji-btn):not(.attachment-btn) {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}

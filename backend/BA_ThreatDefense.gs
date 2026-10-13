@@ -2,7 +2,7 @@
    Apps Script cannot run a full commercial AV engine, so this is a defensive
    pre-storage layer: strict payload bounds, archive-entry inspection, executable
    and script blocking, and zip-bomb limits. */
-const BA_V63_MAX_REQUEST_BYTES_=20*1024*1024;
+const BA_V63_MAX_REQUEST_BYTES_=35*1024*1024; // Bounded headroom for base64-wrapped uploads up to the existing 25 MB attachment limit.
 const BA_V63_MAX_ARCHIVE_ENTRIES_=800;
 const BA_V63_MAX_ARCHIVE_UNPACKED_=80*1024*1024;
 function baThreatCheckRawRequest_(e){
@@ -15,7 +15,7 @@ function baThreatCheckObject_(body){
 }
 function baThreatCheckArchive_(bytes,mime,name){
   const m=String(mime||'').toLowerCase(),n=String(name||'').toLowerCase();
-  const zipLike=/zip|officedocument|msword|ms-excel|ms-powerpoint/.test(m)||/\.(zip|docx|xlsx|pptx|docm|xlsm|pptm)$/i.test(n);
+  const zipLike=/zip|officedocument/.test(m)||/\.(zip|docx|xlsx|pptx|docm|xlsm|pptm)$/i.test(n);
   if(!zipLike)return true;
   try{
     const blobs=Utilities.unzip(Utilities.newBlob(bytes,mime,name));

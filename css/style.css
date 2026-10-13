@@ -118,6 +118,21 @@ h1{font-size:clamp(3rem,6vw,5.4rem);line-height:.98;letter-spacing:-.055em;margi
 .resource-card{padding:22px;border:1px solid var(--line);border-radius:18px;background:#fff;overflow:hidden}.resource-thumb{height:150px;margin:-22px -22px 18px;background:#f2f6f9;display:flex;align-items:center;justify-content:center;overflow:hidden}.resource-thumb img{width:100%;height:100%;object-fit:cover}.resource-thumb-fallback{font-size:3rem}.resource-checkout-thumb{width:100%;max-height:220px;margin-bottom:16px;border-radius:14px;overflow:hidden;background:#f2f6f9;text-align:center}.resource-checkout-thumb img{width:100%;max-height:220px;object-fit:cover}.admin-resource-thumb{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .resource-tag{display:inline-block;background:#e8f7f8;color:#087e89;padding:4px 9px;border-radius:999px;font-size:.75rem;font-weight:800;margin-bottom:10px}
 .resource-card a{color:#087e89;font-weight:800}
+
+/* V86 resource media/layout refinement: show complete media without cropping or overflow. */
+.resource-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:20px}
+.resource-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;padding:0;border:1px solid #dce5ee;border-radius:18px;box-shadow:0 8px 26px rgba(16,43,74,.06)}
+.resource-media-wrap{height:auto;min-height:120px;max-height:520px;margin:0;padding:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(180deg,#f7faff,#edf3f8)}
+.resource-media-image{display:block;width:100%;height:auto;max-height:500px;object-fit:contain;object-position:center;border-radius:10px}
+.resource-media-frame{display:block;width:100%;max-width:100%;aspect-ratio:16/9;height:auto;min-height:180px;max-height:480px;border:0;border-radius:10px;background:#101827;object-fit:contain}
+.resource-media-audio{width:100%;max-width:100%;margin:18px 0}
+.resource-file-preview{display:flex;align-items:center;gap:14px;width:100%;min-width:0;padding:16px;border:1px solid #d7e1eb;border-radius:12px;background:#fff;overflow-wrap:anywhere}
+.resource-file-preview>span{font-size:2.2rem;flex:0 0 auto}.resource-file-preview p{margin:5px 0 12px}.resource-media-empty{font-size:3rem;padding:28px}
+.resource-card-content{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:7px;padding:20px;min-width:0;overflow-wrap:anywhere}
+.resource-card-content h3{margin:2px 0 4px;line-height:1.3}.resource-card-content p{line-height:1.65;white-space:pre-line;overflow-wrap:anywhere;margin:0 0 6px}.resource-card-content .btn{margin-top:auto;max-width:100%;white-space:normal;align-self:flex-start}.resource-meta{font-size:.92rem}
+@media(max-width:950px){.resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.resource-grid{grid-template-columns:minmax(0,1fr)}.resource-media-wrap{max-height:440px}.resource-media-image{max-height:420px}.resource-media-frame{min-height:190px}.resource-card-content{padding:16px}}
+
 .steps{grid-template-columns:repeat(3,1fr)}
 .step{position:relative}
 .step-number{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--gold);font-weight:900;margin-bottom:15px}
@@ -335,3 +350,44 @@ body.modal-open{overflow:hidden}
 
 /* BrightAce public-site 3D accent: subtle, responsive and intentionally lightweight. */
 
+
+/* V86 cross-page control sizing: compact, consistent action buttons. */
+.btn,
+a.btn,
+button.btn,
+input[type="submit"],
+input[type="button"],
+button:not(.icon-btn):not(.nav-toggle):not(.menu-toggle):not(.chat-send):not(.emoji-btn):not(.attachment-btn) {
+  box-sizing: border-box;
+  min-height: 34px;
+  height: auto !important;
+  width: auto !important;
+  max-width: 100%;
+  padding: 7px 12px;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 750;
+  white-space: normal;
+}
+.btn { display: inline-flex; align-items: center; justify-content: center; }
+input[type="submit"], input[type="button"] { cursor: pointer; }
+.btn-sm, .button-sm { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+.icon-btn, .nav-toggle, .menu-toggle, .chat-send, .emoji-btn, .attachment-btn {
+  width: 36px !important;
+  min-width: 36px;
+  height: 36px !important;
+  min-height: 36px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+@media (max-width: 640px) {
+  .btn, a.btn, button.btn, input[type="submit"], input[type="button"],
+  button:not(.icon-btn):not(.nav-toggle):not(.menu-toggle):not(.chat-send):not(.emoji-btn):not(.attachment-btn) {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}

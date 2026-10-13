@@ -8,7 +8,7 @@
  * IMPORTANT: keep tokens in Apps Script Script Properties. Never put secrets in GitHub Pages JS.
  */
 
-const BRIGHTACE_BUILD="2026-10-12-V85-INTEGRATED-SESSION-FEEDBACK-FINANCE-MESSAGING-REPAIR";
+const BRIGHTACE_BUILD="2026-10-12-V86-RESOURCE-MANAGEMENT-DIRECT-UPLOADS-PRICING-PAYMENT-REPAIR";
 const CONFIG = {
   spreadsheetIdKey: "SPREADSHEET_ID",
   driveFolderIdKey: "CHAT_DRIVE_FOLDER_ID",
@@ -92,7 +92,7 @@ function doGet(e){
     if(p["hub.mode"] === "subscribe") return verifyWebhook_(p);
     const action=String(p.action||"health"); __baAction=action;
     baSecurityGateGet_(p);
-    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v85",time:new Date().toISOString(),observability:baObservabilityHealth_()});
+    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v86",time:new Date().toISOString(),observability:baObservabilityHealth_()});
     if(action==="version") return json_(baDeploymentInfo_());
     if(action==="fxRates") return baFxRates_();
     if(action==="messages") return getMessages_(p.sessionId,p.clientSessionToken,p.phone,p.afterMessageId,p.clientAccessToken);
@@ -286,6 +286,7 @@ function doPost(e){
     if(body.action === "clientResourceLibrary") return clientResourceLibrary_(body);
     if(body.action === "clientResourceCatalog") return clientResourceCatalog_(body);
     if(body.action === "clientCreateResourceRequest") return clientCreateResourceRequest_(body);
+    if(body.action === "clientApproveResourceQuote") return clientApproveResourceQuote_(body);
     if(body.action === "clientListResourceRequests") return clientListResourceRequests_(body);
     if(body.action === "clientResourceDeliveryAccess") return clientResourceDeliveryAccess_(body);
     if(body.action === "adminListResourcePromotions") return adminListResourcePromotions_(body.adminToken);
@@ -296,6 +297,7 @@ function doPost(e){
     if(body.action === "clientResourceAccess") return clientResourceAccess_(body);
     if(body.action === "adminListResources") return adminListResources_(body.adminToken);
     if(body.action === "adminSaveResource") return adminSaveResource_(body);
+    if(body.action === "adminUploadResourceFile") return adminUploadResourceFile_(body);
     if(body.action === "adminDeleteResource") return adminDeleteResource_(body);
     if(body.action === "adminResourceCommerce") return adminResourceCommerce_(body.adminToken);
     if(body.action === "adminResourceAnalytics") return adminResourceAnalytics_(body.adminToken);
@@ -1777,6 +1779,41 @@ function buildClientStatement_(token,phone,from,to,displayCurrency){
       {const v=baMoneyDisplay_(p.amount,p.currency,targetCurrency);out.push({date:p.paidAt||date,type:'PAYMENT',direction:'IN',requestId:p.requestId,service:p.service,details:p.serviceDescription||p.service,amount:v.amount,currency:v.currency,originalAmount:v.originalAmount,originalCurrency:v.originalCurrency,status:'PAID',reference:p.paystackReference||'',createdAt:p.createdAt,paidAt:p.paidAt,refundStatus:p.refundStatus||'NONE'});}
     }
   });
+  // Paid digital-resource purchases are stored in RESOURCE_PURCHASES, separate from
+  // the general PAYMENTS sheet. Include verified purchases and completed refunds here.
+  const resourcePurchases=baPurchaseSheet_(),rpm=headerMap_(resourcePurchases),rplast=resourcePurchases.getLastRow();
+  if(rplast>1){
+    const rpRows=resourcePurchases.getRange(2,1,rplast-1,resourcePurchases.getLastColumn()).getValues();
+    rpRows.forEach(function(row,i){
+      const p=baPurchaseFromRow_(row,i+2,rpm);
+      const sameEmail=email&&String(p.customerEmail||"").trim().toLowerCase()===String(email).trim().toLowerCase();
+      const samePhone=String(p.customerPhone||"")&&normalizePhone_(p.customerPhone)===normalizePhone_(c.clientPhone||phone||"");
+      if(!sameEmail&&!samePhone)return;
+      const status=String(p.status||"").toUpperCase();
+      if(["PAID","REFUNDED","PARTIALLY_REFUNDED"].indexOf(status)>=0&&p.paidAt&&inStatementRange_(p.paidAt,range)){
+        const v=baMoneyDisplay_(p.amountUSD,"USD",targetCurrency);
+        out.push({date:p.paidAt,type:"RESOURCE PURCHASE",direction:"IN",requestId:p.purchaseId,service:"Digital resource",details:p.resourceTitle||"Approved learning resource",amount:v.amount,currency:v.currency,originalAmount:v.originalAmount,originalCurrency:v.originalCurrency,status:"PAID",reference:p.reference||p.purchaseId,createdAt:p.createdAt,paidAt:p.paidAt,refundStatus:status==="REFUNDED"?"REFUNDED":status==="PARTIALLY_REFUNDED"?"PARTIALLY_REFUNDED":"NONE"});
+      }
+      if(Number(p.refundAmountUSD||0)>0&&p.refundedAt&&inStatementRange_(p.refundedAt,range)){
+        const v=baMoneyDisplay_(p.refundAmountUSD,"USD",targetCurrency);
+        out.push({date:p.refundedAt,type:"RESOURCE REFUND",direction:"OUT",requestId:p.purchaseId,service:"Resource refund",details:p.resourceTitle||"Learning resource refund",amount:v.amount,currency:v.currency,originalAmount:v.originalAmount,originalCurrency:v.originalCurrency,status:status==="REFUNDED"?"REFUNDED":"PARTIALLY_REFUNDED",reference:p.refundReference||"",createdAt:p.createdAt,paidAt:p.refundedAt});
+      }
+    });
+  }
+  // Client-requested resource quotations are a separate payment ledger. Only provider-
+  // verified PAID quotes enter the financial statement; awaiting/failed quotes do not.
+  const resourceRequests=baResourceRequestSheet_(),rqm=headerMap_(resourceRequests),rqlast=resourceRequests.getLastRow();
+  if(rqlast>1){
+    resourceRequests.getRange(2,1,rqlast-1,resourceRequests.getLastColumn()).getValues().forEach(function(row,i){
+      const q=baRequestRow_(row,rqm);
+      const sameEmail=email&&String(q.clientEmail||"").trim().toLowerCase()===String(email).trim().toLowerCase();
+      const samePhone=String(q.clientPhone||"")&&normalizePhone_(q.clientPhone)===normalizePhone_(c.clientPhone||phone||"");
+      if(!sameEmail&&!samePhone||String(q.quotePaymentStatus||"").toUpperCase()!=="PAID")return;
+      const date=q.quotePaidAt||q.updatedAt||q.createdAt;if(!inStatementRange_(date,range))return;
+      const v=baMoneyDisplay_(q.quoteAmountUSD,q.quoteCurrency||"USD",targetCurrency);
+      out.push({date:date,type:"RESOURCE REQUEST PAYMENT",direction:"IN",requestId:q.requestId,service:"Requested resource",details:q.topic||q.category||"Custom resource request",amount:v.amount,currency:v.currency,originalAmount:v.originalAmount,originalCurrency:v.originalCurrency,status:"PAID",reference:q.quotePaymentReference||q.requestId,createdAt:q.createdAt,paidAt:q.quotePaidAt||date});
+    });
+  }
   // Refund activity is retained for transparency. Approved refunds are completed
   // outgoing transactions; pending/rejected requests remain visible as activity.
   const rs=getRefundSheet_(),rm=headerMap_(rs);
@@ -1811,8 +1848,34 @@ function buildAdminStatement_(token,from,to){
   // Incoming client payments. Every paid/recorded client transaction is included.
   const ps=getPaymentSheet_(),pr=ps.getDataRange().getValues();
   for(let i=1;i<pr.length;i++){
-    const p=rowPayment_(pr[i],i+1),date=p.paidAt||p.createdAt;if(!inStatementRange_(date,range))continue;
+    const p=rowPayment_(pr[i],i+1),date=p.paidAt||p.createdAt;if(String(p.status||"").toUpperCase()!=="PAID"||!inStatementRange_(date,range))continue;
     transactions.push({date:date,type:"CLIENT PAYMENT",direction:"IN",reference:p.paystackReference||p.requestId,details:(p.studentName||"Client")+" - "+(p.service||"BrightAce service")+" - "+p.status,amount:p.amount,currency:p.currency,status:p.status,sourceId:p.requestId||""});
+  }
+  // Resource-store purchases are a separate ledger from general service payments.
+  // Include provider-verified paid purchases, then record actual refunds as outgoing.
+  const rps=baPurchaseSheet_(),rpm=headerMap_(rps),rplast=rps.getLastRow();
+  if(rplast>1){
+    const rows=rps.getRange(2,1,rplast-1,rps.getLastColumn()).getValues();
+    for(let i=0;i<rows.length;i++){
+      const p=baPurchaseFromRow_(rows[i],i+2,rpm),status=String(p.status||"").toUpperCase();
+      if(!p.purchaseId)continue;
+      if(["PAID","REFUNDED","PARTIALLY_REFUNDED"].indexOf(status)>=0&&p.paidAt&&inStatementRange_(p.paidAt,range)){
+        transactions.push({date:p.paidAt,type:"RESOURCE PURCHASE",direction:"IN",reference:p.reference||p.purchaseId,details:String(p.customerName||p.customerEmail||"Client")+" - "+String(p.resourceTitle||"Learning resource"),amount:Number(p.amountUSD||0),currency:"USD",status:"PAID",sourceId:p.purchaseId});
+      }
+      if(Number(p.refundAmountUSD||0)>0&&p.refundedAt&&inStatementRange_(p.refundedAt,range)){
+        transactions.push({date:p.refundedAt,type:"RESOURCE REFUND",direction:"OUT",reference:p.refundReference||"",details:String(p.customerName||p.customerEmail||"Client")+" - refund for "+String(p.resourceTitle||p.purchaseId),amount:Number(p.refundAmountUSD||0),currency:"USD",status:status==="REFUNDED"?"REFUNDED":"PARTIALLY_REFUNDED",sourceId:p.purchaseId});
+      }
+    }
+  }
+  // Include only custom-resource quotations confirmed PAID by the payment provider.
+  const rqs=baResourceRequestSheet_(),rqm=headerMap_(rqs),rqlast=rqs.getLastRow();
+  if(rqlast>1){
+    const rows=rqs.getRange(2,1,rqlast-1,rqs.getLastColumn()).getValues();
+    for(let i=0;i<rows.length;i++){
+      const q=baRequestRow_(rows[i],rqm),date=q.quotePaidAt||q.updatedAt||q.createdAt;
+      if(!q.requestId||String(q.quotePaymentStatus||"").toUpperCase()!=="PAID"||!inStatementRange_(date,range))continue;
+      transactions.push({date:date,type:"RESOURCE REQUEST PAYMENT",direction:"IN",reference:q.quotePaymentReference||q.requestId,details:String(q.clientName||q.clientEmail||"Client")+" - "+String(q.topic||q.category||"Custom resource request"),amount:Number(q.quoteAmountUSD||0),currency:String(q.quoteCurrency||"USD").toUpperCase(),status:"PAID",sourceId:q.requestId});
+    }
   }
   // Approved client refunds are actual outgoing money to a client. Rejected/pending requests are not cash transactions.
   const rf=getRefundSheet_(),rr=rf.getDataRange().getValues(),rm=headerMap_(rf);
