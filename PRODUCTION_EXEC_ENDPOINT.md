@@ -2,7 +2,7 @@
 
 The frontend production endpoint is:
 
-https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec
+https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec
 
 All BrightAce frontend references in this package have been normalized to this exact `/exec` URL.
 

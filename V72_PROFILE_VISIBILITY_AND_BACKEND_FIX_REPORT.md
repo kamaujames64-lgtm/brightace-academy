@@ -37,3 +37,12 @@ Built from the complete BrightAce Academy V71 — Profile Settings and Intake pr
 - Profile photos are stored as link-viewable Drive thumbnails to match the current app’s image-serving model. Emergency contact information is not added to public profile responses.
 - “Every format” means every image format the user’s browser can decode and draw to canvas. Formats unsupported by a particular browser (some HEIC/HEIF files, for example) may need to be converted before selection.
 - No production deployment or authenticated live browser test was performed. The load-test script was not run because `BRIGHTACE_EXEC_URL` was not configured in the test environment.
+
+
+## Follow-up upload compatibility and layout patch
+
+- Expanded allowed resource upload MIME types to common image, video, audio, archive, ebook, and office/open-document formats while retaining explicit blocking of active content such as HTML, scripts, and SVG.
+- Added filename-extension mappings for common additional formats and signature checks for AVIF, BMP, TIFF, and ICO. This is broad format compatibility, not a guarantee that every proprietary codec or malformed file is accepted.
+- Broadened the public media file picker and private-delivery picker to expose the wider supported format set.
+- Added fixed minimum column widths, full-width form controls, wrapped filenames, and responsive request-table styling to improve alignment.
+- Important: “Unknown BrightAce action” can also indicate the live Apps Script deployment is older than this source. The source router includes `adminUploadResourceFile`; deploy a new Apps Script version and confirm the website API URL targets that deployment.

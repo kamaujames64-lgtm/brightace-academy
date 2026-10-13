@@ -76,3 +76,12 @@ A real 500-client production stress test was **not** claimed or fabricated. The 
 ## Next planned layer
 
 V42 establishes the security/performance foundation. The next logical layer is V43 messaging/data optimization: more targeted sheet reads, status-change synchronization, cache invalidation refinement, and realistic 500-client mixed-workload testing. A database migration should be based on measured bottlenecks rather than introduced blindly.
+
+
+## Follow-up upload compatibility and layout patch
+
+- Expanded allowed resource upload MIME types to common image, video, audio, archive, ebook, and office/open-document formats while retaining explicit blocking of active content such as HTML, scripts, and SVG.
+- Added filename-extension mappings for common additional formats and signature checks for AVIF, BMP, TIFF, and ICO. This is broad format compatibility, not a guarantee that every proprietary codec or malformed file is accepted.
+- Broadened the public media file picker and private-delivery picker to expose the wider supported format set.
+- Added fixed minimum column widths, full-width form controls, wrapped filenames, and responsive request-table styling to improve alignment.
+- Important: “Unknown BrightAce action” can also indicate the live Apps Script deployment is older than this source. The source router includes `adminUploadResourceFile`; deploy a new Apps Script version and confirm the website API URL targets that deployment.

@@ -38,3 +38,12 @@ Built from **BrightAce Academy V72 — Profile Visibility & Backend Fix**. Exist
 - No live authenticated browser session or production backend was available for end-to-end testing.
 - Backend changes are in `backend/Code.gs`; deploy that file to the existing Google Apps Script Web App as a new version before expecting legacy wallet matching and updated validation to be live.
 - This update does not modify payment amounts, payout policy, or withdrawal eligibility.
+
+
+## Follow-up upload compatibility and layout patch
+
+- Expanded allowed resource upload MIME types to common image, video, audio, archive, ebook, and office/open-document formats while retaining explicit blocking of active content such as HTML, scripts, and SVG.
+- Added filename-extension mappings for common additional formats and signature checks for AVIF, BMP, TIFF, and ICO. This is broad format compatibility, not a guarantee that every proprietary codec or malformed file is accepted.
+- Broadened the public media file picker and private-delivery picker to expose the wider supported format set.
+- Added fixed minimum column widths, full-width form controls, wrapped filenames, and responsive request-table styling to improve alignment.
+- Important: “Unknown BrightAce action” can also indicate the live Apps Script deployment is older than this source. The source router includes `adminUploadResourceFile`; deploy a new Apps Script version and confirm the website API URL targets that deployment.

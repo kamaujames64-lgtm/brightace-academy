@@ -218,3 +218,31 @@ Do not publish the GitHub Pages frontend until this health check returns JSON.
 Tutor test access: BRIGHTACE_TUTOR_TEST_WHATSAPP=0725010628 (normalized to 254725010628) and BRIGHTACE_TUTOR_TEST_CODE=121212.
 Client test access: BRIGHTACE_VERIFICATION_TEST_WHATSAPP=254725010628.
 Tutor earnings are 50% of the agreed paid client amount. Minimum tutor withdrawal is KSh 2,000. Client web sessions expire after 30 minutes of inactivity and require fresh WhatsApp verification.
+
+
+# BrightAce Academy V86 — Resource Management, Direct Uploads, Pricing & Payment Repair
+
+Build: `2026-10-12-V86-RESOURCE-MANAGEMENT-DIRECT-UPLOADS-PRICING-PAYMENT-REPAIR`
+API marker: `brightace-json-v86`
+
+V86 repairs the resource request quotation/payment path, adds authenticated direct resource/media uploads, preserves private delivery files, improves public resource layout stability, and removes generic emoji/attachment controls from resource text-only forms.
+
+## V86 resource workflow
+- A verified client submits a request; an authorized Super Admin reviews it, sets a USD quote, and sets status to `Awaiting payment`.
+- The client approves the quotation and continues to the existing Paystack checkout.
+- The backend verifies the transaction amount and USD currency before marking the request paid.
+- The admin advances a paid request into fulfillment, uploads a private delivery file, and marks it delivered. Client download remains ownership-checked.
+- Quote/payment fields are appended to the existing `RESOURCE_REQUESTS` tab; no duplicate quote sheet is introduced.
+- Catalog purchase totals include verified request quote payments, while catalog-specific analytics remain catalog-only.
+
+## V86 direct uploads and limits
+- Admin uploads paid resources, thumbnails, promotional media and private request deliveries directly from the computer.
+- Public promotional media is link-viewable; paid catalog files remain private until published; private client delivery files remain private.
+- Catalog/promotional uploads: 20 MiB maximum. Private client delivery: 4 MiB maximum. Supported formats are enforced by server MIME/extension/content checks.
+- Google Drive links for published paid catalog files are shareable and are not DRM. Do not use public promo/catalog uploads for confidential client files.
+
+## Deployment and rollback
+See `V86_RESOURCE_MANAGEMENT_DIRECT_UPLOADS_PRICING_PAYMENT_REPAIR_REPORT.md` for changed files, test results, Apps Script/Sheets/Drive/website deployment steps, rollback instructions and explicit limitations. Back up the current Apps Script project, spreadsheet and website before deployment; deploy a new version of the existing Web App and preserve its `/exec` URL and Script Properties. Run `brightAceAlignSpreadsheetSchema()` and inspect its result before live testing.
+
+## Verification boundary
+Local V86 regression/security/resource tests and syntax checks are documented in the V86 report. Live Google Sheets/Drive/Paystack integration, authenticated browser flows and concurrency/load have not been verified by this package build.

@@ -36,3 +36,12 @@ V46 is based on the V45 deployment-guard / V44 statement / V43 scalability packa
 
 ## Deployment requirement
 Upload all V46 backend `.gs` files into the same Apps Script project and deploy a new version of the existing Web App. Keep the existing `/exec` URL. If the production endpoint continues returning the V45 build after deployment, the Apps Script Web App deployment is still pointing at an older version.
+
+
+## Follow-up upload compatibility and layout patch
+
+- Expanded allowed resource upload MIME types to common image, video, audio, archive, ebook, and office/open-document formats while retaining explicit blocking of active content such as HTML, scripts, and SVG.
+- Added filename-extension mappings for common additional formats and signature checks for AVIF, BMP, TIFF, and ICO. This is broad format compatibility, not a guarantee that every proprietary codec or malformed file is accepted.
+- Broadened the public media file picker and private-delivery picker to expose the wider supported format set.
+- Added fixed minimum column widths, full-width form controls, wrapped filenames, and responsive request-table styling to improve alignment.
+- Important: “Unknown BrightAce action” can also indicate the live Apps Script deployment is older than this source. The source router includes `adminUploadResourceFile`; deploy a new Apps Script version and confirm the website API URL targets that deployment.
