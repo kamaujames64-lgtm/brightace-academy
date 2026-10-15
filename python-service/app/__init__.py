@@ -1,0 +1,1 @@
+"""BrightAce Academy Python service."""

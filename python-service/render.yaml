@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: brightace-python-api
+    runtime: docker
+    dockerfilePath: ./python-service/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: BRIGHTACE_SERVICE_API_KEY
+        sync: false
+      - key: MAX_BODY_BYTES
+        value: "1048576"
