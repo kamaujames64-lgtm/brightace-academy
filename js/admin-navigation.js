@@ -12,7 +12,7 @@
       ['Payments', 'admin-payments.html'], ['Tutor Earnings', 'admin-tutor-earnings.html'], ['History', 'admin-history.html']
     ]},
     { label: 'SYSTEM', icon: '⚙', links: [
-      ['Resources', 'admin-resources.html'], ['System Health', 'admin-observability.html'], ['Recovery', 'admin-recovery.html'], ['Production QA', 'admin-production-qa.html'], ['Settings', 'admin-profile.html']
+      ['Resources', 'admin-resources.html'], ['System Health', 'admin-observability.html'], ['Recovery', 'admin-recovery.html'], ['Production QA', 'admin-production-qa.html'], ['Python Tools', 'admin-python.html'], ['Settings', 'admin-profile.html']
     ]}
   ];
   function init() {

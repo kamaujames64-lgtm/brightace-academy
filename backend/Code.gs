@@ -227,6 +227,7 @@ function doPost(e){
     if(body.action === "adminRecoveryManifest") return adminRecoveryManifest_(body.adminToken);
     if(body.action === "adminProductionQa") return adminProductionQa_(body.adminToken);
     if(body.action === "adminProductionReadiness") return adminProductionReadiness_(body.adminToken);
+    if(body.action === "adminPythonJob") return baAdminPythonJob_(body);
     if(body.action === "adminCreateRecoverySnapshot") return adminCreateRecoverySnapshot_(body);
     if(body.action === "adminMarkTutorBalancePaid") return adminMarkTutorBalancePaid_(body);
     if(body.action === "adminRecordTutorPayment") return adminRecordTutorPayment_(body);

@@ -14,7 +14,8 @@ const BA_ACTION_LIMITS_={
   adminCreatePaymentRequest:{service:500,description:6000},
   adminAssignWork:{assignedAdminName:160,tutorName:160},
   adminRejectWork:{reason:5000},
-  tutorDeclineWork:{reason:5000}
+  tutorDeclineWork:{reason:5000},
+  adminPythonJob:{feature:80}
 };
 function baLimitString_(value,max,label,required){const s=String(value==null?'':value);if(required&&s.trim()==='')throw new Error(label+' is required.');if(s.length>max)throw new Error(label+' is too long.');return s;}
 function baValidateActionInput_(body){
