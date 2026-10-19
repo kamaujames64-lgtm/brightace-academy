@@ -26,7 +26,7 @@ function baGetMessageDeliveryByMessageId_(messageId){
 }
 function baSetTutorMessageDeliveryStatus_(messageId,status){
   const id=String(messageId||"").trim();if(!id)return;
-  try{const sh=getTutorMessagesSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);for(let i=1;i<rows.length;i++)if(String(rows[i][m.messageId-1]||"")===id){setByHeader_(sh,i+1,"status",String(status||"sent"));return;}}catch(e){console.error("Tutor message status update failed: "+String(e&&e.message||e))}
+  try{const sh=getTutorMessagesSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);for(let i=1;i<rows.length;i++)if(String(rows[i][m.messageId-1]||"")===id){setByHeader_(sh,i+1,"status",String(status||"sent"));baInvalidateTutorMessageCache_(rows[i][m.tutorPhone-1]);return;}}catch(e){console.error("Tutor message status update failed: "+String(e&&e.message||e))}
 }
 function baProcessMessageDelivery_(queueId){
   const sh=getMessageDeliveryQueueSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),id=String(queueId||"").trim();let q=null;

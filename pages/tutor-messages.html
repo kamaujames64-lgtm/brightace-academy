@@ -89,8 +89,8 @@ function renderMessages(messages,keepScroll=true){
  const sig=(messages||[]).map(m=>String(m.id||'')+'|'+String(m.timestamp||'')+'|'+String(m.text||'')).join('||');
  if(sig!==lastMessageSignature){box.innerHTML=html;lastMessageSignature=sig;if(wasNearBottom||!keepScroll)box.scrollTop=box.scrollHeight;}
 }
-let firstTutorMessagesLoad=true,lastTutorMessageSignature="";
-async function load(silent=false){if(!token)return location.href='tutor.html';try{const d=await api('tutorGetAdminMessages');const msgs=d.messages||[];const sig=msgs.map(m=>`${m.id||''}:${m.status||''}:${m.timestamp||''}:${m.text||''}`).join('|');if(!firstTutorMessagesLoad&&sig!==lastTutorMessageSignature)window.BrightAceSound?.notify('tutor-message',sig);lastTutorMessageSignature=sig;firstTutorMessagesLoad=false;renderMessages(msgs);if(!silent)notice('Admin messages loaded.','success')}catch(e){if(!silent)notice(e.message,'error')}}
+let firstTutorMessagesLoad=true,lastTutorMessageSignature="",tutorMessages=[],lastTutorMessageId="",tutorLoadBusy=false;
+async function load(silent=false,incremental=false){if(!token)return location.href='tutor.html';if(tutorLoadBusy)return;tutorLoadBusy=true;try{const d=await api('tutorGetAdminMessages',incremental&&lastTutorMessageId?{afterMessageId:lastTutorMessageId}:{});const received=Array.isArray(d.messages)?d.messages:[];if(incremental&&lastTutorMessageId){const byId=new Map(tutorMessages.map(m=>[String(m.id||''),m]));received.forEach(m=>{if(m&&m.id)byId.set(String(m.id),Object.assign({},byId.get(String(m.id))||{},m))});tutorMessages=[...byId.values()].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0)).slice(-100)}else{const byId=new Map();received.forEach(m=>{if(m&&m.id)byId.set(String(m.id),m)});tutorMessages=[...byId.values()].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0)).slice(-100)}if(tutorMessages.length)lastTutorMessageId=String(tutorMessages[tutorMessages.length-1].id||'');const sig=tutorMessages.map(m=>`${m.id||''}:${m.status||''}:${m.timestamp||''}:${m.text||''}`).join('|');if(!firstTutorMessagesLoad&&sig!==lastTutorMessageSignature)window.BrightAceSound?.notify('tutor-message',sig);lastTutorMessageSignature=sig;firstTutorMessagesLoad=false;renderMessages(tutorMessages);if(!silent)notice('Admin messages loaded.','success')}catch(e){if(!silent)notice(e.message,'error')}finally{tutorLoadBusy=false}}
 $('form').onsubmit=async e=>{
  e.preventDefault();const text=$('text').value.trim();if(!text)return;
  const btn=e.submitter||$('form button');if(btn)btn.disabled=true;
@@ -101,5 +101,5 @@ $('form').onsubmit=async e=>{
  catch(e){box.querySelector('[data-pending="1"]')?.remove();$('text').value=text;notice(e.message,'error')}
  finally{if(btn)btn.disabled=false}
 };
-load();window.BrightAceScheduler.start("tutor-messages",()=>{if(!document.querySelector('textarea:focus,input:focus'))return load(true)},20000);
+load();window.BrightAceScheduler.start("tutor-messages",()=>{if(!document.querySelector('textarea:focus,input:focus'))return load(true,true)},5000);
 </script><script src="../js/brightace-composer.js?v=20261002b" defer></script><script id="ba-tutor-global-logout">(function(){document.querySelectorAll('[data-ba-tutor-logout]').forEach(function(btn){btn.addEventListener('click',function(){try{window.BrightAceTutorSession?.clear?.();sessionStorage.removeItem('brightace_tutor_token_v1');localStorage.removeItem('brightace_tutor_token_v1');}catch(e){}window.location.href='tutor.html';});});})();</script></body></html>

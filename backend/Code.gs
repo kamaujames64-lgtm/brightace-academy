@@ -106,7 +106,7 @@ function doGet(e){
     if(action==="tutorDashboard") return tutorDashboard_({tutorToken:p.tutorToken});
     if(action==="tutorGetWallet") return tutorGetWallet_({tutorToken:p.tutorToken});
     if(action==="tutorListWithdrawals") return tutorListWithdrawals_({tutorToken:p.tutorToken});
-    if(action==="tutorGetAdminMessages") return tutorGetAdminMessages_({tutorToken:p.tutorToken});
+    if(action==="tutorGetAdminMessages") return tutorGetAdminMessages_({tutorToken:p.tutorToken,afterMessageId:p.afterMessageId});
     if(action==="adminSessionProfile"){ const ap=getAdminProfile_(p.adminToken); const au=getAdminUsers_().find(x=>String(x.username||"").toLowerCase()===String(ap.username||"").toLowerCase())||{}; return json_({ok:true,admin:{username:String(ap.username||""),name:String(ap.adminName||au.name||ap.username||"Admin"),role:String(ap.role||"ADMIN").toUpperCase(),professionalTitle:String(au.professionalTitle||""),description:String(au.description||""),profilePictureUrl:String(au.profilePictureUrl||"")}}); }
     if(action==="adminListConversations") return adminListConversations_(p.adminToken,true);
     if(action==="adminListWorkAssignments") return adminListWorkAssignments_(p.adminToken,true);
@@ -798,7 +798,7 @@ function saveMessage_(id,sender,text,source,attachment,senderName,senderPhone){
   sh.getRange(row,1,1,values.length).setValues([values]);
   try{CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_HISTORY");CacheService.getScriptCache().remove("BA_ADMIN_QUALITY")}catch(e){}
   const hydrated=hydrateAttachment_(attachment);
-  try{const key="BA_MSG_"+String(id),existing=safeJson_(CacheService.getScriptCache().get(key)||"")||[];existing.push({id:messageId,sessionId:String(id),sender:String(sender),text:String(text||""),source:String(source||""),timestamp:now,status:"received",attachment:hydrated||null,senderName:String(senderName||""),senderPhone:normalizePhone_(senderPhone||"")});CacheService.getScriptCache().put(key,JSON.stringify(existing.slice(-100)),300)}catch(e){}
+  try{const key=baMessageCacheKey_(id),raw=CacheService.getScriptCache().get(key),existing=raw?safeJson_(raw):null;if(Array.isArray(existing)){existing.push({id:messageId,sessionId:String(id),sender:String(sender),text:String(text||""),source:String(source||""),timestamp:now,status:"received",attachment:hydrated||null,senderName:String(senderName||""),senderPhone:normalizePhone_(senderPhone||"")});CacheService.getScriptCache().put(key,JSON.stringify(existing.slice(-100)),300)}else{CacheService.getScriptCache().remove(key)}}catch(e){}
   return {id:messageId,attachment:hydrated};
   }finally{try{lock.releaseLock()}catch(e){}}
 }
@@ -2374,14 +2374,8 @@ function auditTutor_(profile,action,detail){try{const sh=getSheet_("ACTIVITY_LOG
 
 
 function tutorGetAdminMessages_(d){
-  const p=requireTutor_(d.tutorToken),sh=getTutorMessagesSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];
-  for(let i=1;i<rows.length;i++){
-    if(normalizePhone_(rows[i][m.tutorPhone-1])===p.tutorPhone){
-      const a=m.attachmentJson?safeJson_(rows[i][m.attachmentJson-1]||""):null;
-      out.push({id:String(rows[i][m.messageId-1]),tutorPhone:String(rows[i][m.tutorPhone-1]),tutorName:String(rows[i][m.tutorName-1]||""),sender:String(rows[i][m.sender-1]||""),senderName:String(rows[i][m.senderName-1]||""),text:String(rows[i][m.text-1]||""),timestamp:rows[i][m.timestamp-1],status:String(rows[i][m.status-1]||"received"),attachment:hydrateAttachmentValue_(a)});
-    }
-  }
-  return json_({ok:true,messages:out.slice(-100)});
+  const p=requireTutor_(d.tutorToken),all=baTutorMessagesForPhone_(p.tutorPhone),afterId=String(d.afterMessageId||"");
+  const messages=baTutorMessagesAfter_(all,afterId);return json_({ok:true,messages:messages,syncCursor:all.length?String(all[all.length-1].id||""):""});
 }
 
 function tutorSendAdminMessage_(d){
@@ -2833,11 +2827,33 @@ function isHistoryPending_(x){
 function getTutorMessagesSheet_(){
   return ensureColumns_(getSheet_("TUTOR_MESSAGES",["messageId","tutorPhone","tutorName","sender","senderName","text","timestamp","status","attachmentJson"]),["messageId","tutorPhone","tutorName","sender","senderName","text","timestamp","status","attachmentJson"]);
 }
+function baTutorMessageCacheKey_(phone){return "BA_TUTOR_MESSAGES_"+normalizePhone_(phone);}
+function baInvalidateTutorMessageCache_(phone){try{CacheService.getScriptCache().remove(baTutorMessageCacheKey_(phone));}catch(e){}}
+function baTutorMessagesForPhone_(phone){
+  const normalized=normalizePhone_(phone);if(!normalized)return [];
+  const key=baTutorMessageCacheKey_(normalized);let cached=null;
+  try{const raw=CacheService.getScriptCache().get(key);if(raw)cached=safeJson_(raw);}catch(e){}
+  if(Array.isArray(cached))return cached;
+  const sh=getTutorMessagesSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];
+  for(let i=1;i<rows.length;i++)if(normalizePhone_(rows[i][m.tutorPhone-1])===normalized){
+    const a=m.attachmentJson?safeJson_(rows[i][m.attachmentJson-1]||""):null;
+    out.push({id:String(rows[i][m.messageId-1]),tutorPhone:String(rows[i][m.tutorPhone-1]),tutorName:String(rows[i][m.tutorName-1]||""),sender:String(rows[i][m.sender-1]||""),senderName:String(rows[i][m.senderName-1]||""),text:String(rows[i][m.text-1]||""),timestamp:rows[i][m.timestamp-1],status:String(rows[i][m.status-1]||"received"),attachment:hydrateAttachmentValue_(a)});
+  }
+  out.sort(function(a,b){return new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime();});const recent=out.slice(-100);
+  try{const json=JSON.stringify(recent);if(json.length<90000)CacheService.getScriptCache().put(key,json,60);}catch(e){}
+  return recent;
+}
+function baTutorMessagesAfter_(messages,afterId){
+  const full=Array.isArray(messages)?messages:[];if(!afterId)return full.slice(-100);
+  const idx=full.findIndex(function(x){return String(x.id||"")===String(afterId);});
+  // If the cursor fell outside the retained window, send the current window so clients can resynchronise.
+  return idx<0?full.slice(-100):full.slice(idx+1);
+}
 function saveTutorMessage_(tutorPhone,tutorName,sender,senderName,text,status,attachment){
-  const sh=getTutorMessagesSheet_(),m=headerMap_(sh),id=Utilities.getUuid(),row=sh.getLastRow()+1;
+  const normalized=normalizePhone_(tutorPhone),sh=getTutorMessagesSheet_(),m=headerMap_(sh),id=Utilities.getUuid(),row=sh.getLastRow()+1;
   const vals=new Array(sh.getLastColumn()).fill("");
-  vals[m.messageId-1]=id;vals[m.tutorPhone-1]=normalizePhone_(tutorPhone);vals[m.tutorName-1]=String(tutorName||"");vals[m.sender-1]=String(sender||"");vals[m.senderName-1]=String(senderName||"");vals[m.text-1]=String(text||"");vals[m.timestamp-1]=new Date();vals[m.status-1]=String(status||"received");if(m.attachmentJson)vals[m.attachmentJson-1]=attachment?JSON.stringify(attachment):"";
-  sh.getRange(row,1,1,vals.length).setValues([vals]);return id;
+  vals[m.messageId-1]=id;vals[m.tutorPhone-1]=normalized;vals[m.tutorName-1]=String(tutorName||"");vals[m.sender-1]=String(sender||"");vals[m.senderName-1]=String(senderName||"");vals[m.text-1]=String(text||"");vals[m.timestamp-1]=new Date();vals[m.status-1]=String(status||"received");if(m.attachmentJson)vals[m.attachmentJson-1]=attachment?JSON.stringify(attachment):"";
+  sh.getRange(row,1,1,vals.length).setValues([vals]);baInvalidateTutorMessageCache_(normalized);return id;
 }
 
 function adminTutorPortalPreview_(d){
@@ -2913,12 +2929,8 @@ function getTutorMessagesForAdminPreview_(phone){
 function adminGetTutorMessages_(d){
   requireAdmin_(d.adminToken);const phone=normalizePhone_(d.tutorPhone||"");
   if(!phone)throw new Error("Tutor WhatsApp number is missing. Select a tutor with a valid WhatsApp number.");
-  const sh=getTutorMessagesSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];
-  for(let i=rows.length-1;i>=1&&out.length<100;i--)if(normalizePhone_(rows[i][m.tutorPhone-1])===phone){
-    const a=m.attachmentJson?safeJson_(rows[i][m.attachmentJson-1]||""):null;
-    out.push({id:String(rows[i][m.messageId-1]),tutorPhone:String(rows[i][m.tutorPhone-1]),tutorName:String(rows[i][m.tutorName-1]||""),sender:String(rows[i][m.sender-1]||""),senderName:String(rows[i][m.senderName-1]||""),text:String(rows[i][m.text-1]||""),timestamp:rows[i][m.timestamp-1],status:String(rows[i][m.status-1]||"received"),attachment:hydrateAttachmentValue_(a)});
-  }
-  return json_({ok:true,messages:out.reverse()});
+  const all=baTutorMessagesForPhone_(phone),messages=baTutorMessagesAfter_(all,String(d.afterMessageId||""));
+  return json_({ok:true,messages:messages,syncCursor:all.length?String(all[all.length-1].id||""):""});
 }
 function adminSendTutorMessage_(d){
   const profile=getAdminProfile_(d.adminToken),phone=resolveTutorPhone_(d.tutorName,d.tutorPhone||""),text=String(d.text||"").trim(),tutorName=String(d.tutorName||"Tutor").trim();
