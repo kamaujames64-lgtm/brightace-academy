@@ -2,7 +2,7 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261016-v1';
+const BA_SW_VERSION = 'brightace-perf-20261019-messaging-v2';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
 const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
 const BA_PAGE_TIMEOUT_MS = 4000;
@@ -18,11 +18,9 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys
-     .filter(key =>
-  /^brightace-v\d+-.*-(static|pages)$/.test(key) &&
-  !key.startsWith(BA_SW_VERSION)
-)
-.map(key => caches.delete(key));
+      .filter(key => /^(?:brightace-v\d+|brightace-perf)-.*-(?:static|pages)$/.test(key) && !key.startsWith(BA_SW_VERSION))
+      .map(key => caches.delete(key))
+    );
     await self.clients.claim();
   })());
 });
