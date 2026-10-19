@@ -50,7 +50,7 @@ function baTutorProfilesFast_(requests){
   nameIds.forEach(function(n){if(m.tutorName)baFastRowsForExact_(sh,'tutorName',n,'BA_FAST_TUTOR_NAME').forEach(function(r){rowSet[r]=1;});});
   const rows=baFastReadRows_(sh,Object.keys(rowSet).map(Number)),out={};
   for(const item of rows){const r=item.values,phone=m.tutorPhone?normalizePhone_(r[m.tutorPhone-1]||''):'',name=String(m.tutorName?r[m.tutorName-1]||'':'').trim().toLowerCase();
-    const profile={profilePictureUrl:tutorProfilePictureUrl_(m.profilePictureUrl?String(r[m.profilePictureUrl-1]||''):''),description:m.description?String(r[m.description-1]||''):'',professionalTitle:m.professionalTitle?String(r[m.professionalTitle-1]||''):'',tutorPhone:phone,tutorName:String(m.tutorName?r[m.tutorName-1]||'':'')};
+    const profile={profilePictureUrl:tutorProfilePictureUrl_(m.profilePictureUrl?String(r[m.profilePictureUrl-1]||''):''),description:m.description?String(r[m.description-1]||''):'',professionalTitle:m.professionalTitle?String(r[m.professionalTitle-1]||''):'',adminRating:m.adminRating?Math.max(0,Math.min(5,Number(r[m.adminRating-1]||0))):0,tutorPhone:phone,tutorName:String(m.tutorName?r[m.tutorName-1]||'':'')};
     if(phone&&phones[phone])out[phone]=profile;if(name&&names[name])out['name:'+name]=profile;
   }
   baCachePutJson_(key,out,120); return out;
