@@ -75,7 +75,10 @@
     const stampObj=obj("<< /Type /XObject /Subtype /Image /Width 591 /Height 600 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /DCTDecode] /Length "+(stampHex.length+1)+" >>\nstream\n"+stampHex+">\nendstream");
     const gs=obj("<< /Type /ExtGState /ca 0.055 /CA 0.055 >>"),pages=[];
     const ref=auth.ref,hash=auth.hash,verify=auth.verify;
-    const total=tx.reduce((a,r)=>a+Number(r?.amount||0),0),currency=String(summary.currency||tx[0]?.currency||"KES").toUpperCase();
+    const displayCurrency=String(opts.displayCurrency||summary.currency||tx[0]?.currency||"KES").toUpperCase();
+    const fx=typeof window!=="undefined"?window.BrightAceCurrency:null;
+    const convertForDisplay=(r)=>{const amount=Number(r?.amount||0),from=String(r?.currency||"KES").toUpperCase();return fx&&typeof fx.convert==="function"?fx.convert(amount,from,displayCurrency):amount};
+    const total=tx.reduce((a,r)=>a+convertForDisplay(r),0),currency=displayCurrency;
     function streamFor(pageNo,rowsStart){
       const c=[];const text=(x,y,s,size=9,bold=false)=>c.push("BT /F"+(bold?"B":"1")+" "+size+" Tf 1 0 0 1 "+x.toFixed(2)+" "+y.toFixed(2)+" Tm ("+escPdf(s)+") Tj ET");
       const fill=(r,g,b,x,y,w,h)=>c.push("q "+r+" "+g+" "+b+" rg "+x+" "+y+" "+w+" "+h+" re f Q");
@@ -139,10 +142,13 @@
         text(46,y-11,dateText(r.date||r.paidAt||r.createdAt).slice(0,18),6.5,false);
         text(105,y-11,lines((r.direction ? (r.direction==="IN" ? "IN • " : "OUT • ") : "") + (r.type||"Transaction"),12)[0],6.5,false);
         dl.slice(0,3).forEach((ln,k)=>text(181,y-11-k*8,ln,6.2,false));
-        if(r.originalCurrency&&String(r.originalCurrency).toUpperCase()!==String(r.currency).toUpperCase()){
-          text(181,y-11-Math.min(2,dl.length)*8,"Original: "+fmtMoney(r.originalAmount,r.originalCurrency),5.4,false);
+        const sourceCurrency=String(r.currency||"KES").toUpperCase();
+        if(sourceCurrency!==displayCurrency){
+          text(181,y-11-Math.min(2,dl.length)*8,"Original: "+fmtMoney(r.amount,sourceCurrency),5.4,false);
+        } else if(r.originalCurrency&&String(r.originalCurrency).toUpperCase()!==sourceCurrency){
+          text(181,y-11-Math.min(2,dl.length)*8,"Original transaction: "+fmtMoney(r.originalAmount,r.originalCurrency),5.4,false);
         }
-        text(460,y-11,fmtMoney(r.amount,r.currency),6.5,true);
+        text(460,y-11,fmtMoney(convertForDisplay(r),displayCurrency),6.5,true);
         y-=h;
       }
       // Official BrightAce authentication stamp supplied for the statement footer.

@@ -7,7 +7,7 @@
 <link href="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html" rel="canonical"/>
 <title>Secure Payment | BrightAce Academy</title>
 <link href="../css/style.css" rel="stylesheet"/>
-<script src="../js/brightace-api-config.js"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
+<script src="../js/brightace-api-config.js"></script><script src="../js/brightace-currency.js?v=20261019b"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
 <body class="client-portal-page">
 <header class="nav"><div class="container nav-inner">
 <a class="brand" href="../index.html"><img alt="BrightAce Academy logo" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
@@ -42,13 +42,14 @@
 <script>
 const PAYMENT_API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec");
 const notice=document.getElementById("paymentNotice");
+window.addEventListener("brightace:currency-change",()=>window.BrightAceCurrency?.update());
 const loading=document.getElementById("paymentLoading");
 const formBox=document.getElementById("paymentRequestForm");
 const details=document.getElementById("paymentDetails");
 const result=document.getElementById("paymentResult");
 let currentRequest=null;
 function setNotice(text,type="info"){notice.textContent=text;notice.className="chat-notice "+type;notice.hidden=!text;}
-function money(amount,currency){const a=Number(amount||0),c=String(currency||"USD").toUpperCase();let t;try{t=new Intl.NumberFormat(undefined,{style:"currency",currency:c}).format(a)}catch(e){t=c+" "+a.toFixed(2)}return `<span data-fx-amount="${a}" data-fx-from="${c}">${t}</span>`;}
+function money(amount,currency){const a=Number(amount||0),c=String(currency||"USD").toUpperCase();let t;try{t=new Intl.NumberFormat(undefined,{style:"currency",currency:c}).format(a)}catch(e){t=c+" "+a.toFixed(2)}return `<span class="ba-money-original">${t}</span> <small class="ba-money-estimate" data-fx-amount="${a}" data-fx-from="${c}"></small>`;}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
 async function getRequest(id){
   const r=await fetch(PAYMENT_API+"?action=paymentRequest&requestId="+encodeURIComponent(id)+"&clientSessionToken="+encodeURIComponent(clientSession?.clientSessionToken||"")+"&phone="+encodeURIComponent(clientSession?.phone||""));
@@ -68,7 +69,7 @@ function showRequest(p){
   document.getElementById("serviceName").textContent=p.service||"BrightAce academic service";
   document.getElementById("studentName").textContent=p.studentName||"Student";
   document.getElementById("tutorName").textContent=p.tutor||"BrightAce Tutor";
-  document.getElementById("paymentAmount").textContent=money(p.amount,p.currency);
+  document.getElementById("paymentAmount").innerHTML=money(p.amount,p.currency);window.BrightAceCurrency?.update();
   document.getElementById("deliveryDeadline").textContent=p.deliveryDeadline||"As agreed in chat";document.getElementById("paymentRequestId").textContent=p.requestId||"—";document.getElementById("paymentDescriptionText").textContent=p.description||p.workDescription||"Agreed BrightAce service";
   const status=String(p.status||"PENDING").toUpperCase();
   document.getElementById("paymentStatus").textContent=status==="PAID"?"✓ PAID":"PAYMENT REQUEST";

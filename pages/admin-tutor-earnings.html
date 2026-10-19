@@ -58,7 +58,7 @@ async function baFxRefresh(){
   for(const el of els){
     const from=String(el.dataset.fxFrom||"KES").toUpperCase(),amount=Number(el.dataset.fxAmount||0);
     if(target===from){el.textContent="";continue}
-    try{el.textContent=" · ≈ "+baFxFmt(await baFxConvert(amount,from,target))}catch(e){el.textContent=" · Conversion unavailable"}
+    try{el.textContent=" · ≈ "+baFxFmt(await baFxConvert(amount,from,target),target)}catch(e){el.textContent=" · Conversion unavailable"}
   }
 }
 baFxReadCache();baFxToolbar("fxToolbar","Display money in:");
