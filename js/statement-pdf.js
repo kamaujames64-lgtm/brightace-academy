@@ -77,7 +77,7 @@
     const ref=auth.ref,hash=auth.hash,verify=auth.verify;
     const displayCurrency=String(opts.displayCurrency||summary.currency||tx[0]?.currency||"KES").toUpperCase();
     const fx=typeof window!=="undefined"?window.BrightAceCurrency:null;
-    const convertForDisplay=(r)=>{const amount=Number(r?.amount||0),from=String(r?.currency||"KES").toUpperCase();return fx&&typeof fx.convert==="function"?fx.convert(amount,from,displayCurrency):amount};
+    const convertForDisplay=(r)=>{const amount=Number(r?.amount||0),from=String(r?.currency||"KES").toUpperCase();if(r?.originalCurrency&&String(r.originalCurrency).toUpperCase()!==from&&from===displayCurrency)return amount;return fx&&typeof fx.convert==="function"?fx.convert(amount,from,displayCurrency):amount};
     const total=tx.reduce((a,r)=>a+convertForDisplay(r),0),currency=displayCurrency;
     function streamFor(pageNo,rowsStart){
       const c=[];const text=(x,y,s,size=9,bold=false)=>c.push("BT /F"+(bold?"B":"1")+" "+size+" Tf 1 0 0 1 "+x.toFixed(2)+" "+y.toFixed(2)+" Tm ("+escPdf(s)+") Tj ET");
@@ -142,12 +142,7 @@
         text(46,y-11,dateText(r.date||r.paidAt||r.createdAt).slice(0,18),6.5,false);
         text(105,y-11,lines((r.direction ? (r.direction==="IN" ? "IN • " : "OUT • ") : "") + (r.type||"Transaction"),12)[0],6.5,false);
         dl.slice(0,3).forEach((ln,k)=>text(181,y-11-k*8,ln,6.2,false));
-        const sourceCurrency=String(r.currency||"KES").toUpperCase();
-        if(sourceCurrency!==displayCurrency){
-          text(181,y-11-Math.min(2,dl.length)*8,"Original: "+fmtMoney(r.amount,sourceCurrency),5.4,false);
-        } else if(r.originalCurrency&&String(r.originalCurrency).toUpperCase()!==sourceCurrency){
-          text(181,y-11-Math.min(2,dl.length)*8,"Original transaction: "+fmtMoney(r.originalAmount,r.originalCurrency),5.4,false);
-        }
+        /* Client statement rows intentionally show only the selected display currency. */
         text(460,y-11,fmtMoney(convertForDisplay(r),displayCurrency),6.5,true);
         y-=h;
       }

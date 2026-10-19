@@ -7,7 +7,7 @@
 <link href="https://kamaujames64-lgtm.github.io/brightace-academy/pages/payment.html" rel="canonical"/>
 <title>Secure Payment | BrightAce Academy</title>
 <link href="../css/style.css" rel="stylesheet"/>
-<script src="../js/brightace-api-config.js"></script><script src="../js/brightace-currency.js?v=20261019b"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
+<script src="../js/brightace-api-config.js"></script><script src="../js/brightace-currency.js?v=20261019c"></script><link href="../css/client-portal.css" rel="stylesheet"/><script src="../js/brightace-phone.js?v=20261003b" defer></script></head>
 <body class="client-portal-page">
 <header class="nav"><div class="container nav-inner">
 <a class="brand" href="../index.html"><img alt="BrightAce Academy logo" src="../assets/brightace-logo.webp"/><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a>
@@ -49,7 +49,7 @@ const details=document.getElementById("paymentDetails");
 const result=document.getElementById("paymentResult");
 let currentRequest=null;
 function setNotice(text,type="info"){notice.textContent=text;notice.className="chat-notice "+type;notice.hidden=!text;}
-function money(amount,currency){const a=Number(amount||0),c=String(currency||"USD").toUpperCase();let t;try{t=new Intl.NumberFormat(undefined,{style:"currency",currency:c}).format(a)}catch(e){t=c+" "+a.toFixed(2)}return `<span class="ba-money-original">${t}</span> <small class="ba-money-estimate" data-fx-amount="${a}" data-fx-from="${c}"></small>`;}
+function money(amount,currency){const a=Number(amount||0),from=String(currency||"USD").toUpperCase(),to=String(window.BrightAceCurrency?.get?.()||"USD").toUpperCase(),v=window.BrightAceCurrency?.convert?window.BrightAceCurrency.convert(a,from,to):a;let t;try{t=new Intl.NumberFormat(undefined,{style:"currency",currency:to,minimumFractionDigits:2,maximumFractionDigits:2}).format(v)}catch(e){t=to+" "+v.toFixed(2)}return `<span class="ba-money-display">${t}</span>`;}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
 async function getRequest(id){
   const r=await fetch(PAYMENT_API+"?action=paymentRequest&requestId="+encodeURIComponent(id)+"&clientSessionToken="+encodeURIComponent(clientSession?.clientSessionToken||"")+"&phone="+encodeURIComponent(clientSession?.phone||""));
@@ -69,7 +69,7 @@ function showRequest(p){
   document.getElementById("serviceName").textContent=p.service||"BrightAce academic service";
   document.getElementById("studentName").textContent=p.studentName||"Student";
   document.getElementById("tutorName").textContent=p.tutor||"BrightAce Tutor";
-  document.getElementById("paymentAmount").innerHTML=money(p.amount,p.currency);window.BrightAceCurrency?.update();
+  document.getElementById("paymentAmount").innerHTML=money(p.amount,p.currency);
   document.getElementById("deliveryDeadline").textContent=p.deliveryDeadline||"As agreed in chat";document.getElementById("paymentRequestId").textContent=p.requestId||"—";document.getElementById("paymentDescriptionText").textContent=p.description||p.workDescription||"Agreed BrightAce service";
   const status=String(p.status||"PENDING").toUpperCase();
   document.getElementById("paymentStatus").textContent=status==="PAID"?"✓ PAID":"PAYMENT REQUEST";
@@ -77,6 +77,7 @@ function showRequest(p){
   if(status==="PAID")setNotice("This payment request has already been paid.","success");
 }
 async function load(){
+  if(window.BrightAceCurrency)await window.BrightAceCurrency.loadRates();
   const params=new URLSearchParams(location.search); const reference=params.get("reference"); const request=params.get("request");const CLIENT_KEY="brightace_chat_session_v5";let clientSession=null;try{clientSession=JSON.parse(localStorage.getItem(CLIENT_KEY)||sessionStorage.getItem(CLIENT_KEY)||"null")}catch(e){clientSession=null;}
   try{
     if(reference){
@@ -94,6 +95,7 @@ async function load(){
   }catch(err){ loading.hidden=true; formBox.hidden=false; setNotice(err.message||"Unable to load payment request.","error"); }
 }
 document.getElementById("requestForm").addEventListener("submit",async e=>{e.preventDefault();setNotice("Loading payment request…","info");try{showRequest(await getRequest(document.getElementById("requestId").value.trim()));setNotice("Payment request loaded. Review the details before paying.","success");}catch(err){setNotice(err.message||"Payment request could not be loaded.","error");}});
+window.addEventListener("brightace:currency-change",async()=>{if(currentRequest){if(window.BrightAceCurrency)await window.BrightAceCurrency.loadRates();document.getElementById("paymentAmount").innerHTML=money(currentRequest.amount,currentRequest.currency);}});
 document.getElementById("payButton").addEventListener("click",async()=>{if(!currentRequest)return;const b=document.getElementById("payButton");b.disabled=true;b.textContent="Preparing Paystack checkout…";try{const p=await initialize(currentRequest.requestId);location.href=p.authorizationUrl;}catch(err){b.disabled=false;b.textContent="🔒 PAY SECURELY WITH PAYSTACK";setNotice(err.message||"Payment could not be started.","error");}});
 load();
 </script>

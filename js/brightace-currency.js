@@ -16,13 +16,29 @@
     ['TZS','Tanzanian Shilling','TSh','Tanzania'],['RWF','Rwandan Franc','RF','Rwanda'],['ETB','Ethiopian Birr','Br','Ethiopia'],
     ['EGP','Egyptian Pound','E£','Egypt'],['INR','Indian Rupee','₹','India'],['PKR','Pakistani Rupee','₨','Pakistan'],
     ['BDT','Bangladeshi Taka','৳','Bangladesh'],['MYR','Malaysian Ringgit','RM','Malaysia'],['THB','Thai Baht','฿','Thailand'],
-    ['TRY','Turkish Lira','₺','Türkiye'],['BRL','Brazilian Real','R$','Brazil']
+    ['TRY','Turkish Lira','₺','Türkiye'],['BRL','Brazilian Real','R$','Brazil'],
+    ['SEK','Swedish Krona','kr','Sweden'],['NOK','Norwegian Krone','kr','Norway'],['DKK','Danish Krone','kr','Denmark'],['PLN','Polish Złoty','zł','Poland'],
+    ['MXN','Mexican Peso','MX$','Mexico'],['IDR','Indonesian Rupiah','Rp','Indonesia'],['PHP','Philippine Peso','₱','Philippines'],['KRW','South Korean Won','₩','South Korea'],
+    ['ILS','Israeli New Shekel','₪','Israel'],['ARS','Argentine Peso','AR$','Argentina'],['CLP','Chilean Peso','CL$','Chile'],['COP','Colombian Peso','CO$','Colombia'],['VND','Vietnamese Dong','₫','Vietnam'],
+    ['XOF','West African CFA Franc','CFA','West Africa'],['XAF','Central African CFA Franc','FCFA','Central Africa']
   ];
   const META=Object.fromEntries(CURRENCIES.map(x=>[x[0],{code:x[0],name:x[1],symbol:x[2],country:x[3]}]));
-  const FALLBACK_RATES={USD:1,EUR:0.92,GBP:0.79,CHF:0.80,CAD:1.38,AUD:1.52,NZD:1.76,JPY:149,CNY:7.18,SGD:1.35,HKD:7.82,AED:3.6725,SAR:3.75,ZAR:17.8,NGN:1550,GHS:15.5,KES:129,UGX:3600,TZS:2650,RWF:1450,ETB:124,EGP:48,INR:84,PKR:283,BDT:121,MYR:4.25,THB:33.5,TRY:42,BRL:5.35};
+  const FALLBACK_RATES={USD:1,EUR:0.92,GBP:0.79,CHF:0.80,CAD:1.38,AUD:1.52,NZD:1.76,JPY:149,CNY:7.18,SGD:1.35,HKD:7.82,AED:3.6725,SAR:3.75,ZAR:17.8,NGN:1550,GHS:15.5,KES:129,UGX:3600,TZS:2650,RWF:1450,ETB:124,EGP:48,INR:84,PKR:283,BDT:121,MYR:4.25,THB:33.5,TRY:42,BRL:5.35,SEK:10.8,NOK:10.6,DKK:6.87,PLN:4.0,MXN:18.2,IDR:15800,PHP:56.5,KRW:1370,ILS:3.7,ARS:1200,CLP:930,COP:4200,VND:25000,XOF:605,XAF:605};
   let rates=Object.assign({},FALLBACK_RATES), ratesAt=0, loading=null;
   function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-  function get(){try{const x=String(localStorage.getItem(KEY)||'USD').toUpperCase();return META[x]?x:'USD'}catch(e){return 'USD'}}
+  function inferCurrency(){
+    const byCountry={US:'USD',CA:'CAD',MX:'MXN',GB:'GBP',IE:'EUR',DE:'EUR',FR:'EUR',ES:'EUR',IT:'EUR',PT:'EUR',NL:'EUR',BE:'EUR',LU:'EUR',AT:'EUR',FI:'EUR',GR:'EUR',CY:'EUR',MT:'EUR',SK:'EUR',SI:'EUR',EE:'EUR',LV:'EUR',LT:'EUR',HR:'EUR',CH:'CHF',SE:'SEK',NO:'NOK',DK:'DKK',PL:'PLN',CZ:'EUR',HU:'EUR',RO:'EUR',BG:'EUR',IS:'EUR',AU:'AUD',NZ:'NZD',JP:'JPY',CN:'CNY',HK:'HKD',SG:'SGD',IN:'INR',PK:'PKR',BD:'BDT',MY:'MYR',TH:'THB',ID:'IDR',PH:'PHP',KR:'KRW',VN:'VND',AE:'AED',SA:'SAR',IL:'ILS',TR:'TRY',ZA:'ZAR',NG:'NGN',GH:'GHS',KE:'KES',UG:'UGX',TZ:'TZS',RW:'RWF',ET:'ETB',EG:'EGP',BR:'BRL',AR:'ARS',CL:'CLP',CO:'COP'};
+    try{const raw=JSON.parse(localStorage.getItem('brightace_chat_session_v5')||sessionStorage.getItem('brightace_chat_session_v5')||'null')||{};
+      const fields=[raw.countryCode,raw.countryISO,raw.isoCountry,raw.country,raw.countryName,raw.flag,raw.countryFlag,raw.dialCode,raw.phoneCountryCode];
+      for(const v of fields){if(!v)continue;const z=String(v).trim();const flag=z.match(/[🇦-🇿]{2}/u);if(flag){const cps=[...flag[0]].map(c=>c.codePointAt(0)-127397);const iso=String.fromCharCode(...cps);if(byCountry[iso])return byCountry[iso]}
+        const upper=z.toUpperCase();if(byCountry[upper])return byCountry[upper];
+        const match=upper.match(/(?:^|\D)(US|USA|UNITED STATES|CANADA|CA|UK|GB|UNITED KINGDOM|EUROPE|KENYA|KE|GERMANY|FRANCE|SPAIN|ITALY|NIGERIA|NG|GHANA|GH|UGANDA|UG|TANZANIA|TZ|AUSTRALIA|AU|INDIA|IN|JAPAN|JP|SOUTH AFRICA|ZA)(?:$|\D)/);
+        if(match){const token=match[1];const aliases={'USA':'US','UNITED STATES':'US','UNITED KINGDOM':'GB','UK':'GB','EUROPE':'DE','GERMANY':'DE','FRANCE':'FR','SPAIN':'ES','ITALY':'IT','CANADA':'CA','KENYA':'KE','NIGERIA':'NG','GHANA':'GH','UGANDA':'UG','TANZANIA':'TZ','AUSTRALIA':'AU','INDIA':'IN','JAPAN':'JP','SOUTH AFRICA':'ZA'};const iso=aliases[token]||token;if(byCountry[iso])return byCountry[iso]}
+      }
+      const phone=String(raw.phone||raw.whatsapp||'').replace(/[\s()-]/g,'');if(phone.startsWith('+254'))return 'KES';if(phone.startsWith('+256'))return 'UGX';if(phone.startsWith('+255'))return 'TZS';if(phone.startsWith('+250'))return 'RWF';if(phone.startsWith('+234'))return 'NGN';if(phone.startsWith('+233'))return 'GHS';if(phone.startsWith('+44'))return 'GBP';if(phone.startsWith('+61'))return 'AUD';if(phone.startsWith('+64'))return 'NZD';if(phone.startsWith('+91'))return 'INR';if(phone.startsWith('+81'))return 'JPY';if(phone.startsWith('+49')||phone.startsWith('+33')||phone.startsWith('+34')||phone.startsWith('+39')||phone.startsWith('+31')||phone.startsWith('+351'))return 'EUR';if(phone.startsWith('+1'))return 'USD';
+    }catch(e){}return 'USD';
+  }
+  function get(){try{const saved=localStorage.getItem(KEY);if(saved){const x=String(saved).toUpperCase();if(META[x])return x}const inferred=inferCurrency();return META[inferred]?inferred:'USD'}catch(e){return 'USD'}}
   function set(c){c=String(c||'USD').toUpperCase();if(!META[c])c='USD';try{localStorage.setItem(KEY,c)}catch(e){};w.dispatchEvent(new CustomEvent('brightace:currency-change',{detail:{currency:c}}));updateAll();renderPicker();loadRates().then(updateAll);return c}
   function cacheRead(){try{const x=JSON.parse(localStorage.getItem('brightace_fx_rates_global_v2')||'null');if(x&&x.rates&&x.savedAt&&Date.now()-Number(x.savedAt)<TTL){rates=x.rates;ratesAt=Number(x.savedAt);return true}}catch(e){}return false}
   function cacheWrite(){try{localStorage.setItem('brightace_fx_rates_global_v2',JSON.stringify({savedAt:Date.now(),rates}))}catch(e){}}
