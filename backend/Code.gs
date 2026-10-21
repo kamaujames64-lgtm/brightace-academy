@@ -8,7 +8,7 @@
  * IMPORTANT: keep tokens in Apps Script Script Properties. Never put secrets in GitHub Pages JS.
  */
 
-const BRIGHTACE_BUILD="2026-10-21-V90-CLIENT-ACCESS-RESOURCE-UX-REPAIR"
+const BRIGHTACE_BUILD="2026-10-21-V94-CLIENT-BLOCK-TUTOR-RATING-ADMIN-EDIT"
 const CONFIG = {
   spreadsheetIdKey: "SPREADSHEET_ID",
   driveFolderIdKey: "CHAT_DRIVE_FOLDER_ID",
@@ -95,7 +95,7 @@ function requireActionPermission_(body){
   const users=getAdminUsers_(),u=users.find(x=>String(x.username||"")===String(profile.username||""));
   const perms=Array.isArray(u&&u.permissions)?u.permissions:[];
   if(!perms.length)return true; // backwards-compatible for older admins until permissions are explicitly set
-  const map={CLIENTS:["adminListClients","adminAddClient","adminSetClientStatus","adminListBlockedWhatsApp","adminSetWhatsAppBlock","adminGetRequestIntakeStatus","adminSetRequestIntake"],TUTORS:["adminListTutors","adminAddTutor","adminSetTutorStatus","adminGetTutorAvailability","adminCheckTutorAvailability","adminTutorPortalPreview","adminGetTutorMessages","adminSendTutorMessage"],ASSIGNMENTS:["adminListConversations","adminGetConversation","adminSendMessage","adminDeliverMessage","adminAssignWork","adminClaimWork","adminListWorkAssignments","adminListWorkHistory","adminRestoreWork","adminRejectWork"],PAYMENTS:["adminListPayments","adminCreatePaymentRequest","deliverPaymentRequest","adminDeletePaymentNotification","adminListRefundRequests","adminReviewRefundRequest","adminSyncRefundStatus","adminListTutorWallets","adminListTutorWithdrawals","adminPayTutorWithdrawal","adminListTutorBalances","adminMarkTutorBalancePaid","adminRecordTutorPayment","adminFinancialIntegrity"],SCHEDULING:["adminCreateSchedule","adminListSchedules","adminUpdateSchedule","adminListSessionBookings","adminCountSessionBookings","adminReviewSessionBooking","adminCheckTutorAvailability","adminGetTutorAvailability"],QUALITY:["adminListQuality","adminQaWork","adminMarkWorkCompleted"],REPORTS:["adminListActivity","adminDeleteWorkHistory","adminSessionProfile","adminStatement","adminObservability"],RESOURCES:["adminListResources","adminSaveResource","adminDeleteResource","adminResourceCommerce","adminResourceReconciliation","adminResourceAnalytics","adminRefundResource","adminResourceAccessLookup","adminSetResourceAccess","adminListResourcePromotions","adminSaveResourcePromotion","adminDeleteResourcePromotion","adminListResourceRequests","adminUpdateResourceRequest"]};
+  const map={CLIENTS:["adminListClients","adminAddClient","adminSetClientStatus","adminListBlockedWhatsApp","adminSetWhatsAppBlock","adminGetRequestIntakeStatus","adminSetRequestIntake"],TUTORS:["adminListTutors","adminAddTutor","adminUpdateTutor","adminSetTutorStatus","adminGetTutorAvailability","adminCheckTutorAvailability","adminTutorPortalPreview","adminGetTutorMessages","adminSendTutorMessage"],ASSIGNMENTS:["adminListConversations","adminGetConversation","adminSendMessage","adminDeliverMessage","adminAssignWork","adminClaimWork","adminListWorkAssignments","adminListWorkHistory","adminRestoreWork","adminRejectWork"],PAYMENTS:["adminListPayments","adminCreatePaymentRequest","deliverPaymentRequest","adminDeletePaymentNotification","adminListRefundRequests","adminReviewRefundRequest","adminSyncRefundStatus","adminListTutorWallets","adminListTutorWithdrawals","adminPayTutorWithdrawal","adminListTutorBalances","adminMarkTutorBalancePaid","adminRecordTutorPayment","adminFinancialIntegrity"],SCHEDULING:["adminCreateSchedule","adminListSchedules","adminUpdateSchedule","adminListSessionBookings","adminCountSessionBookings","adminReviewSessionBooking","adminCheckTutorAvailability","adminGetTutorAvailability"],QUALITY:["adminListQuality","adminQaWork","adminMarkWorkCompleted"],REPORTS:["adminListActivity","adminDeleteWorkHistory","adminSessionProfile","adminStatement","adminObservability"],RESOURCES:["adminListResources","adminSaveResource","adminDeleteResource","adminResourceCommerce","adminResourceReconciliation","adminResourceAnalytics","adminRefundResource","adminResourceAccessLookup","adminSetResourceAccess","adminListResourcePromotions","adminSaveResourcePromotion","adminDeleteResourcePromotion","adminListResourceRequests","adminUpdateResourceRequest"]};
   for(const key in map)if(perms.indexOf(key)>=0&&map[key].indexOf(action)>=0)return true;
   throw new Error("Your administrator account is not authorized for this task.");
 }
@@ -112,7 +112,7 @@ function doGet(e){
     if(p["hub.mode"] === "subscribe") return verifyWebhook_(p);
     const action=String(p.action||"health"); __baAction=action;
     baSecurityGateGet_(p);
-    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v90",time:new Date().toISOString(),observability:baObservabilityHealth_()});
+    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v94",time:new Date().toISOString(),observability:baObservabilityHealth_()});
     if(action==="version") return json_(baDeploymentInfo_());
     if(action==="fxRates") return baFxRates_();
     if(action==="messages") return getMessages_(p.sessionId,p.clientSessionToken,p.phone,p.afterMessageId,p.clientAccessToken);
@@ -190,10 +190,9 @@ function doPost(e){
     if(body.event && body.data) return handlePaystackWebhook_(body);
     if(body.action === "publicRequestIntakeStatus") {
       const contact=normalizePhone_(body.phone||"");
-      // Public read-only gate: restrict blocked/suspended/inactive contacts before
-      // any new-client or returning-client verification screen can be revealed.
-      // Do not query the intake setting for restricted contacts.
-      if(contact && isClientAccessRestricted_(contact)) return json_({ok:true,blocked:true,enabled:false});
+      // Public read-only gate: return only the restriction reason needed for the
+      // client-facing notice; never expose internal notes or other client data.
+      if(contact) { const restriction=getClientAccessRestrictionDetails_(contact); if(restriction.blocked) return json_({ok:true,blocked:true,enabled:false,reason:restriction.reason}); }
       try{return json_({ok:true,blocked:false,enabled:isNewRequestIntakeEnabled_()});}
       catch(statusError){return json_({ok:true,blocked:false,enabled:false,configurationError:true});}
     }
@@ -218,6 +217,7 @@ function doPost(e){
     if(body.action === "adminDeliverMessage") return deliverAdminMessage_(body);
     if(body.action === "adminListTutors") return adminListTutors_(body.adminToken);
     if(body.action === "adminAddTutor") return adminAddTutor_(body);
+    if(body.action === "adminUpdateTutor") return adminUpdateTutor_(body);
     if(body.action === "adminSetTutorStatus") return adminSetTutorStatus_(body);
     if(body.action === "adminListClients") return adminListClients_(body.adminToken);
     if(body.action === "adminAddClient") return adminAddClient_(body);
@@ -541,13 +541,24 @@ function getClientRecordByPhone_(phone){
   for(let i=1;i<rows.length;i++) if(normalizePhone_(rows[i][m.clientPhone-1])===target) return {row:i+1,clientId:String(rows[i][m.clientId-1]||""),clientName:String(rows[i][m.clientName-1]||""),clientPhone:target,status:String(rows[i][m.status-1]||"ACTIVE").toUpperCase()};
   return null;
 }
-function isClientAccessRestricted_(phone){
+function getClientAccessRestrictionDetails_(phone){
   const target=normalizePhone_(phone||"");
-  if(!target)return false;
-  if(isWhatsAppBlocked_(target))return true;
+  if(!target)return {blocked:false,reason:""};
+  if(!isVerificationTestPhone_(target)){
+    const sh=getBlockedWhatsAppSheet_(),rows=sh.getDataRange().getValues();
+    for(let i=1;i<rows.length;i++){
+      if(normalizePhone_(rows[i][0])===target && String(rows[i][5]||"ACTIVE").toUpperCase()!=="INACTIVE"){
+        return {blocked:true,reason:String(rows[i][2]||"Access has been restricted by BrightAce Admin.").trim()};
+      }
+    }
+  }
   const record=getClientRecordByPhone_(target);
-  return !!(record && ["SUSPENDED","INACTIVE"].includes(String(record.status||"ACTIVE").toUpperCase()));
+  if(record && ["SUSPENDED","INACTIVE"].includes(String(record.status||"ACTIVE").toUpperCase())){
+    return {blocked:true,reason:record.status==="SUSPENDED"?"Your BrightAce client account has been suspended by the administration team.":"Your BrightAce client account is inactive and cannot access services."};
+  }
+  return {blocked:false,reason:""};
 }
+function isClientAccessRestricted_(phone){return getClientAccessRestrictionDetails_(phone).blocked;}
 function assertClientMayVerify_(phone){
   if(isClientAccessRestricted_(phone))
     throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made unfairly, please contact BrightAce Support using the Contact link at the foot of the page.");
@@ -1249,7 +1260,7 @@ function getTutorById_(tutorId){
   return null;
 }
 
-function adminListTutors_(token){requireAdmin_(token);const ck="BA_ADMIN_TUTORS";try{const hit=CacheService.getScriptCache().get(ck);if(hit)return json_({ok:true,tutors:safeJson_(hit)||[]})}catch(e){}const sh=getTutorSheet_(),last=Math.max(sh.getLastRow(),1),width=Math.max(sh.getLastColumn(),13),rows=sh.getRange(1,1,last,width).getValues(),m=headerMap_(sh),out=[];for(let i=1;i<rows.length;i++)if(rows[i][m.tutorId-1]){const name=String(rows[i][m.tutorName-1]||""),phone=resolveTutorPhone_(name,rows[i][m.tutorPhone-1]||"");out.push({tutorId:String(rows[i][m.tutorId-1]),tutorName:name,tutorDisplayName:String(rows[i][m.tutorDisplayName-1]||name),tutorPhone:phone,profilePictureUrl:(tutorProfilePictureUrl_(m.profilePictureUrl?String(rows[i][m.profilePictureUrl-1]||""):"")||(m.profilePictureFileId&&rows[i][m.profilePictureFileId-1]?"https://drive.google.com/thumbnail?id="+encodeURIComponent(String(rows[i][m.profilePictureFileId-1]))+"&sz=w512":"")),whatsappType:String(rows[i][m.whatsappType-1]||"NONE").toUpperCase()==="NONE"&&phone?"WHATSAPP":String(rows[i][m.whatsappType-1]||"NONE").toUpperCase(),status:String(rows[i][m.status-1]||"ACTIVE"),description:m.description?String(rows[i][m.description-1]||""):"",professionalTitle:m.professionalTitle?String(rows[i][m.professionalTitle-1]||""):"",adminRating:m.adminRating?Math.max(0,Math.min(5,Number(rows[i][m.adminRating-1]||0))):0,tutorEmail:m.tutorEmail?String(rows[i][m.tutorEmail-1]||""):""})}if(!out.length){const props=PropertiesService.getScriptProperties();const n=props.getProperty("PRIMARY_TUTOR_NAME")||"BrightAce Tutor",p=normalizePhone_(props.getProperty("PRIMARY_TUTOR_WHATSAPP")||"");if(n)out.push({tutorId:"PRIMARY",tutorName:n,tutorDisplayName:n,tutorPhone:p,profilePictureUrl:tutorProfileByPhone_(p)?.profilePictureUrl||"",whatsappType:p?"WHATSAPP":"NONE",status:"ACTIVE",tutorEmail:""})}try{CacheService.getScriptCache().put(ck,JSON.stringify(out),15)}catch(e){}return json_({ok:true,tutors:out})}
+function adminListTutors_(token){requireAdmin_(token);const ck="BA_ADMIN_TUTORS";try{const hit=CacheService.getScriptCache().get(ck);if(hit)return json_({ok:true,tutors:safeJson_(hit)||[]})}catch(e){}const sh=getTutorSheet_(),last=Math.max(sh.getLastRow(),1),width=Math.max(sh.getLastColumn(),13),rows=sh.getRange(1,1,last,width).getValues(),m=headerMap_(sh),out=[];for(let i=1;i<rows.length;i++)if(rows[i][m.tutorId-1]){const name=String(rows[i][m.tutorName-1]||""),phone=resolveTutorPhone_(name,rows[i][m.tutorPhone-1]||"");out.push({tutorId:String(rows[i][m.tutorId-1]),tutorName:name,tutorDisplayName:String(rows[i][m.tutorDisplayName-1]||name),tutorPhone:phone,profilePictureUrl:(tutorProfilePictureUrl_(m.profilePictureUrl?String(rows[i][m.profilePictureUrl-1]||""):"")||(m.profilePictureFileId&&rows[i][m.profilePictureFileId-1]?"https://drive.google.com/thumbnail?id="+encodeURIComponent(String(rows[i][m.profilePictureFileId-1]))+"&sz=w512":"")),whatsappType:String(rows[i][m.whatsappType-1]||"NONE").toUpperCase()==="NONE"&&phone?"WHATSAPP":String(rows[i][m.whatsappType-1]||"NONE").toUpperCase(),status:String(rows[i][m.status-1]||"ACTIVE"),description:m.description?String(rows[i][m.description-1]||""):"",professionalTitle:m.professionalTitle?String(rows[i][m.professionalTitle-1]||""):"",adminRating:m.adminRating?Math.max(0,Math.min(5,Number(rows[i][m.adminRating-1]||0))):0,tutorEmail:m.tutorEmail?String(rows[i][m.tutorEmail-1]||""):"",alternativePhone:m.alternativePhone?String(rows[i][m.alternativePhone-1]||""):"",emergencyContactName:m.emergencyContactName?String(rows[i][m.emergencyContactName-1]||""):"",emergencyContactPhone:m.emergencyContactPhone?String(rows[i][m.emergencyContactPhone-1]||""):""})}if(!out.length){const props=PropertiesService.getScriptProperties();const n=props.getProperty("PRIMARY_TUTOR_NAME")||"BrightAce Tutor",p=normalizePhone_(props.getProperty("PRIMARY_TUTOR_WHATSAPP")||"");if(n)out.push({tutorId:"PRIMARY",tutorName:n,tutorDisplayName:n,tutorPhone:p,profilePictureUrl:tutorProfileByPhone_(p)?.profilePictureUrl||"",whatsappType:p?"WHATSAPP":"NONE",status:"ACTIVE",tutorEmail:""})}try{CacheService.getScriptCache().put(ck,JSON.stringify(out),15)}catch(e){}return json_({ok:true,tutors:out})}
 function whatsappNameConflicts_(phone,name,role){
   const target=normalizePhone_(phone),want=String(name||"").trim().toLowerCase();if(!target||isVerificationTestPhone_(target))return [];
   const conflicts=[];
@@ -1263,7 +1274,33 @@ function whatsappNameConflicts_(phone,name,role){
   }
   return [...new Set(conflicts)];
 }
-function adminAddTutor_(d){requireAdmin_(d.adminToken);if(!d.tutorName)throw new Error("Tutor name is required.");const sh=getTutorSheet_(),id="TUT-"+Utilities.getUuid().replace(/-/g,"").slice(0,8).toUpperCase(),name=String(d.tutorName).trim(),display=String(d.tutorDisplayName||name).trim(),phone=normalizePhone_(d.tutorPhone||""),type=String(d.whatsappType||"NONE").toUpperCase(),rating=Number(d.adminRating===undefined?5:d.adminRating);if(!Number.isInteger(rating)||rating<1||rating>5)throw new Error("Admin rating must be a whole number from 1 to 5 stars.");if(!["BUSINESS","WHATSAPP","NONE"].includes(type))throw new Error("Invalid WhatsApp type.");if(type!=="NONE"&&!phone)throw new Error("A WhatsApp number is required for the selected WhatsApp type.");const description=String(d.description||"").trim().slice(0,240),email=String(d.tutorEmail||"").trim();if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw new Error("Enter a valid tutor email.");const conflicts=whatsappNameConflicts_(phone,name,"TUTOR");if(conflicts.length)throw new Error("WARNING: This WhatsApp number is registered with another different name ("+conflicts.join(", ")+"). Confirm the correct number/name before adding this tutor.");const newRow=sh.getLastRow()+1;sh.appendRow(new Array(sh.getLastColumn()).fill(""));const tutorFields={tutorId:id,tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,status:"ACTIVE",createdAt:new Date(),loginAttempts:0,description:description,tutorEmail:email,adminRating:rating,adminRatingUpdatedAt:new Date()};Object.keys(tutorFields).forEach(k=>setByHeader_(sh,newRow,k,tutorFields[k]));invalidateTutorProfileCaches_(phone);try{CacheService.getScriptCache().remove("BA_ADMIN_TUTORS")}catch(e){}auditAdmin_(d.adminToken,"ADD_TUTOR",name+" · admin rating "+rating+"/5");return json_({ok:true,tutor:{tutorId:id,tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,status:"ACTIVE",description:description,tutorEmail:email,adminRating:rating}})}
+function adminAddTutor_(d){requireAdmin_(d.adminToken);if(!d.tutorName)throw new Error("Tutor name is required.");const sh=getTutorSheet_(),id="TUT-"+Utilities.getUuid().replace(/-/g,"").slice(0,8).toUpperCase(),name=String(d.tutorName).trim(),display=String(d.tutorDisplayName||name).trim(),phone=normalizePhone_(d.tutorPhone||""),type=String(d.whatsappType||"NONE").toUpperCase(),rating=Number(d.adminRating===undefined?5:d.adminRating);if(!Number.isInteger(rating)||rating<1||rating>5)throw new Error("Admin rating must be a whole number from 1 to 5 stars.");if(!["BUSINESS","WHATSAPP","NONE"].includes(type))throw new Error("Invalid WhatsApp type.");if(type!=="NONE"&&!phone)throw new Error("A WhatsApp number is required for the selected WhatsApp type.");const description=String(d.description||"").trim().slice(0,240),email=String(d.tutorEmail||"").trim();if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))throw new Error("Enter a valid tutor email.");const conflicts=whatsappNameConflicts_(phone,name,"TUTOR");if(conflicts.length)throw new Error("WARNING: This WhatsApp number is registered with another different name ("+conflicts.join(", ")+"). Confirm the correct number/name before adding this tutor.");const newRow=sh.getLastRow()+1;sh.appendRow(new Array(sh.getLastColumn()).fill(""));const tutorFields={tutorId:id,tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,status:"ACTIVE",createdAt:new Date(),loginAttempts:0,description:description,tutorEmail:email,professionalTitle:String(d.professionalTitle||"").trim().slice(0,120),alternativePhone:normalizePhone_(d.alternativePhone||""),emergencyContactName:String(d.emergencyContactName||"").trim().slice(0,120),emergencyContactPhone:normalizePhone_(d.emergencyContactPhone||""),adminRating:rating,adminRatingUpdatedAt:new Date()};Object.keys(tutorFields).forEach(k=>setByHeader_(sh,newRow,k,tutorFields[k]));invalidateTutorProfileCaches_(phone);try{CacheService.getScriptCache().remove("BA_ADMIN_TUTORS")}catch(e){}auditAdmin_(d.adminToken,"ADD_TUTOR",name+" · admin rating "+rating+"/5");return json_({ok:true,tutor:{tutorId:id,tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,status:"ACTIVE",description:description,tutorEmail:email,adminRating:rating}})}
+
+function adminUpdateTutor_(d){
+  requireAdmin_(d.adminToken);
+  const id=String(d.tutorId||"").trim();
+  if(!id || id==="PRIMARY") throw new Error("Select an existing tutor record to edit.");
+  const name=String(d.tutorName||"").trim(),display=String(d.tutorDisplayName||name).trim();
+  const phone=normalizePhone_(d.tutorPhone||""),type=String(d.whatsappType||"NONE").toUpperCase();
+  const email=String(d.tutorEmail||"").trim(),description=String(d.description||"").trim().slice(0,240);
+  const professionalTitle=String(d.professionalTitle||"").trim().slice(0,120),alternativePhone=normalizePhone_(d.alternativePhone||""),emergencyContactName=String(d.emergencyContactName||"").trim().slice(0,120),emergencyContactPhone=normalizePhone_(d.emergencyContactPhone||"");
+  const rating=Number(d.adminRating);
+  if(!name) throw new Error("Tutor name is required.");
+  if(!Number.isInteger(rating)||rating<1||rating>5) throw new Error("Admin rating must be a whole number from 1 to 5 stars.");
+  if(!["BUSINESS","WHATSAPP","NONE"].includes(type)) throw new Error("Invalid WhatsApp type.");
+  if(type!=="NONE"&&!phone) throw new Error("A WhatsApp number is required for the selected WhatsApp type.");
+  if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Enter a valid tutor email.");
+  const sh=getTutorSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh);let row=0,oldPhone="";
+  for(let i=1;i<rows.length;i++) if(String(rows[i][m.tutorId-1]||"")===id){row=i+1;oldPhone=normalizePhone_(rows[i][m.tutorPhone-1]||"");break;}
+  if(!row) throw new Error("Tutor not found. Refresh the tutor directory and try again.");
+  if(phone && phone!==oldPhone){const conflicts=whatsappNameConflicts_(phone,name,"TUTOR");if(conflicts.length)throw new Error("WARNING: This WhatsApp number is registered with another different name ("+conflicts.join(", ")+ "). Confirm the correct number/name before saving.");}
+  const fields={tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,description:description,tutorEmail:email,professionalTitle:professionalTitle,alternativePhone:alternativePhone,emergencyContactName:emergencyContactName,emergencyContactPhone:emergencyContactPhone,adminRating:rating,adminRatingUpdatedAt:new Date()};
+  Object.keys(fields).forEach(k=>setByHeader_(sh,row,k,fields[k]));
+  invalidateTutorProfileCaches_(oldPhone);if(phone!==oldPhone)invalidateTutorProfileCaches_(phone);
+  try{CacheService.getScriptCache().remove("BA_ADMIN_TUTORS");}catch(e){}
+  auditAdmin_(d.adminToken,"UPDATE_TUTOR",id+" · "+name+" · admin rating "+rating+"/5");
+  return json_({ok:true,tutor:{tutorId:id,tutorName:name,tutorDisplayName:display,tutorPhone:phone,whatsappType:type,description:description,tutorEmail:email,professionalTitle:professionalTitle,alternativePhone:alternativePhone,emergencyContactName:emergencyContactName,emergencyContactPhone:emergencyContactPhone,adminRating:rating}});
+}
 
 function adminSetTutorStatus_(d){
   requireAdmin_(d.adminToken);
@@ -1395,7 +1432,7 @@ function requireClientSessionReadOnly_(token,phone){return requireClientSession_
 function requireClientSession_(token,phone){
   const target=normalizePhone_(phone||''),rawToken=String(token||'').trim();
   if(!rawToken||!target)throw new Error('Your client session has expired. Please verify your WhatsApp number again.');
-  if(isWhatsAppBlocked_(target))throw new Error('BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.');
+  const restriction=getClientAccessRestrictionDetails_(target);if(restriction.blocked)throw new Error('BrightAce Academy is unable to provide services to this contact at this time. Reason: '+restriction.reason+' Please contact BrightAce Support using the Contact link at the bottom of this page.');
   const hash=sha256Hex_(rawToken),now=Date.now(),maxIdle=30*60*1000,cache=CacheService.getScriptCache();
   let cached=safeJson_(cache.get(CONFIG.clientSessionTokenPrefix+hash)||'');
   if(cached&&cached.phone===target){
@@ -2182,7 +2219,7 @@ function invalidateTutorProfileCaches_(phone){
     }
     const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),phones={};
     for(let i=1;i<rows.length;i++)if(normalizePhone_(rows[i][m.assignedTutorPhone-1]||"")===target&&rows[i][m.studentPhone-1])phones[normalizePhone_(rows[i][m.studentPhone-1])]=true;
-    Object.keys(phones).forEach(ph=>{CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_"+ph);});
+    Object.keys(phones).forEach(ph=>{CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V2_"+ph);});
   }catch(e){console.error("Tutor profile cache invalidation failed: "+e);}
 }
 function tutorUploadProfile_(d){

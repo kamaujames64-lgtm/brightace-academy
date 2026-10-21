@@ -19,25 +19,32 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function apiReady(){return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(CHAT_API_URL)}
 function setNotice(text,type="info"){if(!chatNotice)return;chatNotice.textContent=text;chatNotice.className="chat-notice "+type;chatNotice.hidden=!text}
 function setVerificationNotice(text,type="info"){if(!verificationNotice)return;verificationNotice.textContent=text;verificationNotice.className="chat-notice "+type;verificationNotice.hidden=!text}
-function showBrightAceAccessModal(kind){
+function showBrightAceAccessModal(kind, restrictionReason=""){
   const paused=kind==='paused';
   let modal=document.getElementById('baAccessNoticeModal');
   if(!modal){modal=document.createElement('div');modal.id='baAccessNoticeModal';modal.className='ba-access-modal';modal.innerHTML='<div class="ba-access-dialog" role="dialog" aria-modal="true" aria-labelledby="baAccessTitle"><button class="ba-access-close" type="button" aria-label="Close message">×</button><div class="ba-access-mark">BrightAce Academy</div><h2 id="baAccessTitle"></h2><p class="ba-access-copy"></p><div class="ba-access-actions"><button class="btn btn-primary" type="button" id="baAccessReturning">RETURNING CLIENT</button><button class="btn btn-outline" type="button" id="baAccessDismiss">CLOSE</button></div><p class="ba-access-support">Questions? Please use the <a href="#baFooterContact" id="baAccessContact">Contact link at the foot of this page</a>.</p></div>';document.body.appendChild(modal);const close=()=>modal.classList.remove('is-open');modal.querySelector('.ba-access-close').onclick=close;modal.querySelector('#baAccessDismiss').onclick=close;modal.querySelector('#baAccessContact').onclick=()=>{close();document.querySelector('footer a[href^="mailto:"]')?.scrollIntoView({behavior:'smooth',block:'center'})};modal.querySelector('#baAccessReturning').onclick=()=>{close();document.getElementById('showReturningClientBtn')?.click();document.getElementById('returningClientName')?.focus()};}
   modal.querySelector('#baAccessTitle').textContent=paused?'New requests are temporarily paused':'BrightAce service access notice';
   modal.querySelector('.ba-access-copy').textContent=paused?'Thank you for choosing BrightAce Academy. Our tutors are currently fully booked and are unable to accept new requests right now. Please check back soon—we would be happy to help when availability opens. Existing conversations and scheduled sessions are not affected.':'BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made unfairly, please contact BrightAce Support using the Contact link at the foot of this page.';
-  modal.querySelector('#baAccessReturning').hidden=!paused;
+  modal.querySelector('#baAccessReturning').hidden=true;
   modal.querySelector('.ba-access-support').hidden=paused;
+  modal.querySelector('.ba-access-close').hidden=!paused;
+  modal.querySelector('#baAccessDismiss').hidden=!paused;
+  const copy=modal.querySelector('.ba-access-copy');
+  if(!paused && restrictionReason) copy.textContent='You are blocked from using BrightAce Academy services. Reason: '+restrictionReason+' If you believe this decision is incorrect, please contact BrightAce Support using the Contact link below. Verification is unavailable while this restriction remains active.';
   modal.classList.add('is-open');modal.querySelector('.ba-access-close').focus();
 }
-function isAccessRestrictionMessage(message){return /blocked from using BrightAce|unable to provide services to this contact|contact is blocked|client account is not active|client is suspended|client is inactive/i.test(String(message||""))}
-function showRestrictionAndClearVerification(message){
+function isAccessRestrictionMessage(message){return /blocked from using BrightAce|unable to provide services to this contact|contact is blocked|client account is not active|client account is blocked or inactive|client is suspended|client is inactive|access has been restricted/i.test(String(message||""))}
+function showRestrictionAndClearVerification(message, reason=''){
   if(!isAccessRestrictionMessage(message))return false;
   // Never leave a stale OTP screen available after a block/suspension is detected.
   session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}
   const mainVerify=document.getElementById('verificationArea');if(mainVerify)mainVerify.style.display='none';
   const returningVerify=document.getElementById('returningVerificationArea');if(returningVerify)returningVerify.style.display='none';
+  const returning=document.getElementById('returningClientArea');if(returning)returning.style.display='none';
+  const start=document.getElementById('chatStart');if(start)start.style.display='none';
   const chat=document.getElementById('chatArea');if(chat)chat.style.display='none';
-  showBrightAceAccessModal('blocked');
+  const messageText=String(message||''),embeddedReason=(messageText.match(/Reason:\s*(.*?)(?:\s+Please contact BrightAce Support|$)/i)||[])[1];
+  showBrightAceAccessModal('blocked',reason||embeddedReason||messageText.replace(/^BrightAce Academy is unable to provide services to this contact at this time\.\s*/i,'')||'Access to BrightAce services has been restricted by the administration team.');
   return true;
 }
 function showPausedAndClearPendingVerification(message){
@@ -113,7 +120,7 @@ function showClientTutorial(){
 }
 function openChat(){if(!startBox||!chatArea||!session?.verified)return;startBox.style.display="none";if(verificationArea)verificationArea.style.display="none";chatArea.style.display="block";document.getElementById("studentDisplay").textContent=session?.name||"Student";showClientTutorial();if(apiReady()){setNotice("Connected to BrightAce live chat.","success");syncMessages();if(pollTimer)pollTimer();pollTimer=window.BrightAceScheduler.start("client-live-chat",()=>{if(session?.verified)return syncMessages(true)},POLL_MS)}else{setNotice("Live chat requires the BrightAce server connection.","warning");renderMessages(session?.localMessages||[])}}
 function formatWhatsAppDisplay(phone){const raw=String(phone||"").replace(/\D/g,"");if(!raw)return"WhatsApp number";return "+"+raw}
-async function logoutClient(){const phone=String(session?.phone||'').trim(),token=String(session?.clientSessionToken||'').trim();try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}try{if(token&&phone){const b=new URLSearchParams();b.set('payload',JSON.stringify({action:'clientEndSession',phone,clientSessionToken:token}));await Promise.race([fetch(CHAT_API_URL,{method:'POST',body:b,cache:'no-store',keepalive:true}),new Promise(r=>setTimeout(r,2500))])}}catch(e){}window.location.replace('../index.html')}
+async function logoutClient(){const phone=String(session?.phone||'').trim(),token=String(session?.clientSessionToken||'').trim();try{[CHAT_KEY,'brightace_client_session_v4','brightace_chat_session_v4'].forEach(k=>{localStorage.removeItem(k);sessionStorage.removeItem(k)})}catch(e){}try{if(token&&phone){const b=new URLSearchParams();b.set('payload',JSON.stringify({action:'clientEndSession',phone,clientSessionToken:token}));await Promise.race([fetch(CHAT_API_URL,{method:'POST',body:b,cache:'no-store',keepalive:true}),new Promise(r=>setTimeout(r,2500))])}}catch(e){}window.location.replace('../index.html')}
 function updateVerificationPhone(){const el=document.getElementById("verificationPhone"),intro=document.getElementById("verificationIntro");if(!session)return;const display=formatWhatsAppDisplay(session.phone);if(el)el.textContent="WhatsApp: "+display;if(intro)intro.textContent="We sent a 6-digit verification code to your WhatsApp number ("+display+"). Enter the code below to securely initiate your BrightAce live chat."}
 function showVerification(){if(startBox)startBox.style.display="none";if(chatArea)chatArea.style.display="none";if(verificationArea)verificationArea.style.display="block";updateVerificationPhone();setNotice("Verification required before live chat can begin.","info");document.getElementById("verificationCode")?.focus()}
 async function post(action,payload={}){const body=new URLSearchParams();body.set("payload",JSON.stringify({action,...payload}));const r=await fetch(CHAT_API_URL,{method:"POST",body,cache:"no-store"});const raw=await r.text();let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce /exec returned HTML instead of JSON. The production Web App is not currently returning the V66 BrightAce API response. Verify that the SAME Web App deployment is running the latest V66 backend and keep the existing /exec URL.")}if(!d.ok)throw new Error(d.error||"Server error");return d}
@@ -168,7 +175,7 @@ document.getElementById("startForm")?.addEventListener("submit",async e=>{
   try{
     // Fail closed: if capacity status cannot be confirmed, do not expose the OTP screen.
     const intake=await post("publicRequestIntakeStatus",{phone});
-    if(intake?.blocked){showRestrictionAndClearVerification('This client account is blocked or inactive.');return}
+    if(intake?.blocked){showRestrictionAndClearVerification('This client account is blocked or inactive.',intake.reason);return}
     if(intake?.enabled!==true){showBrightAceAccessModal('paused');return}
     if(btn)btn.textContent="SENDING REQUEST…";
     session={id:"CHAT-"+Date.now().toString(36).toUpperCase(),name,phone,taskDescription:task,studentBudget:budget,currency,deadline,started:new Date().toISOString(),verified:false};
@@ -280,7 +287,7 @@ async function beginReturningClient(name,phone){
   // A returning client is allowed to verify while new admissions are paused,
   // but blocked/suspended/inactive contacts must be stopped before a code is sent.
   const access=await post("publicRequestIntakeStatus",{phone});
-  if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.");return {blocked:true};}
+  if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.",access.reason);return {blocked:true};}
   const d=await post("returningClientSendVerification",{name,phone});
   returningConversationId=d.conversationId;
   if(returningVerificationArea)returningVerificationArea.style.display="block";
@@ -332,7 +339,7 @@ async function gateStoredSessionBeforeRendering(){
   if(!session.phone){if(!session.verified){session=null;try{localStorage.removeItem(CHAT_KEY)}catch(e){}}return;}
   try{
     const access=await post("publicRequestIntakeStatus",{phone:session.phone});
-    if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.");if(startBox)startBox.style.display="block";return;}
+    if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.",access.reason);return;}
     // Pausing admissions affects only an unverified new request, never a returning
     // verified client with an existing conversation/session.
     if(!session.verified&&access?.enabled!==true){session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";showBrightAceAccessModal('paused');return;}

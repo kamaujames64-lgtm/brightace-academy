@@ -350,10 +350,18 @@ async function downloadStatement(){const btn=root.querySelector('#baDownloadStat
     currencySelect.addEventListener('change',()=>{if(window.BrightAceCurrency)window.BrightAceCurrency.set(currencySelect.value);});
     root.querySelector('#baNewRequestForm').onsubmit=async e=>{e.preventDefault();const btn=root.querySelector('#baNewRequestSubmit'),notice=root.querySelector('#baNewRequestNotice'),description=root.querySelector('#baNewRequestDescription').value.trim(),budget=Number(root.querySelector('#baNewRequestBudget').value||0),currency=currencySelect.value,deadline=root.querySelector('#baNewRequestDeadline').value.trim(),clientRequestId='REQ-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);if(description.length<3||!deadline||!Number.isFinite(budget)||budget<0){notice.textContent='Complete the description, budget and deadline before submitting.';return}if(window.BrightAceCurrency)window.BrightAceCurrency.set(currency);btn.disabled=true;btn.textContent='SUBMITTING…';try{const r=await post('clientCreateRequest',{phone:s.phone,clientSessionToken:s.clientSessionToken,description,budget,currency,deadline,clientRequestId,attachments:window.BrightAceComposer?.getAttachments(root.querySelector('#baNewRequestDescription'))||[]});notice.textContent=r.message||'Your request has been submitted to BrightAce Admin.';root.querySelector('#baNewRequestForm').reset();setTimeout(()=>location.href='client-requests.html',900)}catch(err){if(/session|expired|verify/i.test(String(err?.message||'')))redirectToPublicHome();else notice.textContent=err.message||'The request could not be submitted.'}finally{btn.disabled=false;btn.textContent='SUBMIT NEW REQUEST →'}};
   }
+  function showBlockedClientPortal(reason){
+    clearSession();
+    document.body.innerHTML='<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#f2f6fa;font-family:system-ui,sans-serif"><section role="alertdialog" aria-modal="true" aria-labelledby="baBlockedPortalTitle" style="width:min(620px,100%);box-sizing:border-box;background:#fff;border:1px solid #d8e2ec;border-top:6px solid #b42318;border-radius:18px;padding:28px;box-shadow:0 18px 55px #10263f24"><div style="font-weight:900;letter-spacing:.08em;color:#24415e">BRIGHTACE ACADEMY</div><h1 id="baBlockedPortalTitle" style="font-size:1.6rem;color:#7f1d1d">Access to BrightAce services is blocked</h1><p style="line-height:1.6">You cannot access client services while this restriction remains active.</p><p style="background:#fff4f2;border-radius:10px;padding:14px;line-height:1.6"><strong>Reason:</strong> '+esc(reason||'Access to BrightAce services has been restricted by the administration team.')+'</p><p style="line-height:1.6">Verification is unavailable while the restriction remains active. If you believe this decision is incorrect, please contact BrightAce Support.</p><p><a href="../index.html#baFooterContact">Contact BrightAce Support</a></p></section></main>';
+  }
   async function boot(){
     const page=document.body.dataset.clientPage;if(!page)return;
     const s=getSession();
     if(!s?.verified||!s.phone){redirectToPublicHome();return;}
+    // Check the restriction before rendering any cached dashboard content.
+    // If the preflight service is temporarily unavailable, existing flows remain available;
+    // every protected backend request independently enforces the same restriction.
+    try{const access=await post('publicRequestIntakeStatus',{phone:s.phone});if(access?.blocked){showBlockedClientPortal(access.reason);return;}}catch(e){}
     schedulePortalExpiry(s);
     document.addEventListener('click',()=>touchPortalSession(s),{passive:true});
     document.addEventListener('keydown',()=>touchPortalSession(s),{passive:true});

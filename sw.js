@@ -2,7 +2,7 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261022-v93-client-refund-resource-v9';
+const BA_SW_VERSION = 'brightace-perf-20261022-v94-blocked-reason-tutor-edit-rating';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
 const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
 const BA_PAGE_TIMEOUT_MS = 8000;
