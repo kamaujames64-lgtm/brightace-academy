@@ -1,7 +1,25 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="BrightAce Academy academic resources and digital study materials."><title>Resources | BrightAce Academy</title>
-<link rel="stylesheet" href="../css/style.css"><script src="../js/brightace-api-config.js"></script><script src="../js/brightace-phone.js?v=20261003b" defer></script></head><body>
+<link rel="stylesheet" href="../css/style.css"><script src="../js/brightace-api-config.js"></script><script src="../js/brightace-phone.js?v=20261003b" defer></script><style>
+.resource-media-wrap{height:auto!important;min-height:140px;max-height:none!important;padding:10px;overflow:hidden}
+.resource-media-wrap img.resource-media-image{width:100%;height:auto;max-height:520px;object-fit:contain;object-position:center;cursor:zoom-in}
+.resource-media-trigger{display:flex;position:relative;align-items:center;justify-content:center;width:100%;min-height:180px;border:0;padding:0;background:transparent;cursor:pointer}
+.resource-media-trigger img{display:block;max-width:100%;max-height:520px;width:100%;height:auto;object-fit:contain;object-position:center}
+.resource-play-mark{position:absolute;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:rgba(10,25,45,.82);color:#fff;font-size:28px;box-shadow:0 3px 18px rgba(0,0,0,.25)}
+.resource-media-link{display:block;width:100%;color:inherit;text-decoration:none}
+.resource-media-link:focus-visible,.resource-media-trigger:focus-visible{outline:3px solid #1d70d6;outline-offset:3px}
+.resource-file-preview{max-width:100%;overflow-wrap:anywhere}
+.ba-resource-viewer{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(5,12,24,.94)}
+.ba-resource-viewer.is-open{display:flex}
+.ba-resource-viewer-dialog{position:relative;width:min(1200px,100%);height:min(92dvh,900px);display:flex;align-items:center;justify-content:center}
+.ba-resource-viewer-content{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:0}
+.ba-resource-viewer-content img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.ba-resource-viewer-content video,.ba-resource-viewer-content iframe{width:100%;height:100%;max-height:100%;border:0;background:#000;object-fit:contain;border-radius:10px}
+.ba-resource-viewer-close{position:absolute;right:0;top:0;z-index:2;border:0;border-radius:999px;width:44px;height:44px;background:#fff;color:#111;font-size:28px;cursor:pointer}
+.ba-resource-viewer-title{position:absolute;left:0;right:60px;top:0;color:#fff;font-weight:700;padding:12px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:640px){.ba-resource-viewer{padding:10px}.ba-resource-viewer-dialog{height:90dvh}.ba-resource-viewer-content video,.ba-resource-viewer-content iframe{height:80dvh}.resource-media-wrap img.resource-media-image{max-height:420px}}
+</style></head><body>
 <header class="nav"><div class="container nav-inner"><a class="brand" href="../index.html"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy logo"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></a><button class="menu-btn" aria-label="Open menu" onclick="toggleMenu()">☰</button><nav class="nav-links" id="siteNav"><a href="../index.html">Home</a><a href="subjects.html">Subjects</a><a class="active" href="resources.html">Resources</a><a href="homework-help.html">Homework Help</a><a href="how-it-works.html">How It Works</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="chat.html">Live Chat</a></nav><a class="nav-cta" href="chat.html">💬 LIVE CHAT</a></div></header>
 <main>
 <section class="page-hero"><div class="container"><div class="eyebrow">LEARN AT YOUR PACE</div><h1>Explore Our Activities &amp; Resources</h1><p>BrightAce Academy offers tailored academic support, engaging learning activities and personalized resource guidance to help learners work toward their goals.</p></div></section>
@@ -14,29 +32,51 @@
 (function(){
  const API=window.BRIGHTACE_API_URL||'',grid=document.getElementById('promoGrid'),notice=document.getElementById('promoNotice');
  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
- function safeUrl(s){try{const u=new URL(String(s||''));return u.protocol==='https:'?u.href:''}catch(e){return ''}}
- function driveId(url){const m=String(url||'').match(/drive\.google\.com\/(?:file\/d\/|uc\?id=|thumbnail\?id=)([A-Za-z0-9_-]{10,})/);return m?m[1]:''}
- function card(x){
-  const url=safeUrl(x.mediaUrl),type=String(x.mediaType||'NONE').toUpperCase();let media='';
-  if(url&&type==='IMAGE'){
-   const id=driveId(url),src=id?'https://drive.google.com/uc?export=view&id='+encodeURIComponent(id):url;
-   media='<img class="resource-media-image" src="'+esc(src)+'" alt="'+esc(x.title)+'" loading="lazy" decoding="async">';
-  } else if(url&&type==='VIDEO'){
-   if(/drive\.google\.com\/file\/d\//i.test(url)){media='<iframe class="resource-media-frame" src="'+esc(url)+'" title="'+esc(x.title)+'" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';}
-   else media='<video class="resource-media-frame" controls preload="metadata" playsinline aria-label="'+esc(x.title)+'"><source src="'+esc(url)+'"></video>';
-  } else if(url&&type==='AUDIO'){
-   media='<audio class="resource-media-audio" controls preload="metadata" aria-label="'+esc(x.title)+'" src="'+esc(url)+'">Your browser does not support audio playback.</audio>';
-  } else if(url&&type!=='NONE'){
-   const id=driveId(url),href=id?'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view':url;
-   const label=type==='DOCUMENT'?'Open document':type==='FILE'?'Open / download file':'Open resource file';
-   media='<div class="resource-file-preview"><span aria-hidden="true">📄</span><div><strong>'+esc(x.mediaFileName||label)+'</strong><p>Open the attached learning material in a new tab.</p><a class="btn btn-outline btn-small" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+label+' ↗</a></div></div>';
-  } else media='<div class="resource-media-empty" aria-hidden="true">✦</div>';
-  return '<article class="resource-card"><div class="resource-thumb resource-media-wrap">'+media+'</div><div class="resource-card-content"><span class="resource-tag">'+esc(x.category||'Learning support')+'</span><h3>'+esc(x.title)+'</h3><p>'+esc(x.description||'Explore BrightAce learning support.')+'</p>'+(x.audience?'<p class="resource-meta"><strong>Who it is for:</strong> '+esc(x.audience)+'</p>':'')+(x.educationalValue?'<p class="resource-meta"><strong>Learning value:</strong> '+esc(x.educationalValue)+'</p>':'')+'<a class="btn btn-outline" href="client-dashboard.html">Request through your dashboard →</a></div></article>';
+ function safeUrl(s){try{const u=new URL(String(s||''),location.href);return u.protocol==='https:'?u.href:''}catch(e){return ''}}
+ function driveId(url){const m=String(url||'').match(/drive\.google\.com\/(?:file\/d\/|uc\?[^#]*?id=|thumbnail\?id=)([A-Za-z0-9_-]{10,})/i);return m?m[1]:''}
+ function youtubeId(url){try{const u=new URL(url);if(/(^|\.)youtu\.be$/i.test(u.hostname))return u.pathname.split('/').filter(Boolean)[0]||'';if(/(^|\.)youtube\.com$/i.test(u.hostname)||/(^|\.)youtube-nocookie\.com$/i.test(u.hostname)){if(u.pathname==='/watch')return u.searchParams.get('v')||'';const m=u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/);return m?m[1]:''}}catch(e){}return ''}
+ function vimeoId(url){try{const u=new URL(url);if(/(^|\.)vimeo\.com$/i.test(u.hostname)){const m=u.pathname.match(/\/(\d+)/);return m?m[1]:''}}catch(e){}return ''}
+ function mediaHref(url,type){const id=driveId(url);if(id)return 'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view';return safeUrl(url)}
+ function openMediaPage(item){
+   const url=safeUrl(item.mediaUrl);if(!url)return;
+   const params=new URLSearchParams({type:String(item.mediaType||'').toUpperCase(),url,title:String(item.title||'BrightAce resource')});
+   window.open('resource-media.html?'+params.toString(),'_blank','noopener,noreferrer');
  }
- async function load(){if(!API){notice.textContent='Resources are temporarily unavailable. Please try again later.';return}try{const r=await fetch(API+'?action=resourcePromotions',{cache:'no-store'}),d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Could not load resource information.');const items=Array.isArray(d.items)?d.items:[];grid.innerHTML=items.map(card).join('');
-  grid.querySelectorAll('img.resource-media-image').forEach(function(img){img.addEventListener('error',function(){const wrap=img.closest('.resource-media-wrap');if(wrap)wrap.innerHTML='<div class=\"resource-media-empty\" role=\"status\">Image temporarily unavailable</div>';},{once:true});});
-  grid.querySelectorAll('video.resource-media-frame').forEach(function(video){video.addEventListener('error',function(){const wrap=video.closest('.resource-media-wrap');if(wrap)wrap.innerHTML='<div class=\"resource-media-empty\" role=\"status\">Video could not be loaded. Please try again later.</div>';},{once:true});});
-  notice.textContent=items.length?items.length+' activity and resource '+(items.length===1?'listing':'listings')+' available.':'Our activities and resource information are being prepared. Please check back soon.';if(!items.length)grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>More learning resources are coming</h3><p>Contact BrightAce Academy or sign in to ask about personalized support.</p><a class="btn btn-outline" href="chat.html">Contact BrightAce →</a></div></article>'}catch(e){notice.textContent='Activities and resources could not be loaded right now. Please refresh or contact BrightAce for help.';grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>Temporarily unavailable</h3><p>Promotional information could not be retrieved. Please try again later.</p></div></article>'}}
+ function card(x){
+   const url=safeUrl(x.mediaUrl),clickUrl=safeUrl(x.clickThroughUrl),type=String(x.mediaType||'NONE').toUpperCase();let media='';
+   if(url&&type==='IMAGE'){
+     const id=driveId(url),src=id?'https://drive.google.com/uc?export=view&id='+encodeURIComponent(id):url;
+     const img='<img class="resource-media-image" src="'+esc(src)+'" alt="'+esc(x.title)+'" loading="lazy" decoding="async">';
+     media=clickUrl?'<a class="resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+esc(x.title)+' link">'+img+'</a>':'<button type="button" class="resource-media-trigger" data-media-open="'+esc(x.promoId)+'" aria-label="View full image: '+esc(x.title)+'">'+img+'</button>';
+   }else if(url&&type==='VIDEO'){
+     const yt=youtubeId(url),vm=vimeoId(url),id=driveId(url);
+     let thumb='';
+     if(yt)thumb='<img src="https://img.youtube.com/vi/'+encodeURIComponent(yt)+'/hqdefault.jpg" alt="" loading="lazy">';
+     else if(id)thumb='<img src="https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w800" alt="" loading="lazy">';
+     else thumb='<span aria-hidden="true" style="font-size:3rem">▶</span>';
+     media=clickUrl?'<a class="resource-media-trigger resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer" aria-label="Open link for '+esc(x.title)+'">'+thumb+'<span class="resource-play-mark">↗</span></a>':'<button type="button" class="resource-media-trigger" data-media-open="'+esc(x.promoId)+'" aria-label="Play '+esc(x.title)+'">'+thumb+'<span class="resource-play-mark">▶</span></button>';
+   }else if(url&&type==='AUDIO'){
+     if(clickUrl)media='<a class="resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer"><div class="resource-file-preview">🎧 <strong>'+esc(x.title)+'</strong><p>Open linked audio resource ↗</p></div></a>';
+     else media='<audio class="resource-media-audio" controls preload="metadata" aria-label="'+esc(x.title)+'" src="'+esc(url)+'">Your browser does not support audio playback.</audio>';
+   }else if(url&&type!=='NONE'){
+     const href=mediaHref(url,type),label=type==='DOCUMENT'?'Open document':type==='FILE'?'Open / download file':'Open resource file',target=clickUrl||href;
+     media='<div class="resource-file-preview"><span aria-hidden="true">📄</span><div><strong>'+esc(x.mediaFileName||label)+'</strong><p>Open this public learning material in a new tab.</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" target="_blank" rel="noopener noreferrer">'+(clickUrl?'Visit linked page':'Open '+esc(label))+' ↗</a></div></div>';
+   }else media='<div class="resource-media-empty" aria-hidden="true">✦</div>';
+   return '<article class="resource-card"><div class="resource-thumb resource-media-wrap">'+media+'</div><div class="resource-card-content"><span class="resource-tag">'+esc(x.category||'Learning support')+'</span><h3>'+esc(x.title)+'</h3><p>'+esc(x.description||'Explore BrightAce learning support.')+'</p>'+(x.audience?'<p class="resource-meta"><strong>Who it is for:</strong> '+esc(x.audience)+'</p>':'')+(x.educationalValue?'<p class="resource-meta"><strong>Learning value:</strong> '+esc(x.educationalValue)+'</p>':'')+'<a class="btn btn-outline" href="client-dashboard.html">Request through your dashboard →</a></div></article>';
+ }
+ async function load(){
+   if(!API){notice.textContent='Resources are temporarily unavailable. Please try again later.';return}
+   try{
+     const r=await fetch(API+'?action=resourcePromotions',{cache:'no-store'}),d=await r.json();
+     if(!r.ok||!d.ok)throw Error(d.error||'Could not load resource information.');
+     const items=Array.isArray(d.items)?d.items:[];
+     grid.innerHTML=items.map(card).join('');
+     grid.querySelectorAll('[data-media-open]').forEach(btn=>btn.addEventListener('click',()=>{const item=items.find(x=>String(x.promoId)===btn.dataset.mediaOpen);if(item)openMediaPage(item)}));
+     grid.querySelectorAll('img.resource-media-image').forEach(img=>img.addEventListener('error',function(){this.alt='Image temporarily unavailable';this.style.minHeight='100px';this.style.objectFit='contain';this.closest('.resource-media-wrap')?.setAttribute('data-media-error','Image temporarily unavailable')},{once:true}));
+     notice.textContent=items.length?items.length+' activity and resource '+(items.length===1?'listing':'listings')+' available.':'Our activities and resource information are being prepared. Please check back soon.';
+     if(!items.length)grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>More learning resources are coming</h3><p>Contact BrightAce Academy or sign in to ask about personalized support.</p><a class="btn btn-outline" href="chat.html">Contact BrightAce →</a></div></article>';
+   }catch(e){notice.textContent='Activities and resources could not be loaded right now. Please refresh or contact BrightAce for help.';grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>Temporarily unavailable</h3><p>Promotional information could not be retrieved. Please try again later.</p></div></article>'}
+ }
  load();
 })();
 </script><script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>

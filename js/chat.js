@@ -29,6 +29,26 @@ function showBrightAceAccessModal(kind){
   modal.querySelector('.ba-access-support').hidden=paused;
   modal.classList.add('is-open');modal.querySelector('.ba-access-close').focus();
 }
+function isAccessRestrictionMessage(message){return /blocked from using BrightAce|unable to provide services to this contact|contact is blocked|client account is not active|client is suspended|client is inactive/i.test(String(message||""))}
+function showRestrictionAndClearVerification(message){
+  if(!isAccessRestrictionMessage(message))return false;
+  // Never leave a stale OTP screen available after a block/suspension is detected.
+  session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}
+  const mainVerify=document.getElementById('verificationArea');if(mainVerify)mainVerify.style.display='none';
+  const returningVerify=document.getElementById('returningVerificationArea');if(returningVerify)returningVerify.style.display='none';
+  const chat=document.getElementById('chatArea');if(chat)chat.style.display='none';
+  showBrightAceAccessModal('blocked');
+  return true;
+}
+function showPausedAndClearPendingVerification(message){
+  if(!/fully booked|unable to accept new requests|requests are paused|client-admission setting|admissions.*paused/i.test(String(message||"")))return false;
+  session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}
+  const mainVerify=document.getElementById('verificationArea');if(mainVerify)mainVerify.style.display='none';
+  const chat=document.getElementById('chatArea');if(chat)chat.style.display='none';
+  const start=document.getElementById('chatStart');if(start)start.style.display='block';
+  showBrightAceAccessModal('paused');
+  return true;
+}
 function fmtTime(v){const d=new Date(v);return Number.isNaN(d.getTime())?"":d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}
 function unlockChatAudio(){try{if(!alertAudio)alertAudio=new(window.AudioContext||window.webkitAudioContext)();if(alertAudio.state==="suspended")alertAudio.resume()}catch(e){}}
 function playNewMessageSound(){try{unlockChatAudio();if(!alertAudio||alertAudio.state==="suspended")return;const now=alertAudio.currentTime,o=alertAudio.createOscillator(),g=alertAudio.createGain();o.type="sine";o.frequency.setValueAtTime(740,now);o.frequency.setValueAtTime(980,now+.11);g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.14,now+.02);g.gain.exponentialRampToValueAtTime(.0001,now+.22);o.connect(g);g.connect(alertAudio.destination);o.start(now);o.stop(now+.24)}catch(e){}}
@@ -144,26 +164,48 @@ document.getElementById("startForm")?.addEventListener("submit",async e=>{
   if(!name||!phone||!task||!(budget>0))return;
   if(!apiReady()){setNotice("The BrightAce verification service is not connected. Please try again when the live service is available.","error");return}
   const oldText=btn?.textContent;
-  try{const intake=await post("publicRequestIntakeStatus",{phone});if(intake.blocked){showBrightAceAccessModal('blocked');return}if(intake.enabled===false){showBrightAceAccessModal('paused');return}}catch(statusError){/* The authoritative startChat endpoint still enforces contact blocks and intake status if lookup is temporarily unavailable. */}
-  session={id:"CHAT-"+Date.now().toString(36).toUpperCase(),name,phone,taskDescription:task,studentBudget:budget,currency,deadline,started:new Date().toISOString(),verified:false};
-  localStorage.setItem(CHAT_KEY,JSON.stringify(session));localStorage.removeItem("brightace_start_draft_v2");
-  // Show verification immediately. The network request is now background work.
-  showVerification();setVerificationNotice("Creating your secure request and sending your 6-digit code…","info");
-  if(btn){btn.disabled=true;btn.textContent="REQUEST RECEIVED ✓"}
-  startRemoteChat().then(data=>{
-    if(!data?.ok||!data.conversationId)throw new Error(data?.error||"The server did not create the verification request.");
-    session.id=data.conversationId;localStorage.setItem(CHAT_KEY,JSON.stringify(session));
-    return sendVerificationRemote();
-  }).then(data=>{session.phone=data?.delivery?.phone||session.phone;localStorage.setItem(CHAT_KEY,JSON.stringify(session));updateVerificationPhone();setVerificationNotice("We sent a 6-digit verification code to your WhatsApp number. Enter it below to securely initiate your BrightAce live chat.","success")})
-  .catch(err=>{const message=String(err?.message||"We could not start verification. Please try again.");if(/blocked from using BrightAce|unable to provide services to this contact|contact is blocked/i.test(message)){showBrightAceAccessModal('blocked');setVerificationNotice('', 'info')}else if(/fully booked|unable to accept new requests|requests are paused/i.test(message)){showBrightAceAccessModal('paused');setVerificationNotice('', 'info')}else setVerificationNotice(message,"error");if(btn){btn.disabled=false;btn.textContent=oldText||"START SECURE CHAT →"}})
+  if(btn){btn.disabled=true;btn.textContent="CHECKING AVAILABILITY…"}
+  try{
+    // Fail closed: if capacity status cannot be confirmed, do not expose the OTP screen.
+    const intake=await post("publicRequestIntakeStatus",{phone});
+    if(intake?.blocked){showRestrictionAndClearVerification('This client account is blocked or inactive.');return}
+    if(intake?.enabled!==true){showBrightAceAccessModal('paused');return}
+    if(btn)btn.textContent="SENDING REQUEST…";
+    session={id:"CHAT-"+Date.now().toString(36).toUpperCase(),name,phone,taskDescription:task,studentBudget:budget,currency,deadline,started:new Date().toISOString(),verified:false};
+    // The backend is authoritative too: admissions may be paused between the status check and request creation.
+    const created=await startRemoteChat();
+    if(!created?.ok||!created.conversationId)throw new Error(created?.error||"The server did not create the verification request.");
+    session.id=created.conversationId;
+    localStorage.setItem(CHAT_KEY,JSON.stringify(session));
+    const sent=await sendVerificationRemote();
+    session.phone=sent?.delivery?.phone||session.phone;
+    localStorage.setItem(CHAT_KEY,JSON.stringify(session));
+    localStorage.removeItem("brightace_start_draft_v2");
+    // Only reveal verification after the server confirms the request and code delivery.
+    showVerification();
+    updateVerificationPhone();
+    setVerificationNotice("We sent a 6-digit verification code to your WhatsApp number. Enter it below to securely initiate your BrightAce live chat.","success");
+  }catch(err){
+    const message=String(err?.message||"We could not start verification. Please try again.");
+    if(session&&!session.verified){localStorage.removeItem(CHAT_KEY);session=null}
+    if(showRestrictionAndClearVerification(message)){
+      setVerificationNotice('', 'info');
+    }else if(/fully booked|unable to accept new requests|requests are paused|client-admission setting/i.test(message)){
+      showBrightAceAccessModal('paused');setVerificationNotice('', 'info');
+    }else{
+      setNotice(message,"error");
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText||"SEND REQUEST →"}
+  }
 });
 
 let verificationBusy=false;
-async function verifyAndConnect(){if(verificationBusy)return;const input=document.getElementById("verificationCode"),btn=document.getElementById("verifyBtn"),code=input?.value.trim()||"";if(!/^\d{6}$/.test(code))return setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number.","error");verificationBusy=true;if(btn){btn.disabled=true;btn.textContent="VERIFYING…"}try{const d=await verifyRemoteChat(code);session.verified=true;session.clientAccessToken=d.clientAccessToken||session.clientAccessToken||"";session.clientSessionToken=d.clientSessionToken||session.clientSessionToken||"";session.clientSessionExpiresAt=d.clientSessionExpiresAt||"";session.lastActivityAt=Date.now();session.localMessages=[];lastSyncCursor="";localStorage.setItem(CHAT_KEY,JSON.stringify(session));openChat();setNotice(d.message||"WhatsApp verified. Your BrightAce live chat is now connected.","success");post("notifyAdmin",{conversationId:session.id}).catch(()=>{});syncMessages().catch(()=>{})}catch(err){setVerificationNotice(err?.message||"The code could not be verified. Please try again.","error")}finally{verificationBusy=false;if(btn){btn.disabled=false;btn.textContent="VERIFY & CONNECT"}}}
+async function verifyAndConnect(){if(verificationBusy)return;const input=document.getElementById("verificationCode"),btn=document.getElementById("verifyBtn"),code=input?.value.trim()||"";if(!/^\d{6}$/.test(code))return setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number.","error");verificationBusy=true;if(btn){btn.disabled=true;btn.textContent="VERIFYING…"}try{const d=await verifyRemoteChat(code);session.verified=true;session.clientAccessToken=d.clientAccessToken||session.clientAccessToken||"";session.clientSessionToken=d.clientSessionToken||session.clientSessionToken||"";session.clientSessionExpiresAt=d.clientSessionExpiresAt||"";session.lastActivityAt=Date.now();session.localMessages=[];lastSyncCursor="";localStorage.setItem(CHAT_KEY,JSON.stringify(session));openChat();setNotice(d.message||"WhatsApp verified. Your BrightAce live chat is now connected.","success");post("notifyAdmin",{conversationId:session.id}).catch(()=>{});syncMessages().catch(()=>{})}catch(err){if(!showRestrictionAndClearVerification(err?.message)&&!showPausedAndClearPendingVerification(err?.message))setVerificationNotice(err?.message||"The code could not be verified. Please try again.","error")}finally{verificationBusy=false;if(btn){btn.disabled=false;btn.textContent="VERIFY & CONNECT"}}}
 document.getElementById("verificationForm")?.addEventListener("submit",async e=>{e.preventDefault();await verifyAndConnect()});
 document.getElementById("verificationCode")?.addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"").slice(0,6);if(e.target.value.length===6)verifyAndConnect()});
 
-document.getElementById("resendBtn")?.addEventListener("click",async()=>{if(!session?.id)return;const btn=document.getElementById("resendBtn");btn.disabled=true;btn.textContent="SENDING…";let exhausted=false;try{const d=await resendRemoteCode();if(d?.delivery?.phone){session.phone=d.delivery.phone;localStorage.setItem(CHAT_KEY,JSON.stringify(session));updateVerificationPhone()}setVerificationNotice((d.message||"A new 6-digit verification code has been sent to your WhatsApp number.")+(typeof d.remainingResends==="number"?" "+d.remainingResends+" new request"+(d.remainingResends===1?"":"s")+" remaining.":""),"success");if(typeof d.remainingResends==="number"&&d.remainingResends<=0){exhausted=true;btn.textContent="NO MORE CODES"}}catch(err){setVerificationNotice(err?.message||"A new code could not be sent.","error")}finally{if(!exhausted){btn.disabled=false;btn.textContent="REQUEST A NEW CODE"}}});
+document.getElementById("resendBtn")?.addEventListener("click",async()=>{if(!session?.id)return;const btn=document.getElementById("resendBtn");btn.disabled=true;btn.textContent="SENDING…";let exhausted=false;try{const d=await resendRemoteCode();if(d?.delivery?.phone){session.phone=d.delivery.phone;localStorage.setItem(CHAT_KEY,JSON.stringify(session));updateVerificationPhone()}setVerificationNotice((d.message||"A new 6-digit verification code has been sent to your WhatsApp number.")+(typeof d.remainingResends==="number"?" "+d.remainingResends+" new request"+(d.remainingResends===1?"":"s")+" remaining.":""),"success");if(typeof d.remainingResends==="number"&&d.remainingResends<=0){exhausted=true;btn.textContent="NO MORE CODES"}}catch(err){if(!showRestrictionAndClearVerification(err?.message)&&!showPausedAndClearPendingVerification(err?.message))setVerificationNotice(err?.message||"A new code could not be sent.","error")}finally{if(!exhausted){btn.disabled=false;btn.textContent="REQUEST A NEW CODE"}}});
 
 
 document.getElementById("securePaymentBtn")?.addEventListener("click",async e=>{
@@ -235,6 +277,10 @@ hideReturningClientBtn?.addEventListener("click",()=>{
   if(document.getElementById("chatStart"))document.getElementById("chatStart").style.display="block";
 });
 async function beginReturningClient(name,phone){
+  // A returning client is allowed to verify while new admissions are paused,
+  // but blocked/suspended/inactive contacts must be stopped before a code is sent.
+  const access=await post("publicRequestIntakeStatus",{phone});
+  if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.");return {blocked:true};}
   const d=await post("returningClientSendVerification",{name,phone});
   returningConversationId=d.conversationId;
   if(returningVerificationArea)returningVerificationArea.style.display="block";
@@ -250,7 +296,7 @@ returningForm?.addEventListener("submit",async e=>{
   const phone=document.getElementById("returningClientPhone")?.value.trim();
   if(!name||!phone)return;
   if(btn){btn.disabled=true;btn.textContent="SENDING CODE…"}
-  try{await beginReturningClient(name,phone);if(btn)btn.textContent="CODE SENT ✓"}catch(err){setNotice(err?.message||"We could not find your existing BrightAce request.","error");if(btn){btn.disabled=false;btn.textContent="SEND VERIFICATION CODE →"}}
+  try{const result=await beginReturningClient(name,phone);if(result?.blocked){if(btn){btn.disabled=false;btn.textContent="SEND VERIFICATION CODE →"}return}if(btn)btn.textContent="CODE SENT ✓"}catch(err){if(!showRestrictionAndClearVerification(err?.message)){setNotice(err?.message||"We could not find your existing BrightAce request.","error")}if(btn){btn.disabled=false;btn.textContent="SEND VERIFICATION CODE →"}}
 });
 returningVerificationForm?.addEventListener("submit",async e=>{
   e.preventDefault();unlockChatAudio();
@@ -264,12 +310,12 @@ returningVerificationForm?.addEventListener("submit",async e=>{
     if(returningArea)returningArea.style.display="none";
     if(returningVerificationArea)returningVerificationArea.style.display="none";
     openChat();scheduleClientExpiry();setNotice("Welcome back. Your existing BrightAce request is now connected.","success");playNewMessageSound();
-  }catch(err){const note=document.getElementById("returningVerificationNotice");if(note){note.textContent=err?.message||"Verification failed. Please try again.";note.className="chat-notice error";note.hidden=false}if(btn){btn.disabled=false;btn.textContent="VERIFY & CONTINUE"}}
+  }catch(err){if(!showRestrictionAndClearVerification(err?.message)){const note=document.getElementById("returningVerificationNotice");if(note){note.textContent=err?.message||"Verification failed. Please try again.";note.className="chat-notice error";note.hidden=false}}if(btn){btn.disabled=false;btn.textContent="VERIFY & CONTINUE"}}
 });
 document.getElementById("returningResendBtn")?.addEventListener("click",async e=>{
   const btn=e.currentTarget,name=document.getElementById("returningClientName")?.value.trim(),phone=document.getElementById("returningClientPhone")?.value.trim();if(!phone||!name)return;
   btn.disabled=true;btn.textContent="SENDING…";
-  try{await beginReturningClient(name,phone);btn.textContent="CODE SENT ✓"}catch(err){const note=document.getElementById("returningVerificationNotice");if(note){note.textContent=err?.message||"A new code could not be sent.";note.className="chat-notice error";note.hidden=false}}finally{setTimeout(()=>{btn.disabled=false;btn.textContent="SEND NEW CODE"},800)}
+  try{const result=await beginReturningClient(name,phone);if(result?.blocked){btn.textContent="SEND NEW CODE";return}btn.textContent="CODE SENT ✓"}catch(err){if(!showRestrictionAndClearVerification(err?.message)){const note=document.getElementById("returningVerificationNotice");if(note){note.textContent=err?.message||"A new code could not be sent.";note.className="chat-notice error";note.hidden=false}}}finally{setTimeout(()=>{btn.disabled=false;btn.textContent="SEND NEW CODE"},800)}
 });
 
 document.getElementById("newChatBtn")?.addEventListener("click",()=>{if(pollTimer){pollTimer();pollTimer=null}localStorage.removeItem(CHAT_KEY);localStorage.removeItem("brightace_start_draft_v2");localStorage.removeItem("brightace_start_draft_v1");localStorage.removeItem("brightace_chat_session_v4");location.reload()});
@@ -281,13 +327,27 @@ function expireClientSession(){clearTimeout(clientInactivityTimer);const old=ses
 function scheduleClientExpiry(){if(!session?.verified)return;const last=Number(session.lastActivityAt||0),remaining=30*60*1000-(Date.now()-last);if(!last||remaining<=0){expireClientSession();return}clearTimeout(clientInactivityTimer);clientInactivityTimer=setTimeout(expireClientSession,remaining)}
 function resetClientActivity(){if(!session?.verified)return;const now=Date.now();if(session.lastActivityAt&&now-Number(session.lastActivityAt)>30*60*1000){expireClientSession();return}session.lastActivityAt=now;try{localStorage.setItem(CHAT_KEY,JSON.stringify(session))}catch(e){}scheduleClientExpiry();if(session.clientSessionToken&&Date.now()-lastClientServerTouch>5*60*1000){lastClientServerTouch=Date.now();post("clientTouchSession",{clientSessionToken:session.clientSessionToken,phone:session.phone}).then(r=>{session.clientSessionExpiresAt=r.expiresAt;localStorage.setItem(CHAT_KEY,JSON.stringify(session));scheduleClientExpiry()}).catch(e=>{if(/session|expired|verify/i.test(String(e?.message||"")))expireClientSession()})}}
 document.addEventListener("click",resetClientActivity,{passive:true});document.addEventListener("keydown",resetClientActivity,{passive:true});document.addEventListener("input",resetClientActivity,{passive:true});
-if(session?.verified)openChat();else if(session?.id&&session?.name&&session?.phone){showVerification();setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number. If it has expired, request a new code.","info")}
+async function gateStoredSessionBeforeRendering(){
+  if(!session)return;
+  if(!session.phone){if(!session.verified){session=null;try{localStorage.removeItem(CHAT_KEY)}catch(e){}}return;}
+  try{
+    const access=await post("publicRequestIntakeStatus",{phone:session.phone});
+    if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.");if(startBox)startBox.style.display="block";return;}
+    // Pausing admissions affects only an unverified new request, never a returning
+    // verified client with an existing conversation/session.
+    if(!session.verified&&access?.enabled!==true){session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";showBrightAceAccessModal('paused');return;}
+    if(session.verified){openChat();if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000)expireClientSession();else scheduleClientExpiry();}
+    else if(session.id&&session.name&&session.phone){showVerification();setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number. If it has expired, request a new code.","info");}
+  }catch(err){
+    // Fail closed for a pending OTP: never reveal a verification form if access
+    // status cannot be confirmed. Preserve existing verified sessions on outages.
+    if(session?.verified){openChat();if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000)expireClientSession();else scheduleClientExpiry();}
+    else {if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";setNotice("We could not confirm access to your request. Please try again shortly.","warning");}
+  }
+}
 
 prefillServiceRequest();
-if(!session?.verified)showClientTutorial();
-if(session?.verified){
-  if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000)expireClientSession();
-  else {openChat();scheduleClientExpiry();}
-}
+if(!session)showClientTutorial();
+gateStoredSessionBeforeRendering();
 
 document.getElementById('chatLogoutBtn')?.addEventListener('click',logoutClient);
