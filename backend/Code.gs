@@ -107,7 +107,7 @@ function doGet(e){
     if(action==="tutorGetWallet") return tutorGetWallet_({tutorToken:p.tutorToken});
     if(action==="tutorListWithdrawals") return tutorListWithdrawals_({tutorToken:p.tutorToken});
     if(action==="tutorGetAdminMessages") return tutorGetAdminMessages_({tutorToken:p.tutorToken,afterMessageId:p.afterMessageId});
-    if(action==="adminSessionProfile"){ const ap=getAdminProfile_(p.adminToken); const au=getAdminUsers_().find(x=>String(x.username||"").toLowerCase()===String(ap.username||"").toLowerCase())||{}; return json_({ok:true,admin:{username:String(ap.username||""),name:String(ap.adminName||au.name||ap.username||"Admin"),role:String(ap.role||"ADMIN").toUpperCase(),professionalTitle:String(au.professionalTitle||""),description:String(au.description||""),profilePictureUrl:String(au.profilePictureUrl||"")}}); }
+    if(action==="adminSessionProfile"){ const ap=getAdminProfile_(p.adminToken); const au=getAdminUsers_().find(x=>String(x.username||"").toLowerCase()===String(ap.username||"").toLowerCase())||{}; return json_({ok:true,admin:{username:String(ap.username||""),name:String(ap.adminName||au.name||ap.username||"Admin"),role:String(ap.role||"ADMIN").toUpperCase(),professionalTitle:String(au.professionalTitle||""),description:String(au.description||""),profilePictureUrl:tutorProfilePictureUrl_(String(au.profilePictureUrl||""))}}); }
     if(action==="adminListConversations") return adminListConversations_(p.adminToken,true);
     if(action==="adminListWorkAssignments") return adminListWorkAssignments_(p.adminToken,true);
     if(action==="adminListClients") return adminListClients_(p.adminToken);
@@ -181,7 +181,7 @@ function doPost(e){
     if(body.action === "deliverMessage") return deliverWebsiteMessage_(body);
     if(body.action === "initializePayment") return initializePayment_(body.requestId,body.clientSessionToken,body.phone);
     if(body.action === "adminLogin") return adminLogin_(body.password,body.username);
-    if(body.action === "adminSessionProfile") { const p=getAdminProfile_(body.adminToken); const au=getAdminUsers_().find(x=>String(x.username||"").toLowerCase()===String(p.username||"").toLowerCase())||{}; return json_({ok:true,admin:{username:String(p.username||""),name:String(p.adminName||au.name||p.username||"Admin"),role:String(p.role||"ADMIN").toUpperCase(),professionalTitle:String(au.professionalTitle||""),description:String(au.description||""),profilePictureUrl:String(au.profilePictureUrl||""),alternativePhone:String(au.alternativePhone||""),emergencyContactName:String(au.emergencyContactName||""),emergencyContactPhone:String(au.emergencyContactPhone||""),whatsappPhone:normalizePhone_(au.whatsappPhone||p.whatsappPhone||"")}}); }
+    if(body.action === "adminSessionProfile") { const p=getAdminProfile_(body.adminToken); const au=getAdminUsers_().find(x=>String(x.username||"").toLowerCase()===String(p.username||"").toLowerCase())||{}; return json_({ok:true,admin:{username:String(p.username||""),name:String(p.adminName||au.name||p.username||"Admin"),role:String(p.role||"ADMIN").toUpperCase(),professionalTitle:String(au.professionalTitle||""),description:String(au.description||""),profilePictureUrl:tutorProfilePictureUrl_(String(au.profilePictureUrl||"")),alternativePhone:String(au.alternativePhone||""),emergencyContactName:String(au.emergencyContactName||""),emergencyContactPhone:String(au.emergencyContactPhone||""),whatsappPhone:normalizePhone_(au.whatsappPhone||p.whatsappPhone||"")}}); }
     if(body.action === "adminChangeOwnPassword") return adminChangeOwnPassword_(body);
     if(body.action === "adminListConversations") return adminListConversations_(body.adminToken,body.fresh===true);
     if(body.action === "adminGetConversation") return adminGetConversation_(body.adminToken, body.conversationId);
@@ -385,7 +385,7 @@ function findAnyClientByPhone_(phone){
   const key="BA_CLIENT_BY_PHONE_"+target;
   try{const cached=safeJson_(CacheService.getScriptCache().get(key)||"");if(cached&&cached.clientPhone===target)return cached;}catch(e){}
   const sh=getClientSheet_(),m=headerMap_(sh),matches=baFastRowsForPhone_(sh,'clientPhone',target,'BA_FAST_CLIENT_PHONE');
-  if(matches.length){const row=matches[matches.length-1],values=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0];const out={row:row,clientId:String(values[m.clientId-1]),clientName:String(values[m.clientName-1]||""),clientPhone:target,status:String(values[m.status-1]||"ACTIVE").toUpperCase(),profilePictureUrl:m.profilePictureUrl?String(values[m.profilePictureUrl-1]||""):"",profilePictureFileId:m.profilePictureFileId?String(values[m.profilePictureFileId-1]||""):"",displayCurrency:baNormalizeCurrency_(m.displayCurrency?values[m.displayCurrency-1]:"USD")};try{CacheService.getScriptCache().put(key,JSON.stringify(out),60)}catch(e){}return out;}
+  if(matches.length){const row=matches[matches.length-1],values=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0];const out={row:row,clientId:String(values[m.clientId-1]),clientName:String(values[m.clientName-1]||""),clientPhone:target,status:String(values[m.status-1]||"ACTIVE").toUpperCase(),profilePictureUrl:m.profilePictureUrl?tutorProfilePictureUrl_(String(values[m.profilePictureUrl-1]||"")):"",profilePictureFileId:m.profilePictureFileId?String(values[m.profilePictureFileId-1]||""):"",displayCurrency:baNormalizeCurrency_(m.displayCurrency?values[m.displayCurrency-1]:"USD")};try{CacheService.getScriptCache().put(key,JSON.stringify(out),60)}catch(e){}return out;}
   try{CacheService.getScriptCache().put(key,JSON.stringify({notFound:true,clientPhone:target}),30)}catch(e){}
   return null;
 }
@@ -1631,15 +1631,25 @@ function clientTutorSessions_(d){
   const phone=normalizePhone_(d.phone||''), token=String(d.clientSessionToken||'').trim();
   if(!phone) throw new Error('Your verified client session could not be restored. Please verify your WhatsApp number again.');
   const client=requireClientSession_(token,phone);
-  const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_'+phone;
+  const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_V2_'+phone;
   try{const hit=safeJson_(CacheService.getScriptCache().get(cacheKey)||'');if(hit&&Array.isArray(hit.requests)&&Array.isArray(hit.schedules))return json_(Object.assign({ok:true,clientSessionToken:token},hit));}catch(e){}
   const convSh=getConversationSheet_(),cm=headerMap_(convSh),rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_TUTOR_CONV_PHONE'):[],convRows=baFastReadRows_(convSh,rowNums),requests=[];
   for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
   const schedules=baClientSchedulesFast_(phone,Object.keys(ids));
+  // Include each assigned tutor's current profile photo in this fast endpoint too.
+  // The full portal endpoint already did this; omitting it here made My Tutors & Sessions
+  // show initials even when the tutor had a saved profile picture.
+  const tutorProfiles=baTutorProfilesFast_(requests);
+  requests.forEach(function(x){
+    const ph=normalizePhone_(x.tutorPhone||''),nk='name:'+String(x.tutor||x.assignedTutor||'').trim().toLowerCase();
+    const profile=tutorProfiles[ph]||tutorProfiles[nk]||null;
+    if(profile){x.tutorProfilePictureUrl=profile.profilePictureUrl||'';x.tutorProfessionalTitle=profile.professionalTitle||'';x.tutorDescription=profile.description||'';x.tutorAdminRating=Number(profile.adminRating||0);}
+  });
   const bookings=listSessionBookingsForClient_(phone);
-  const response={student:{name:client.clientName||'Verified Client',phone:phone},requests,schedules,bookingRequests:bookings,diagnostics:{requestCount:requests.length,scheduleCount:schedules.length,bookingCount:bookings.length}};
+  const clientProfile=getClientByPhone_(phone);
+  const response={student:{name:client.clientName||'Verified Client',phone:phone,profilePictureUrl:String(clientProfile&&clientProfile.profilePictureUrl||'')},requests,schedules,bookingRequests:bookings,diagnostics:{requestCount:requests.length,scheduleCount:schedules.length,bookingCount:bookings.length}};
   try{CacheService.getScriptCache().put(cacheKey,JSON.stringify(response),60);}catch(e){}
   return json_(Object.assign({ok:true,clientSessionToken:token},response));
 }
