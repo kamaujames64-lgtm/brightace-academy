@@ -66,25 +66,28 @@
         nav.insertAdjacentElement('afterend', profileChip);
       }
       const adminToken = sessionStorage.getItem('brightace_admin_active_token_v4') || localStorage.getItem('brightace_admin_active_token_v4') || sessionStorage.getItem('brightace_admin_token_v4') || localStorage.getItem('brightace_admin_token_v4') || '';
-      if (adminToken) {
+      const refreshAdminProfileAvatar = () => {
+        const currentToken = sessionStorage.getItem('brightace_admin_active_token_v4') || localStorage.getItem('brightace_admin_active_token_v4') || sessionStorage.getItem('brightace_admin_token_v4') || localStorage.getItem('brightace_admin_token_v4') || '';
+        const avatar = profileChip.querySelector('.ba-admin-profile-avatar');
+        if (!avatar) return;
+        if (!currentToken) { avatar.textContent = '👤'; return; }
         const apiUrl = window.BRIGHTACE_API_URL || 'https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec';
         const body = new URLSearchParams();
-        body.set('payload', JSON.stringify({ action: 'adminSessionProfile', adminToken }));
+        body.set('payload', JSON.stringify({ action: 'adminSessionProfile', adminToken: currentToken }));
         fetch(apiUrl, { method: 'POST', body, cache: 'no-store' }).then(r => r.json()).then(result => {
+          if (!profileChip.isConnected || !avatar.isConnected) return;
           const profile = result && result.ok && result.admin ? result.admin : null;
-          if (!profile || !profile.profilePictureUrl || !profileChip.isConnected) return;
-          const avatar = profileChip.querySelector('.ba-admin-profile-avatar');
-          if (!avatar) return;
+          const photo = String(profile && profile.profilePictureUrl || '').trim();
+          if (!photo) { avatar.textContent = '👤'; return; }
           const img = document.createElement('img');
-          img.src = profile.profilePictureUrl;
-          img.alt = '';
-          img.loading = 'eager';
-          img.decoding = 'async';
+          img.src = photo; img.alt = ''; img.loading = 'eager'; img.decoding = 'async';
           img.onerror = () => { img.remove(); avatar.textContent = '👤'; };
-          avatar.textContent = '';
-          avatar.appendChild(img);
+          avatar.replaceChildren(img);
         }).catch(() => {});
-      }
+      };
+      window.BrightAceRefreshAdminProfileAvatar = refreshAdminProfileAvatar;
+      refreshAdminProfileAvatar();
+      window.addEventListener('brightace:admin-profile-photo-updated', refreshAdminProfileAvatar);
     }
 
     const groupEls = [...nav.querySelectorAll('[data-nav-group]')];

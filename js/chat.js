@@ -19,6 +19,16 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function apiReady(){return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(CHAT_API_URL)}
 function setNotice(text,type="info"){if(!chatNotice)return;chatNotice.textContent=text;chatNotice.className="chat-notice "+type;chatNotice.hidden=!text}
 function setVerificationNotice(text,type="info"){if(!verificationNotice)return;verificationNotice.textContent=text;verificationNotice.className="chat-notice "+type;verificationNotice.hidden=!text}
+function showBrightAceAccessModal(kind){
+  const paused=kind==='paused';
+  let modal=document.getElementById('baAccessNoticeModal');
+  if(!modal){modal=document.createElement('div');modal.id='baAccessNoticeModal';modal.className='ba-access-modal';modal.innerHTML='<div class="ba-access-dialog" role="dialog" aria-modal="true" aria-labelledby="baAccessTitle"><button class="ba-access-close" type="button" aria-label="Close message">×</button><div class="ba-access-mark">BrightAce Academy</div><h2 id="baAccessTitle"></h2><p class="ba-access-copy"></p><div class="ba-access-actions"><button class="btn btn-primary" type="button" id="baAccessReturning">RETURNING CLIENT</button><button class="btn btn-outline" type="button" id="baAccessDismiss">CLOSE</button></div><p class="ba-access-support">Questions? Please use the <a href="#baFooterContact" id="baAccessContact">Contact link at the foot of this page</a>.</p></div>';document.body.appendChild(modal);const close=()=>modal.classList.remove('is-open');modal.querySelector('.ba-access-close').onclick=close;modal.querySelector('#baAccessDismiss').onclick=close;modal.querySelector('#baAccessContact').onclick=()=>{close();document.querySelector('footer a[href^="mailto:"]')?.scrollIntoView({behavior:'smooth',block:'center'})};modal.querySelector('#baAccessReturning').onclick=()=>{close();document.getElementById('showReturningClientBtn')?.click();document.getElementById('returningClientName')?.focus()};}
+  modal.querySelector('#baAccessTitle').textContent=paused?'New requests are temporarily paused':'BrightAce service access notice';
+  modal.querySelector('.ba-access-copy').textContent=paused?'Thank you for choosing BrightAce Academy. Our tutors are currently fully booked and are unable to accept new requests right now. Please check back soon—we would be happy to help when availability opens. Existing conversations and scheduled sessions are not affected.':'BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made unfairly, please contact BrightAce Support using the Contact link at the foot of this page.';
+  modal.querySelector('#baAccessReturning').hidden=!paused;
+  modal.querySelector('.ba-access-support').hidden=paused;
+  modal.classList.add('is-open');modal.querySelector('.ba-access-close').focus();
+}
 function fmtTime(v){const d=new Date(v);return Number.isNaN(d.getTime())?"":d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}
 function unlockChatAudio(){try{if(!alertAudio)alertAudio=new(window.AudioContext||window.webkitAudioContext)();if(alertAudio.state==="suspended")alertAudio.resume()}catch(e){}}
 function playNewMessageSound(){try{unlockChatAudio();if(!alertAudio||alertAudio.state==="suspended")return;const now=alertAudio.currentTime,o=alertAudio.createOscillator(),g=alertAudio.createGain();o.type="sine";o.frequency.setValueAtTime(740,now);o.frequency.setValueAtTime(980,now+.11);g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.14,now+.02);g.gain.exponentialRampToValueAtTime(.0001,now+.22);o.connect(g);g.connect(alertAudio.destination);o.start(now);o.stop(now+.24)}catch(e){}}
@@ -128,12 +138,13 @@ function editVerificationNumber(){if(pollTimer){pollTimer();pollTimer=null}if(ve
 document.getElementById("exitVerificationBtn")?.addEventListener("click",()=>{saveStartDraft();editVerificationNumber()});
 document.getElementById("editNumberBtn")?.addEventListener("click",()=>{saveStartDraft();editVerificationNumber()});
 document.getElementById("exitChatBtn")?.addEventListener("click",returnToStartForm);
-document.getElementById("startForm")?.addEventListener("submit",e=>{
+document.getElementById("startForm")?.addEventListener("submit",async e=>{
   e.preventDefault();
   const btn=document.getElementById("startChatBtn"),name=document.getElementById("studentName").value.trim(),phone=document.getElementById("studentPhone").value.trim(),task=document.getElementById("taskDescription").value.trim()||"General BrightAce support request",budget=Math.max(0,Number(document.getElementById("studentBudget").value||0)),currency=document.getElementById("studentCurrency").value,deadline=document.getElementById("studentDeadline").value.trim();
   if(!name||!phone||!task||!(budget>0))return;
   if(!apiReady()){setNotice("The BrightAce verification service is not connected. Please try again when the live service is available.","error");return}
   const oldText=btn?.textContent;
+  try{const intake=await post("publicRequestIntakeStatus",{phone});if(intake.blocked){showBrightAceAccessModal('blocked');return}if(intake.enabled===false){showBrightAceAccessModal('paused');return}}catch(statusError){/* The authoritative startChat endpoint still enforces contact blocks and intake status if lookup is temporarily unavailable. */}
   session={id:"CHAT-"+Date.now().toString(36).toUpperCase(),name,phone,taskDescription:task,studentBudget:budget,currency,deadline,started:new Date().toISOString(),verified:false};
   localStorage.setItem(CHAT_KEY,JSON.stringify(session));localStorage.removeItem("brightace_start_draft_v2");
   // Show verification immediately. The network request is now background work.
@@ -144,7 +155,7 @@ document.getElementById("startForm")?.addEventListener("submit",e=>{
     session.id=data.conversationId;localStorage.setItem(CHAT_KEY,JSON.stringify(session));
     return sendVerificationRemote();
   }).then(data=>{session.phone=data?.delivery?.phone||session.phone;localStorage.setItem(CHAT_KEY,JSON.stringify(session));updateVerificationPhone();setVerificationNotice("We sent a 6-digit verification code to your WhatsApp number. Enter it below to securely initiate your BrightAce live chat.","success")})
-  .catch(err=>{setVerificationNotice(err?.message||"We could not start verification. Please try again.","error");if(btn){btn.disabled=false;btn.textContent=oldText||"START SECURE CHAT →"}})
+  .catch(err=>{const message=String(err?.message||"We could not start verification. Please try again.");if(/blocked from using BrightAce|unable to provide services to this contact|contact is blocked/i.test(message)){showBrightAceAccessModal('blocked');setVerificationNotice('', 'info')}else if(/fully booked|unable to accept new requests|requests are paused/i.test(message)){showBrightAceAccessModal('paused');setVerificationNotice('', 'info')}else setVerificationNotice(message,"error");if(btn){btn.disabled=false;btn.textContent=oldText||"START SECURE CHAT →"}})
 });
 
 let verificationBusy=false;

@@ -277,3 +277,8 @@ body.client-portal-page #baMessageJobSelect:focus { border-color: #0878d8; box-s
   .ba-job-selector-card>div strong { font-size: 14px; }
   .ba-job-selector-card select, body.client-portal-page #baMessageJobSelect { min-height: 52px; font-size: 12px; padding-left: 12px; }
 }
+
+/* BrightAce responsive navigation/profile photo safeguards — phones, Android and tablets */
+@media(max-width:900px){.ba-top-profile,.client-top-profile{min-width:0;max-width:52vw}.ba-avatar,.ba-profile-avatar,.client-avatar,.ba-profile-avatar-frame{flex-shrink:0}.ba-avatar img,.ba-profile-avatar img,.ba-profile-avatar-frame img{width:100%;height:100%;object-fit:cover;border-radius:50%}}
+@media(max-width:600px){.ba-client-top{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));gap:8px}.ba-top-profile{gap:6px}.ba-top-profile strong{max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ba-avatar{width:34px;height:34px;flex:0 0 34px}.client-app-topbar{gap:7px}.client-top-brand{min-width:0}.client-top-brand strong{max-width:33vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.client-avatar{width:34px;height:34px;flex:0 0 34px}}
+@media(min-width:601px) and (max-width:1024px){.client-avatar,.ba-avatar{width:36px;height:36px;flex-basis:36px}.ba-client-top{padding-left:16px;padding-right:16px}}

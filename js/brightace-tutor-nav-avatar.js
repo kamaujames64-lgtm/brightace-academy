@@ -13,5 +13,7 @@
     var body=new URLSearchParams();body.set('payload',JSON.stringify({action:'tutorDashboard',tutorToken:token,forceFreshProfile:true}));
     fetch(api,{method:'POST',body:body,cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(!d||!d.ok)return;var url=String(d.tutor&&d.tutor.profilePictureUrl||'').trim();if(!url){avatar.textContent='👤';return;}var img=document.createElement('img');img.src=url;img.alt='';img.loading='eager';img.decoding='async';img.onerror=function(){img.remove();avatar.textContent='👤'};avatar.replaceChildren(img)}).catch(function(){avatar.textContent='👤'});
   }
+  window.BrightAceRefreshTutorNavAvatar=init;
+  window.addEventListener('brightace:tutor-profile-photo-updated',init);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

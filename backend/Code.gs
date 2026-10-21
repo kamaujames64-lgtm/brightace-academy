@@ -168,6 +168,7 @@ function doPost(e){
     requireActionPermission_(body);
     if(body.object === "whatsapp_business_account") return handleWhatsAppWebhook_(body);
     if(body.event && body.data) return handlePaystackWebhook_(body);
+    if(body.action === "publicRequestIntakeStatus") { const contact=normalizePhone_(body.phone||""); if(contact && isWhatsAppBlocked_(contact)) return json_({ok:true,blocked:true,enabled:isNewRequestIntakeEnabled_()}); return json_({ok:true,blocked:false,enabled:isNewRequestIntakeEnabled_()}); }
     if(body.action === "startChat") return startChat_(body);
     if(body.action === "clientCreateRequest") return clientCreateRequest_(body);
     if(body.action === "returningClientSendVerification") return returningClientSendVerification_(body);
@@ -492,7 +493,7 @@ function adminSetRequestIntake_(d){
 }
 function ensureClientForChat_(phone,name){
   const normalized=normalizePhone_(phone);
-  if(isWhatsAppBlocked_(normalized)) throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
+  if(isWhatsAppBlocked_(normalized)) throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.");
   const lock=LockService.getScriptLock();lock.waitLock(5000);
   try{
     const existing=findAnyClientByPhone_(normalized);
@@ -509,9 +510,9 @@ function getClientRecordByPhone_(phone){
   return null;
 }
 function requireRegisteredClient_(phone,name){
-  if(isWhatsAppBlocked_(phone)) throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
+  if(isWhatsAppBlocked_(phone)) throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.");
   const raw=getClientRecordByPhone_(phone);
-  if(raw && ["SUSPENDED","INACTIVE"].includes(raw.status)) throw new Error("Sorry, this client account is suspended from using BrightAce services. Please contact BrightAce Admin.");
+  if(raw && ["SUSPENDED","INACTIVE"].includes(raw.status)) throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made unfairly, please contact BrightAce Support using the Contact link at the foot of the page.");
   const c=getClientByPhone_(phone);
   return c || ensureClientForChat_(phone,name);
 }
@@ -522,10 +523,10 @@ function startChat_(d){
   if(["KES","USD","EUR"].indexOf(currency)<0) throw new Error("Choose KES, USD or EUR.");
   const phone=normalizePhone_(d.phone);
   if(phone.length<7) throw new Error("Enter a valid WhatsApp number.");
-  if(isWhatsAppBlocked_(phone)) throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
+  if(isWhatsAppBlocked_(phone)) throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.");
   let client=findAnyClientByPhone_(phone);
   if(!isNewRequestIntakeEnabled_()) throw new Error("Thank you for choosing BrightAce Academy. Our tutors are currently fully booked and are unable to accept new requests right now. Please check back soon—we would be happy to help when availability opens. Existing conversations and scheduled sessions are not affected.");
-  if(client && client.status==="SUSPENDED") throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
+  if(client && client.status==="SUSPENDED") throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.");
   if(!client) client=ensureClientForChat_(phone,d.name);
   if(client && String(client.clientName||"").trim() &&
      String(client.clientName||"").trim().toLowerCase()!==String(d.name||"").trim().toLowerCase())
@@ -622,7 +623,7 @@ function sendVerificationCode_(conversationId,phone){
   const c=findConversation_(id);
   if(!c)throw new Error("Verification request not found.");
   if(normalizePhone_(c.studentPhone)!==target)throw new Error("The WhatsApp number does not match this request.");
-  if(isWhatsAppBlocked_(target))throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
+  if(isWhatsAppBlocked_(target))throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.");
   const code=isVerificationTestCodeEnabledFor_(target)?getVerificationTestCode_():generateVerificationCode_(target);
   const sh=getConversationSheet_();
   const recentRaw=getByHeader_(sh,c.row,"verificationLastSentAt"),recent=recentRaw?new Date(recentRaw).getTime():0;
@@ -653,7 +654,7 @@ function returningClientSendVerification_(d){
   const phone=normalizePhone_(d.phone||"");
   if(!name)throw new Error("Enter the name used on your BrightAce request.");
   if(phone.length<7||phone.length>15)throw new Error("Enter a valid international WhatsApp number. Use +countrycode followed by the number.");
-  if(isWhatsAppBlocked_(phone))throw new Error("Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.");
+  if(isWhatsAppBlocked_(phone))throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.");
   const client=getClientByPhone_(phone);
   if(!client)throw new Error("No BrightAce client record was found for this WhatsApp number. If this is your first request, please use Start your support request.");
   if(String(client.status||"").toUpperCase()==="SUSPENDED"||String(client.status||"").toUpperCase()==="INACTIVE")throw new Error("This client account is not active. Please contact BrightAce Admin.");
@@ -1344,13 +1345,13 @@ function requireClientSessionReadOnly_(token,phone){return requireClientSession_
 function requireClientSession_(token,phone){
   const target=normalizePhone_(phone||''),rawToken=String(token||'').trim();
   if(!rawToken||!target)throw new Error('Your client session has expired. Please verify your WhatsApp number again.');
-  if(isWhatsAppBlocked_(target))throw new Error('Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.');
+  if(isWhatsAppBlocked_(target))throw new Error('BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.');
   const hash=sha256Hex_(rawToken),now=Date.now(),maxIdle=30*60*1000,cache=CacheService.getScriptCache();
   let cached=safeJson_(cache.get(CONFIG.clientSessionTokenPrefix+hash)||'');
   if(cached&&cached.phone===target){
     const last=Number(cached.lastActivityAt||0),exp=Number(cached.expiresAt||0);
     if(last&&now-last<=maxIdle&&exp>now){
-      if(String(cached.client?.status||'ACTIVE').toUpperCase()==='SUSPENDED')throw new Error('Sorry, this WhatsApp number is blocked from using BrightAce services. Please contact BrightAce Admin.');
+      if(String(cached.client?.status||'ACTIVE').toUpperCase()==='SUSPENDED')throw new Error('BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.');
       const client=Object.assign({},cached.client||{},{row:Number(cached.client?.row||0)||0,clientPhone:target});
       baRefreshClientSessionCache_(hash,cached,now);
       return client;
@@ -2008,7 +2009,7 @@ function getTutorByPhone_(phone){
 }
 function tutorSendVerification_(d){
   const phone=normalizePhone_(d.phone||""); if(phone.length<7)throw new Error("Enter a valid tutor WhatsApp number.");
-  if(isWhatsAppBlocked_(phone))throw new Error("This number is not allowed here. It has been suspended by BrightAce Admin.");
+  if(isWhatsAppBlocked_(phone))throw new Error("BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made unfairly, please contact BrightAce Support using the Contact link at the foot of the page.");
   const t=getTutorByPhone_(phone);if(!t)throw new Error("This WhatsApp number is not registered to a BrightAce tutor.");
   const code=isTutorVerificationTestCodeEnabledFor_(phone)?getTutorVerificationTestCode_():generateVerificationCode_(phone),sh=getTutorSheet_(),now=new Date();
   if(!t.row){const id=t.tutorId==="TEST-TUTOR"?"TUT-TEST":"TUT-PRIMARY",name=t.tutorName;sh.appendRow([id,name,name,phone,"WHATSAPP","ACTIVE",now,"","",0,"",""]);t=getTutorByPhone_(phone);}
