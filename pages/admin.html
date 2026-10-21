@@ -95,7 +95,7 @@ body{background:var(--ba-bg)}
 </section></main>
 <footer class="footer" style="margin-top:34px"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html" style="margin-right:14px">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
 
-<script src="../js/app.js"></script><script src="../js/statement-pdf.js"></script><script>
+<script src="../js/app.js?v=20261021interaction-safe87"></script><script src="../js/statement-pdf.js"></script><script>
 const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec");
 const KEY="brightace_admin_token_v4";let rows=[],tutors=[],admins=[],selected=null,selectedMessages=[],selectedFiles=[],loading=false,pollTimer=null;
 const $=id=>document.getElementById(id),notice=$('notice');
@@ -316,7 +316,7 @@ if($('loginForm'))$('loginForm').onsubmit=e=>{e.preventDefault();location.replac
 };
 
 function updateStatementRangeStatus(){const from=$('adminStatementFrom').value,to=$('adminStatementTo').value,el=$('statementRangeStatus');if(!el)return;if(from&&to)el.textContent='Selected: '+from+' to '+to;else if(from)el.textContent='From '+from+' to present';else if(to)el.textContent='Beginning to '+to;else el.textContent='All recorded transactions'}$('adminStatementFrom').addEventListener('change',updateStatementRangeStatus);$('adminStatementTo').addEventListener('change',updateStatementRangeStatus);document.querySelectorAll('.statement-preset').forEach(btn=>btn.addEventListener('click',()=>{const now=new Date(),mode=btn.dataset.statementRange,from=$('adminStatementFrom'),to=$('adminStatementTo'),pad=n=>String(n).padStart(2,'0'),fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());if(mode==='all'){from.value='';to.value=''}else if(mode==='month'){from.value=fmt(new Date(now.getFullYear(),now.getMonth(),1));to.value=fmt(now)}else{const days=Number(mode)||7,d=new Date(now);d.setDate(d.getDate()-days+1);from.value=fmt(d);to.value=fmt(now)}updateStatementRangeStatus();}));updateStatementRangeStatus();if(token()){showAdminNav();$('login').hidden=true;$('app').hidden=false;$('adminNav').style.display='flex';loadAdminProfile();refresh()}window.BrightAceScheduler.start("admin-dashboard",()=>{if(token()&&!loading&&!document.querySelector("input:focus,textarea:focus,select:focus"))return refresh().catch(()=>{})},25000);
-window.BrightAceScheduler.start("admin-conversation",()=>{if(token()&&selected&&!loading&&!document.querySelector("input:focus,textarea:focus,select:focus"))return loadConversation(selected.conversationId).catch(()=>{})},5000);
+window.BrightAceScheduler.start("admin-conversation",()=>{if(token()&&selected&&!loading&&!document.querySelector("input:focus,textarea:focus,select:focus"))return loadConversation(selected.conversationId).catch(()=>{})},10000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&token()&&selected)loadConversation(selected.conversationId).catch(()=>{})});
 </script>
 <script src="../js/brightace-composer.js?v=20261002b" defer></script><script src="../js/admin-navigation.js?v=20261012-v72" defer></script></body></html>

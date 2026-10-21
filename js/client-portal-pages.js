@@ -178,6 +178,7 @@
     if((page==='resources'||page==='payments')&&window.BrightAceCurrency)await window.BrightAceCurrency.loadRates();
     const reqs=Array.isArray(d.requests)?d.requests:[],sched=Array.isArray(d.schedules)?d.schedules:[],msgs=Array.isArray(d.messages)?d.messages:[],payments=Array.isArray(d.payments)?d.payments:[],subs=Array.isArray(d.tutorSubmissions)?d.tutorSubmissions:[];
     const name=d.student?.name||s.name||'Verified Client';
+    const assignedAdminPhoto=(reqs.find(x=>x.assignedAdminProfilePictureUrl)?.assignedAdminProfilePictureUrl)||'';
     paintClientAvatar(d.student?.profilePictureUrl||s.profilePictureUrl,name);
     const jobTitle=x=>String(x?.workDescription||x?.subject||x?.service||x?.conversationId||'BrightAce Work').replace(/\s+/g,' ').trim();
     const jobKey=x=>String(x?.conversationId||x?.requestId||'').trim();
@@ -208,7 +209,7 @@
       reqs.slice().sort((a,b)=>new Date(b.lastMessageAt||b.requestedAt||0)-new Date(a.lastMessageAt||a.requestedAt||0)).slice(0,5).forEach(x=>recent.push({icon:'▤',title:'Work request',text:jobTitle(x),meta:jobStatus(x)}));
       msgs.slice().sort((a,b)=>new Date(b.timestamp||0)-new Date(a.timestamp||0)).slice(0,4).forEach(x=>recent.push({icon:String(x.sender||'').toLowerCase()==='tutor'?'🎓':'●',title:String(x.sender||'').toLowerCase()==='tutor'?'Tutor message':'New message',text:x.text||'Attachment received',meta:dateTimeText(x.timestamp)}));
       recent.splice(6);
-      root.innerHTML=`<div class="ba-dash-hero"><div><div class="eyebrow">BRIGHTACE CLIENT DASHBOARD</div><h1>👋 Hello, ${esc(name)}!</h1><p>Welcome back to BrightAce Academy. Keep going — you’re doing great!</p></div><div class="ba-dash-hero-art" aria-hidden="true">🎓📚</div></div><div class="ba-dash-stats"><div><span class="ba-dash-stat-icon">▤</span><div><strong>${reqs.length}</strong><small>Total Requests</small></div></div><div><span class="ba-dash-stat-icon">✓</span><div><strong>${active}</strong><small>Active Requests</small></div></div><div><span class="ba-dash-stat-icon">◷</span><div><strong>${sched.filter(x=>!/^CANCEL/i.test(String(x.status||''))).length}</strong><small>Sessions</small></div></div><div><span class="ba-dash-stat-icon">◉</span><div><strong>${activeAssignments}</strong><small>Active Assignments</small></div></div></div><div class="ba-dash-columns"><section class="ba-card ba-dash-activity"><div class="ba-section-title"><div><h2>Recent Activity</h2><p>Latest updates across all your BrightAce jobs.</p></div><a href="client-requests.html">View all</a></div>${recent.map(x=>`<div class="ba-dash-activity-row"><span>${x.icon}</span><div><strong>${esc(x.title)}</strong><p>${esc(x.text)}</p></div><small>${esc(x.meta)}</small></div>`).join('')||'<div class="ba-empty">No recent activity yet.</div>'}</section><section class="ba-card ba-dash-actions"><div class="ba-section-title"><div><h2>Quick Actions</h2><p>Start the next step without leaving your dashboard.</p></div></div><div class="ba-quick-grid"><a href="client-new-request.html"><b>＋</b><strong>New Request</strong><small>Request a tutor or service</small></a><a href="client-requests.html"><b>▤</b><strong>My Requests</strong><small>Track every job</small></a><a href="client-resources.html"><b>▣</b><strong>Study Resources</strong><small>Access available materials</small></a><a href="client-payments.html"><b>▰</b><strong>Payments</strong><small>Invoices, refunds and statement</small></a></div><div class="ba-help-box"><div><strong>Need Help?</strong><p>Contact BrightAce Admin through the WhatsApp Wall for support.</p></div><a class="btn btn-primary" href="chat.html">OPEN WHATSAPP WALL</a></div></section></div><section class="ba-card ba-dash-jobs"><div class="ba-section-title"><div><h2>Your Work</h2><p>Each request is an independent job and can have its own tutor, messages, files and sessions.</p></div><a href="client-tutoring.html">View tutors & sessions</a></div><div class="ba-job-mini-grid">${reqs.slice(0,8).map(x=>`<article><span class="ba-pill ${statusClass(jobStatus(x))}">${esc(jobStatus(x))}</span><h3>${esc(jobTitle(x))}</h3><p>${esc(jobKey(x))}</p><small>Tutor: ${esc(tutorName(x))}</small><div><a href="client-work.html?request=${encodeURIComponent(jobKey(x))}">Open job</a>${String(x.assignedTutor||x.tutor||'').trim()?`<a href="client-tutoring.html?request=${encodeURIComponent(jobKey(x))}">Tutor & session</a>`:''}</div></article>`).join('')||'<div class="ba-empty">No requests have been recorded yet.</div>'}</div></section>`;
+      root.innerHTML=`<div class="ba-dash-hero"><div><div class="eyebrow">BRIGHTACE CLIENT DASHBOARD</div><h1>👋 Hello, ${esc(name)}!</h1><p>Welcome back to BrightAce Academy. Keep going — you’re doing great!</p></div><div class="ba-dash-hero-art" aria-hidden="true">🎓📚</div></div><div class="ba-dash-stats"><div><span class="ba-dash-stat-icon">▤</span><div><strong>${reqs.length}</strong><small>Total Requests</small></div></div><div><span class="ba-dash-stat-icon">✓</span><div><strong>${active}</strong><small>Active Requests</small></div></div><div><span class="ba-dash-stat-icon">◷</span><div><strong>${sched.filter(x=>!/^CANCEL/i.test(String(x.status||''))).length}</strong><small>Sessions</small></div></div><div><span class="ba-dash-stat-icon">◉</span><div><strong>${activeAssignments}</strong><small>Active Assignments</small></div></div></div><div class="ba-dash-columns"><section class="ba-card ba-dash-activity"><div class="ba-section-title"><div><h2>Recent Activity</h2><p>Latest updates across all your BrightAce jobs.</p></div><a href="client-requests.html">View all</a></div>${recent.map(x=>`<div class="ba-dash-activity-row"><span>${x.icon}</span><div><strong>${esc(x.title)}</strong><p>${esc(x.text)}</p></div><small>${esc(x.meta)}</small></div>`).join('')||'<div class="ba-empty">No recent activity yet.</div>'}</section><section class="ba-card ba-dash-actions"><div class="ba-section-title"><div><h2>Quick Actions</h2><p>Start the next step without leaving your dashboard.</p></div></div><div class="ba-quick-grid"><a href="client-new-request.html"><b>＋</b><strong>New Request</strong><small>Request a tutor or service</small></a><a href="client-requests.html"><b>▤</b><strong>My Requests</strong><small>Track every job</small></a><a href="client-resources.html"><b>▣</b><strong>Study Resources</strong><small>Access available materials</small></a><a href="client-payments.html"><b>▰</b><strong>Payments</strong><small>Invoices, refunds and statement</small></a></div><div class="ba-help-box"><div class="ba-help-copy">${assignedAdminPhoto?`<img class="ba-assigned-admin-avatar" src="${esc(assignedAdminPhoto)}" alt="Assigned BrightAce Admin" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true">`:''}<div><strong>Need Help?</strong><p>Contact BrightAce Admin through the WhatsApp Wall for support.</p></div></div><a class="btn btn-primary" href="chat.html">OPEN WHATSAPP WALL</a></div></section></div><section class="ba-card ba-dash-jobs"><div class="ba-section-title"><div><h2>Your Work</h2><p>Each request is an independent job and can have its own tutor, messages, files and sessions.</p></div><a href="client-tutoring.html">View tutors & sessions</a></div><div class="ba-job-mini-grid">${reqs.slice(0,8).map(x=>`<article><span class="ba-pill ${statusClass(jobStatus(x))}">${esc(jobStatus(x))}</span><h3>${esc(jobTitle(x))}</h3><p>${esc(jobKey(x))}</p><small>Tutor: ${esc(tutorName(x))}</small><div><a href="client-work.html?request=${encodeURIComponent(jobKey(x))}">Open job</a>${String(x.assignedTutor||x.tutor||'').trim()?`<a href="client-tutoring.html?request=${encodeURIComponent(jobKey(x))}">Tutor & session</a>`:''}</div></article>`).join('')||'<div class="ba-empty">No requests have been recorded yet.</div>'}</div></section>`;
       return;
     }
 
@@ -385,22 +386,49 @@ async function downloadStatement(){const btn=root.querySelector('#baDownloadStat
     // without waiting for a network round-trip. The background refresh listener is installed
     // before the request starts so fast responses can never be missed.
     root.innerHTML=workspaceSkeleton(page);
-    const onRefresh=e=>{
-      if(!e?.detail||!document.body.contains(root))return;
-      window.BrightAceClientPortal={session:s,data:e.detail};
-      const fresh=e.detail;
+    let renderedData=null,pendingFreshData=null,refreshApplyTimer=null,lastWorkspaceInteraction=Date.now();
+    const dataSignature=value=>{try{return JSON.stringify(value)}catch(e){return ''}};
+    const workspaceBusy=()=>{
+      const active=document.activeElement;
+      if(active&&root.contains(active)&&(/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)||active.isContentEditable))return true;
+      if(root.querySelector('dialog[open],.modal-open,.is-open[aria-modal="true"],form [data-ba-user-edited="1"]'))return true;
+      return Date.now()-lastWorkspaceInteraction<4500;
+    };
+    ['pointerdown','keydown','input','change','touchstart','wheel'].forEach(type=>root.addEventListener(type,()=>{
+      lastWorkspaceInteraction=Date.now();
+      const el=document.activeElement;if(el&&root.contains(el)&&/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))el.dataset.baUserEdited='1';
+    },{passive:true,capture:true}));
+    function applyPendingRefresh(){
+      if(refreshApplyTimer){clearTimeout(refreshApplyTimer);refreshApplyTimer=null;}
+      if(!pendingFreshData||!document.body.contains(root))return;
+      if(workspaceBusy()){refreshApplyTimer=setTimeout(applyPendingRefresh,1500);return;}
+      const fresh=pendingFreshData;pendingFreshData=null;
+      if(dataSignature(fresh)===dataSignature(renderedData))return;
+      const pageY=window.scrollY,rootScroll=root.scrollTop;
+      window.BrightAceClientPortal={session:s,data:fresh};
       const unread=Array.isArray(fresh.messages)?fresh.messages.filter(m=>String(m.sender||'').toLowerCase()==='admin'&&!/read|seen/i.test(String(m.status||''))).length:0;
       document.querySelector('[data-sidebar-message-count]')?.toggleAttribute('hidden',!unread);
       const badge=document.querySelector('[data-sidebar-message-count]');if(badge)badge.textContent=String(unread);
-      (page==='tutoring'?renderTutoring(fresh,s):render(page,fresh,s)).catch(err=>shellError(root,err));
+      const task=page==='tutoring'?renderTutoring(fresh,s):render(page,fresh,s);
+      Promise.resolve(task).then(()=>{renderedData=fresh;root.scrollTop=rootScroll;requestAnimationFrame(()=>window.scrollTo({top:pageY,behavior:'auto'}));}).catch(err=>shellError(root,err));
+    }
+    const onRefresh=e=>{
+      if(!e?.detail||!document.body.contains(root))return;
+      pendingFreshData=e.detail;
+      // Do not redraw the whole workspace when the server returned the same data.
+      if(dataSignature(pendingFreshData)===dataSignature(renderedData)){pendingFreshData=null;return;}
+      if(refreshApplyTimer)clearTimeout(refreshApplyTimer);
+      refreshApplyTimer=setTimeout(applyPendingRefresh,5000);
     };
-    window.addEventListener('brightace:dashboard-refresh',onRefresh,{once:true});
+    window.addEventListener('brightace:dashboard-refresh',onRefresh);
+    window.addEventListener('focus',applyPendingRefresh);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)applyPendingRefresh()});
     try{
       const d=page==='tutoring'?await loadTutorSessionsFresh(s):(page==='dashboard'?await loadDashboardSummary(s):await loadDashboard(s));window.BrightAceClientPortal={session:s,data:d};
       const unread=Array.isArray(d.messages)?d.messages.filter(m=>String(m.sender||'').toLowerCase()==='admin'&&!/read|seen/i.test(String(m.status||''))).length:0;
       document.querySelector('[data-sidebar-message-count]')?.toggleAttribute('hidden',!unread);
       const badge=document.querySelector('[data-sidebar-message-count]');if(badge)badge.textContent=String(unread);
-      if(page==='tutoring'){await renderTutoring(d,s);document.querySelector('main > .section')?.setAttribute('data-legacy-tutoring','1');}else await render(page,d,s);
+      if(page==='tutoring'){await renderTutoring(d,s);document.querySelector('main > .section')?.setAttribute('data-legacy-tutoring','1');}else await render(page,d,s);renderedData=d;
     }catch(e){if(/session|expired|verify|verified client|access token/i.test(String(e?.message||''))){redirectToPublicHome();return}shellError(root,e)}
   }
   window.BrightAceClientPortalAPI={getSession,saveSession,clearSession,ensureSession,loadDashboard,post};

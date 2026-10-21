@@ -53,25 +53,43 @@
   }
   window.BrightAceSound={unlock,play,newItems,checkDeadlines,notify};
 
-/* BrightAce V52: visibility-aware polling scheduler. It avoids permanent interval
-   timers in background tabs, prevents overlapping refreshes, and refreshes once
-   when the page becomes visible again. */
+/* BrightAce V87: interaction-safe, visibility-aware polling scheduler.
+   Polling is staggered to avoid synchronized request bursts. Refreshes never
+   overlap, are paused in hidden tabs, and are deferred while the user is typing
+   or actively interacting with a control. One shared listener avoids leaks. */
+window.BrightAceInteraction = window.BrightAceInteraction || {lastAt:0};
+if(!window.__baInteractionListenersBound){
+  window.__baInteractionListenersBound=true;
+  ['pointerdown','keydown','input','touchstart','wheel'].forEach(function(evt){
+    document.addEventListener(evt,function(){window.BrightAceInteraction.lastAt=Date.now();if(document.body)document.body.dataset.baBusyUntil=String(Date.now()+1800)},{passive:true,capture:true});
+  });
+}
 window.BrightAceScheduler = window.BrightAceScheduler || {
   start: function(name, fn, intervalMs, options){
-    var active=true, timer=null, running=false, delay=Math.max(5000,Number(intervalMs)||20000), immediateOnVisible=options&&options.immediateOnVisible!==false;
+    var active=true,timer=null,running=false,lastRun=0,delay=Math.max(5000,Number(intervalMs)||20000),
+        immediateOnVisible=!!(options&&options.immediateOnVisible===true),
+        jitter=Math.min(2500,Math.max(250,Math.round(delay*.12)));
     function clear(){if(timer){clearTimeout(timer);timer=null}}
-    function schedule(ms){clear();if(!active||document.hidden)return;timer=setTimeout(tick,Math.max(1000,ms||delay))}
+    function userBusy(){
+      var el=document.activeElement;
+      if(el&&(/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)||el.isContentEditable))return true;
+      if(document.body&&document.body.dataset.baBusyUntil&&Date.now()<Number(document.body.dataset.baBusyUntil))return true;
+      return false;
+    }
+    function nextDelay(base){return Math.max(1000,base+(Math.random()*2-1)*jitter)}
+    function schedule(ms){clear();if(!active||document.hidden)return;timer=setTimeout(tick,nextDelay(ms||delay))}
     async function tick(){
       timer=null;if(!active||document.hidden)return;
       if(running){schedule(delay);return}
-      running=true;
+      if(userBusy()){schedule(Math.min(delay,5000));return}
+      running=true;lastRun=Date.now();
       try{await Promise.resolve(fn(true))}catch(e){}
       finally{running=false;if(active&&!document.hidden)schedule(delay)}
     }
-    function visible(){if(!active||document.hidden)return;if(immediateOnVisible&&!running)tick();else schedule(delay)}
-    document.addEventListener("visibilitychange",visible);
-    schedule(delay);
-    return function(){active=false;clear();document.removeEventListener("visibilitychange",visible)};
+    function visible(){if(!active||document.hidden)return;if(immediateOnVisible&&Date.now()-lastRun>delay*.8&&!userBusy())tick();else schedule(delay)}
+    document.addEventListener('visibilitychange',visible);
+    schedule(Math.max(1000,delay*Math.random()));
+    return function(){active=false;clear();document.removeEventListener('visibilitychange',visible)};
   }
 };
   document.addEventListener("click",unlock,{once:true,capture:true});

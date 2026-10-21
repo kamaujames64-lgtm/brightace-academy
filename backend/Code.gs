@@ -8,7 +8,7 @@
  * IMPORTANT: keep tokens in Apps Script Script Properties. Never put secrets in GitHub Pages JS.
  */
 
-const BRIGHTACE_BUILD="2026-10-12-V86-RESOURCE-MANAGEMENT-DIRECT-UPLOADS-PRICING-PAYMENT-REPAIR";
+const BRIGHTACE_BUILD="2026-10-21-V87-INTERACTION-SAFE-PRIVACY-SCALABILITY";
 const CONFIG = {
   spreadsheetIdKey: "SPREADSHEET_ID",
   driveFolderIdKey: "CHAT_DRIVE_FOLDER_ID",
@@ -33,6 +33,26 @@ const CONFIG = {
   tutorVerificationTestCodeKey: "BRIGHTACE_TUTOR_TEST_CODE",
   clientSessionTokenPrefix: "BA_CLIENT_SESSION_"
 };
+
+/* Periodically remove expired bearer-session records from Script Properties.
+ * Session records are otherwise retained forever when users never return after
+ * expiry, gradually consuming the project's limited property storage. This is
+ * maintenance only: a token is removed only when its stored expiry has passed.
+ */
+function baPruneExpiredSessionTokens_(){
+  const cache=CacheService.getScriptCache(),guard='BA_SESSION_TOKEN_PRUNE_LAST';
+  try{if(cache.get(guard))return;cache.put(guard,String(Date.now()),300);}catch(e){}
+  try{
+    const props=PropertiesService.getScriptProperties(),all=props.getProperties(),now=Date.now(),remove=[];
+    Object.keys(all).forEach(function(key){
+      if(key.indexOf('BA_ADMIN_TOKEN_')!==0&&key.indexOf('BA_TUTOR_TOKEN_')!==0)return;
+      let record=null;try{record=JSON.parse(all[key]||'{}')}catch(e){}
+      const expires=Number(record&&record.tokenExpiresAt||0);
+      if(!expires||expires<=now)remove.push(key);
+    });
+    remove.forEach(function(key){try{props.deleteProperty(key)}catch(e){}});
+  }catch(e){console.warn('Session token cleanup deferred: '+String(e&&e.message||e));}
+}
 
 /* BrightAce V66 — self-contained fast phone lookup.
  * Kept in Code.gs so deployments cannot fail because a separate helper file was omitted.
@@ -92,7 +112,7 @@ function doGet(e){
     if(p["hub.mode"] === "subscribe") return verifyWebhook_(p);
     const action=String(p.action||"health"); __baAction=action;
     baSecurityGateGet_(p);
-    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v86",time:new Date().toISOString(),observability:baObservabilityHealth_()});
+    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v87",time:new Date().toISOString(),observability:baObservabilityHealth_()});
     if(action==="version") return json_(baDeploymentInfo_());
     if(action==="fxRates") return baFxRates_();
     if(action==="messages") return getMessages_(p.sessionId,p.clientSessionToken,p.phone,p.afterMessageId,p.clientAccessToken);
@@ -1039,6 +1059,7 @@ function toPaystackMinorUnit_(amount,currency){
 
 
 function adminLogin_(password,username){
+  baPruneExpiredSessionTokens_();
   const rateKey="BA_ADMIN_LOGIN_FAIL_"+String(username||"owner").trim().toLowerCase();const rate=Number(CacheService.getScriptCache().get(rateKey)||0);if(rate>=8)throw new Error("Too many failed admin sign-in attempts. Please wait 10 minutes and try again.");
   const props=PropertiesService.getScriptProperties(),raw=String(props.getProperty(CONFIG.adminUsersKey)||"").trim(),uName=String(username||"owner").trim()||"owner";
   if(raw){let users=[];try{users=JSON.parse(raw)}catch(e){throw new Error("ADMIN_USERS_JSON is not valid JSON in Script Properties.");}
@@ -1546,6 +1567,19 @@ function clientAllMessages_(phone){
   out.sort(function(a,b){return new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime()});
   const result=out.slice(-300); baCachePutJson_(ck,result,10); return result;
 }
+function baAttachAssignedAdminPhotos_(requests){
+  const rows=Array.isArray(requests)?requests:[];
+  if(!rows.length)return;
+  let users=[];try{users=getAdminUsers_();}catch(e){return;}
+  const byUsername={};users.forEach(function(u){const k=String(u.username||'').trim().toLowerCase();if(k)byUsername[k]=String(u.profilePictureUrl||'');});
+  rows.forEach(function(r){
+    const key=String(r.assignedAdminUsername||'').trim().toLowerCase();
+    // Only expose the profile photo for the admin assigned to this verified client's own work.
+    r.assignedAdminProfilePictureUrl=key?String(byUsername[key]||''):'';
+    delete r.assignedAdminUsername;
+  });
+}
+
 function clientPortalSummary_(d){
   const phone=normalizePhone_(d.phone||''),token=String(d.clientSessionToken||'').trim();
   if(!phone)throw new Error('Your verified client session could not be restored. Please verify your WhatsApp number again.');
@@ -1554,9 +1588,10 @@ function clientPortalSummary_(d){
   const convSh=getConversationSheet_(),cm=headerMap_(convSh);
   const rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_CONV_PHONE'):[];
   const convRows=baFastReadRows_(convSh,rowNums),requests=[];
-  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,status:c.status});}catch(e){}}
+  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,assignedAdminUsername:c.assignedAdminUsername||'',assignedAdminName:c.assignedAdminName||'',deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const tutorProfiles=baTutorProfilesFast_(requests);requests.forEach(function(x){const ph=normalizePhone_(x.tutorPhone||''),nk='name:'+String(x.tutor||x.assignedTutor||'').trim().toLowerCase(),profile=tutorProfiles[ph]||tutorProfiles[nk]||null;if(profile){x.tutorProfilePictureUrl=profile.profilePictureUrl||'';x.tutorProfessionalTitle=profile.professionalTitle||'';x.tutorAdminRating=Number(profile.adminRating||0);x.tutorDescription=profile.description||'';}});
+  baAttachAssignedAdminPhotos_(requests);
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
   const schedules=baClientSchedulesFast_(phone,Object.keys(ids));
   const msgSh=getSheet_('MESSAGES',messageHeaders_()),mm=headerMap_(msgSh),last=msgSh.getLastRow(),messages=[];
@@ -1581,7 +1616,7 @@ function clientPortalData_(d){
   const convSh=getConversationSheet_(), cm=headerMap_(convSh);
   const rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_CONV_PHONE'):[];
   const convRows=baFastReadRows_(convSh,rowNums), requests=[];
-  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
+  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
 
@@ -1599,6 +1634,7 @@ function clientPortalData_(d){
 
   const schedules=baClientSchedulesFast_(phone,Object.keys(ids));
   const profiles=baTutorProfilesFast_(requests);requests.forEach(function(x){const ph=normalizePhone_(x.tutorPhone||''),nk='name:'+String(x.tutor||x.assignedTutor||'').trim().toLowerCase(),p=profiles[ph]||profiles[nk]||null;if(p){x.tutorProfilePictureUrl=p.profilePictureUrl||'';x.tutorDescription=p.description||'';x.tutorProfessionalTitle=p.professionalTitle||'';x.tutorAdminRating=Number(p.adminRating||0);x.tutorProfilePhone=p.tutorPhone||x.tutorPhone||'';}});
+  baAttachAssignedAdminPhotos_(requests);
   const currentRequest=requests.find(x=>String(x.conversationId||'')===String(d.conversationId||''))||requests[0]||null;
   const clientProfile=getClientByPhone_(phone);
   const response={student:{name:client.clientName||'Verified Client',phone:phone,profilePictureUrl:String(clientProfile?.profilePictureUrl||''),displayCurrency:baNormalizeCurrency_(clientProfile?.displayCurrency||'USD')},requests,messages:messages.slice(-500),currentRequestMessages:currentRequest?messages.filter(x=>x.conversationId===currentRequest.conversationId).slice(-100):messages.slice(-100),documents:docs.slice(-200),uploadedDocuments:docs.filter(x=>String(x.sender||'').toLowerCase()!=='tutor').slice(-200),tutorSubmissions:submissions.slice(-200),payments,schedules,bookingRequests:listSessionBookingsForClient_(phone),currentRequest,invoiceReceipts:payments.map(x=>({requestId:x.requestId,url:x.invoiceUrl,status:x.status}))};
@@ -1635,7 +1671,7 @@ function clientTutorSessions_(d){
   const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_V2_'+phone;
   try{const hit=safeJson_(CacheService.getScriptCache().get(cacheKey)||'');if(hit&&Array.isArray(hit.requests)&&Array.isArray(hit.schedules))return json_(Object.assign({ok:true,clientSessionToken:token},hit));}catch(e){}
   const convSh=getConversationSheet_(),cm=headerMap_(convSh),rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_TUTOR_CONV_PHONE'):[],convRows=baFastReadRows_(convSh,rowNums),requests=[];
-  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
+  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
   const schedules=baClientSchedulesFast_(phone,Object.keys(ids));
@@ -1648,6 +1684,7 @@ function clientTutorSessions_(d){
     const profile=tutorProfiles[ph]||tutorProfiles[nk]||null;
     if(profile){x.tutorProfilePictureUrl=profile.profilePictureUrl||'';x.tutorProfessionalTitle=profile.professionalTitle||'';x.tutorDescription=profile.description||'';x.tutorAdminRating=Number(profile.adminRating||0);}
   });
+  baAttachAssignedAdminPhotos_(requests);
   const bookings=listSessionBookingsForClient_(phone);
   const clientProfile=getClientByPhone_(phone);
   const response={student:{name:client.clientName||'Verified Client',phone:phone,profilePictureUrl:String(clientProfile&&clientProfile.profilePictureUrl||'')},requests,schedules,bookingRequests:bookings,diagnostics:{requestCount:requests.length,scheduleCount:schedules.length,bookingCount:bookings.length}};
@@ -2024,6 +2061,7 @@ function tutorSessionProfile_(token){
   return json_({ok:true,tutor:{tutorId:p.tutorId,tutorName:p.tutorName,tutorDisplayName:p.tutorDisplayName,tutorPhone:p.tutorPhone,tokenExpiresAt:p.tokenExpiresAt}});
 }
 function tutorVerifyLogin_(d){
+  baPruneExpiredSessionTokens_();
   const phone=normalizePhone_(d.phone||""),code=String(d.code||"").trim();if(!/^\d{6}$/.test(code))throw new Error("Enter the 6-digit tutor verification code.");
   const t=getTutorByPhone_(phone);if(!t||!t.row)throw new Error("Tutor account not found.");
   const sh=getTutorSheet_(),expiry=getByHeader_(sh,t.row,"loginExpiresAt"),attempts=Number(getByHeader_(sh,t.row,"loginAttempts")||0);

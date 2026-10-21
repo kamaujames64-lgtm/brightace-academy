@@ -19,7 +19,7 @@
 <div id="login" hidden class="panel login"><h2>Admin sign in</h2><form id="loginForm" class="form"><label>Username<input id="u" required value="owner"></label><label>Password<input id="p" type="password" required></label><button class="btn btn-primary">SIGN IN</button></form></div>
 <div id="app" hidden><section class="panel"><h2>QA queue</h2><p class="meta">Only tutor submissions requiring review, revision items and completed jobs appear here.</p><div class="qa-queue" aria-label="QA queue"><div id="list"></div></div></section></div></div></section></main>
 <footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
-<script src="../js/app.js"></script><script>
+<script src="../js/app.js?v=20261021interaction-safe87"></script><script>
 const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec"),KEY="brightace_admin_token_v4";const $=id=>document.getElementById(id);let rows=[];
 function notice(t,type="info"){$("notice").textContent=t;$("notice").className="chat-notice "+type;$("notice").hidden=!t}
 function token(){return window.BrightAceAdminSession?window.BrightAceAdminSession.get():(localStorage.getItem(KEY)||sessionStorage.getItem(KEY)||localStorage.getItem("brightace_admin_token_v3")||sessionStorage.getItem("brightace_admin_token_v3")||"")}
