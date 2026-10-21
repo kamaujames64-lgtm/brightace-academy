@@ -255,7 +255,7 @@ messageForm?.addEventListener("submit",e=>{
   send().catch(markFailed);
 });
 
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&session?.verified){syncMessages().catch(()=>{})}});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&session?.verified){if(!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>=30*60*1000){expireClientSession();return}scheduleClientExpiry();syncMessages().catch(()=>{})}});window.addEventListener("pageshow",()=>{if(session?.verified&&(!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>=30*60*1000))expireClientSession()});
 
 
 

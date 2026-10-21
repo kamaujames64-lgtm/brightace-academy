@@ -8,7 +8,7 @@
  * IMPORTANT: keep tokens in Apps Script Script Properties. Never put secrets in GitHub Pages JS.
  */
 
-const BRIGHTACE_BUILD="2026-10-21-V89-BLOCKED-CLIENT-VERIFICATION-GATE"
+const BRIGHTACE_BUILD="2026-10-21-V90-CLIENT-ACCESS-RESOURCE-UX-REPAIR"
 const CONFIG = {
   spreadsheetIdKey: "SPREADSHEET_ID",
   driveFolderIdKey: "CHAT_DRIVE_FOLDER_ID",
@@ -112,7 +112,7 @@ function doGet(e){
     if(p["hub.mode"] === "subscribe") return verifyWebhook_(p);
     const action=String(p.action||"health"); __baAction=action;
     baSecurityGateGet_(p);
-    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v89",time:new Date().toISOString(),observability:baObservabilityHealth_()});
+    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v90",time:new Date().toISOString(),observability:baObservabilityHealth_()});
     if(action==="version") return json_(baDeploymentInfo_());
     if(action==="fxRates") return baFxRates_();
     if(action==="messages") return getMessages_(p.sessionId,p.clientSessionToken,p.phone,p.afterMessageId,p.clientAccessToken);
@@ -2263,7 +2263,11 @@ function getTutorBalanceView_(profile){
     if(!findPayoutForWork_(c.conversationId)) earnedBy[cur]=(earnedBy[cur]||0)+payout;
   }
   const currencies=new Set(Object.keys(earnedBy).concat(Object.keys(paidBy),Object.keys(adjustmentBy)));
-  const byCurrency={}; currencies.forEach(cur=>{const grossEarned=Math.round((earnedBy[cur]||0)*100)/100,adjustment=Math.round((adjustmentBy[cur]||0)*100)/100,earned=Math.max(0,Math.round((grossEarned-adjustment)*100)/100),paid=Math.round((paidBy[cur]||0)*100)/100;byCurrency[cur]={grossEarned,adjustment,earned,paid,balance:Math.max(0,Math.round((earned-paid)*100)/100),recoveryDue:Math.max(0,Math.round((paid-earned)*100)/100)}});
+  const byCurrency={}; currencies.forEach(cur=>{const grossEarned=Math.round((earnedBy[cur]||0)*100)/100,adjustment=Math.round((adjustmentBy[cur]||0)*100)/100,earned=Math.max(0,Math.round((grossEarned-adjustment)*100)/100),paid=Math.round((paidBy[cur]||0)*100)/100;
+    // Confirmed refunds reduce the tutor's account by the tutor-share adjustment.
+    // Preserve a negative balance when funds are insufficient; do not clamp to zero.
+    const balance=Math.round((grossEarned-paid-adjustment)*100)/100;
+    byCurrency[cur]={grossEarned,adjustment,earned,paid,balance,recoveryDue:Math.max(0,Math.round((-balance)*100)/100)}});
   return {byCurrency:byCurrency};
 }
 function tutorDashboard_(d){
@@ -2562,7 +2566,8 @@ function tutorAvailableBalance_(tutorId,currency){
   for(let i=1;i<wr.length;i++) if(String(wr[i][wm.tutorId-1]||"")===String(tutorId||"")&&String(wr[i][wm.currency-1]||"KES").toUpperCase()===cur&&String(wr[i][wm.status-1]||"").toUpperCase()==="PENDING"){
     pendingCents+=moneyCents_(wr[i][wm.amount-1]);
   }
-  return centsMoney_(Math.max(0,outstandingCents-pendingCents-adjustmentCents));
+  // Negative values represent a refund recovery owed by the tutor; withdrawal validation separately requires a positive available balance.
+  return centsMoney_(outstandingCents-pendingCents-adjustmentCents);
 }
 function tutorWalletRecipient_(w,method){
   const m=String(method||w?.preferredMethod||"").toUpperCase();

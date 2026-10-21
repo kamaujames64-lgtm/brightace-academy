@@ -28,20 +28,25 @@
 <p class="muted" style="margin-top:14px">This page contains promotional information only. Private learning materials are delivered through the authenticated client dashboard after review.</p></div></section>
 </main>
 <footer class="footer"><div class="container footer-grid"><div><div class="brand"><img src="../assets/brightace-logo.webp" alt="BrightAce Academy"><div class="brand-text"><div class="brand-name"><span class="bright">Bright</span><span class="ace">Ace</span></div><div class="brand-sub">ACADEMY</div></div></div><p style="margin-top:14px;max-width:390px">Your Partner in Academic Success. Personalized academic support for students worldwide.</p></div><div><h3>Explore</h3><a href="../pages/subjects.html">Subjects</a><a href="../pages/resources.html">Resources</a><a href="client-resources.html">My Resources</a><a href="../pages/how-it-works.html">How It Works</a></div><div><h3>Support</h3><a href="../pages/homework-help.html">Homework Help</a><a href="../pages/faq.html">FAQ</a><a href="../pages/chat.html">Live Chat</a></div><div><h3>BrightAce</h3><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a><a href="../pages/about.html">About</a><a href="mailto:kamaujames64@gmail.com?subject=BrightAce%20Academy%20Inquiry">Contact</a></div></div><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span>Learn • Solve • Excel • Achieve</span></div></footer>
-<script src="../js/app.js?v=20261021interaction-safe87" defer></script><script>
+<script src="../js/app.js?v=20261021resource-modal88" defer></script><script>
 (function(){
  const API=window.BRIGHTACE_API_URL||'',grid=document.getElementById('promoGrid'),notice=document.getElementById('promoNotice');
  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
  function safeUrl(s){try{const u=new URL(String(s||''),location.href);return u.protocol==='https:'?u.href:''}catch(e){return ''}}
- function driveId(url){const m=String(url||'').match(/drive\.google\.com\/(?:file\/d\/|uc\?[^#]*?id=|thumbnail\?id=)([A-Za-z0-9_-]{10,})/i);return m?m[1]:''}
+ function driveId(url){const s=String(url||'');let m=s.match(/drive\.google\.com\/(?:file\/d\/|document\/d\/|spreadsheets\/d\/|presentation\/d\/)([A-Za-z0-9_-]{10,})/i);if(!m)m=s.match(/[?&]id=([A-Za-z0-9_-]{10,})/i);return m?m[1]:''}
  function youtubeId(url){try{const u=new URL(url);if(/(^|\.)youtu\.be$/i.test(u.hostname))return u.pathname.split('/').filter(Boolean)[0]||'';if(/(^|\.)youtube\.com$/i.test(u.hostname)||/(^|\.)youtube-nocookie\.com$/i.test(u.hostname)){if(u.pathname==='/watch')return u.searchParams.get('v')||'';const m=u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/);return m?m[1]:''}}catch(e){}return ''}
  function vimeoId(url){try{const u=new URL(url);if(/(^|\.)vimeo\.com$/i.test(u.hostname)){const m=u.pathname.match(/\/(\d+)/);return m?m[1]:''}}catch(e){}return ''}
  function mediaHref(url,type){const id=driveId(url);if(id)return 'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view';return safeUrl(url)}
+ let viewer=null;
+ function ensureViewer(){if(viewer)return viewer;viewer=document.createElement('div');viewer.className='ba-resource-viewer';viewer.setAttribute('role','dialog');viewer.setAttribute('aria-modal','true');viewer.setAttribute('aria-label','Resource preview');viewer.innerHTML='<div class="ba-resource-viewer-dialog"><div class="ba-resource-viewer-title"></div><button type="button" class="ba-resource-viewer-close" aria-label="Close preview">×</button><div class="ba-resource-viewer-content"></div></div>';document.body.appendChild(viewer);const close=()=>{viewer.classList.remove('is-open');viewer.querySelector('.ba-resource-viewer-content').replaceChildren();document.body.style.overflow='';};viewer.querySelector('.ba-resource-viewer-close').addEventListener('click',close);viewer.addEventListener('click',e=>{if(e.target===viewer)close()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&viewer.classList.contains('is-open'))close()});return viewer;}
  function openMediaPage(item){
-   const url=safeUrl(item.mediaUrl);if(!url)return;
-   const params=new URLSearchParams({type:String(item.mediaType||'').toUpperCase(),url,title:String(item.title||'BrightAce resource')});
-   window.open('resource-media.html?'+params.toString(),'_blank','noopener,noreferrer');
+   const url=safeUrl(item.mediaUrl);if(!url)return;const type=String(item.mediaType||'').toUpperCase(),v=ensureViewer(),content=v.querySelector('.ba-resource-viewer-content');content.replaceChildren();v.querySelector('.ba-resource-viewer-title').textContent=String(item.title||'BrightAce resource');
+   const id=driveId(url),yt=youtubeId(url),vm=vimeoId(url);let el;
+   if(type==='IMAGE'){el=document.createElement('img');el.alt=String(item.title||'BrightAce resource');el.src=id?'https://drive.google.com/uc?export=view&id='+encodeURIComponent(id):url;el.onerror=()=>{if(id&&el.dataset.fallback!=='1'){el.dataset.fallback='1';el.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w1600'}else{content.textContent='This image could not be loaded. Confirm the file is shared publicly as “Anyone with the link — Viewer”.';}};}
+   else if(type==='VIDEO'){if(yt||vm||id){el=document.createElement('iframe');el.title=String(item.title||'BrightAce video');el.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';el.allowFullscreen=true;el.referrerPolicy='strict-origin-when-cross-origin';el.src=yt?'https://www.youtube-nocookie.com/embed/'+encodeURIComponent(yt)+'?autoplay=1&rel=0':vm?'https://player.vimeo.com/video/'+encodeURIComponent(vm)+'?autoplay=1':'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/preview';}else{el=document.createElement('video');el.controls=true;el.autoplay=true;el.playsInline=true;el.preload='metadata';el.src=url;}}
+   else return;content.appendChild(el);v.classList.add('is-open');document.body.style.overflow='hidden';v.querySelector('.ba-resource-viewer-close').focus();
  }
+ function downloadHref(url){const id=driveId(url);return id?'https://drive.google.com/uc?export=download&id='+encodeURIComponent(id):safeUrl(url)}
  function card(x){
    const url=safeUrl(x.mediaUrl),clickUrl=safeUrl(x.clickThroughUrl),type=String(x.mediaType||'NONE').toUpperCase();let media='';
    if(url&&type==='IMAGE'){
@@ -58,9 +63,12 @@
    }else if(url&&type==='AUDIO'){
      if(clickUrl)media='<a class="resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer"><div class="resource-file-preview">🎧 <strong>'+esc(x.title)+'</strong><p>Open linked audio resource ↗</p></div></a>';
      else media='<audio class="resource-media-audio" controls preload="metadata" aria-label="'+esc(x.title)+'" src="'+esc(url)+'">Your browser does not support audio playback.</audio>';
+   }else if(url&&type==='DOCUMENT'){
+     const target=clickUrl||downloadHref(url);
+     media='<div class="resource-file-preview resource-pdf-tile"><span aria-hidden="true" style="font-size:3.2rem;line-height:1">📄</span><div><strong>'+esc(x.mediaFileName||x.title||'PDF document')+'</strong><p>'+ (clickUrl?'Open the linked resource.':'Download this PDF/document.')+'</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" '+(clickUrl?'target="_blank" rel="noopener noreferrer"':'download')+'>'+(clickUrl?'Open linked page ↗':'Download PDF ↓')+'</a></div></div>';
    }else if(url&&type!=='NONE'){
-     const href=mediaHref(url,type),label=type==='DOCUMENT'?'Open document':type==='FILE'?'Open / download file':'Open resource file',target=clickUrl||href;
-     media='<div class="resource-file-preview"><span aria-hidden="true">📄</span><div><strong>'+esc(x.mediaFileName||label)+'</strong><p>Open this public learning material in a new tab.</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" target="_blank" rel="noopener noreferrer">'+(clickUrl?'Visit linked page':'Open '+esc(label))+' ↗</a></div></div>';
+     const href=mediaHref(url,type),label=type==='FILE'?'Open / download file':'Open resource file',target=clickUrl||href;
+     media='<div class="resource-file-preview"><span aria-hidden="true">📎</span><div><strong>'+esc(x.mediaFileName||label)+'</strong><p>'+(clickUrl?'Open the linked resource.':'Open or download this public file.')+'</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" target="_blank" rel="noopener noreferrer">'+(clickUrl?'Visit linked page ↗':'Open '+esc(label)+' ↗')+'</a></div></div>';
    }else media='<div class="resource-media-empty" aria-hidden="true">✦</div>';
    return '<article class="resource-card"><div class="resource-thumb resource-media-wrap">'+media+'</div><div class="resource-card-content"><span class="resource-tag">'+esc(x.category||'Learning support')+'</span><h3>'+esc(x.title)+'</h3><p>'+esc(x.description||'Explore BrightAce learning support.')+'</p>'+(x.audience?'<p class="resource-meta"><strong>Who it is for:</strong> '+esc(x.audience)+'</p>':'')+(x.educationalValue?'<p class="resource-meta"><strong>Learning value:</strong> '+esc(x.educationalValue)+'</p>':'')+'<a class="btn btn-outline" href="client-dashboard.html">Request through your dashboard →</a></div></article>';
  }
@@ -72,11 +80,11 @@
      const items=Array.isArray(d.items)?d.items:[];
      grid.innerHTML=items.map(card).join('');
      grid.querySelectorAll('[data-media-open]').forEach(btn=>btn.addEventListener('click',()=>{const item=items.find(x=>String(x.promoId)===btn.dataset.mediaOpen);if(item)openMediaPage(item)}));
-     grid.querySelectorAll('img.resource-media-image').forEach(img=>img.addEventListener('error',function(){this.alt='Image temporarily unavailable';this.style.minHeight='100px';this.style.objectFit='contain';this.closest('.resource-media-wrap')?.setAttribute('data-media-error','Image temporarily unavailable')},{once:true}));
+     grid.querySelectorAll('img.resource-media-image').forEach(img=>img.addEventListener('error',function(){const src=this.getAttribute('src')||'',id=driveId(src);if(id&&!this.dataset.baFallback){this.dataset.baFallback='1';this.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w1600';return;}this.alt='Image unavailable — check public sharing permissions';this.style.minHeight='100px';this.style.objectFit='contain';this.closest('.resource-media-wrap')?.setAttribute('data-media-error','Image unavailable. Confirm this file is shared publicly.') }));
      notice.textContent=items.length?items.length+' activity and resource '+(items.length===1?'listing':'listings')+' available.':'Our activities and resource information are being prepared. Please check back soon.';
      if(!items.length)grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>More learning resources are coming</h3><p>Contact BrightAce Academy or sign in to ask about personalized support.</p><a class="btn btn-outline" href="chat.html">Contact BrightAce →</a></div></article>';
    }catch(e){notice.textContent='Activities and resources could not be loaded right now. Please refresh or contact BrightAce for help.';grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>Temporarily unavailable</h3><p>Promotional information could not be retrieved. Please try again later.</p></div></article>'}
  }
  load();
 })();
-</script><script src="../js/brightace-composer.js?v=20261002b" defer></script></body></html>
+</script><script src="../js/brightace-composer.js?v=20261021c" defer></script></body></html>

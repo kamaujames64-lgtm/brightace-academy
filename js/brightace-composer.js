@@ -11,6 +11,8 @@ document.head.appendChild(s)}
 function readFile(f){return new Promise((resolve,reject)=>{if(f.size>MAX)return reject(Error("Each attachment must be 25 MB or smaller."));const r=new FileReader();r.onload=()=>resolve({name:f.name,mimeType:f.type||"application/octet-stream",size:f.size,dataUrl:String(r.result||"")});r.onerror=()=>reject(Error("Could not read "+f.name));r.readAsDataURL(f)})}
 function enhance(el){
  if(!el||el.dataset.baComposerEnhanced==="1"||el.disabled||el.readOnly||(el.matches&&el.matches("[data-no-composer]"))||(el.closest&&el.closest("[data-no-composer]")))return;
+ // Keep one attachment interface per message form. Existing dedicated upload pickers take precedence.
+ const ownerForm=el.closest("form");if(ownerForm&&ownerForm.querySelector('input[type="file"]:not([data-ba-composer-input])'))return;
  el.dataset.baComposerEnhanced="1";css();const st={files:[]};state.set(el,st);
  const wrap=document.createElement("div");wrap.className="ba-composer";el.parentNode.insertBefore(wrap,el);wrap.appendChild(el);
  const tools=document.createElement("div");tools.className="ba-composer-tools";

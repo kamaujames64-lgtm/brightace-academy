@@ -42,4 +42,4 @@ async function loadBlocked(){try{const d=await api('adminListBlockedWhatsApp');c
 $('blockForm').onsubmit=async e=>{e.preventDefault();const phone=$('blockPhone').value.trim();if(!confirm('Block +'+phone+' from accessing BrightAce services?'))return;const b=e.submitter;b.disabled=true;try{const d=await api('adminSetWhatsAppBlock',{phone,blocked:true,reason:$('blockReason').value.trim()||'Access restricted by BrightAce Admin'});notice(d.message||'Contact blocked.','success');e.target.reset();await loadBlocked()}catch(err){notice(err.message,'error')}finally{b.disabled=false}};
 
 if(token()){$("login").hidden=true;$("app").hidden=false;load();loadIntake();loadBlocked()}
-</script><script src="../js/brightace-composer.js?v=20261002b" defer></script><script src="../js/admin-navigation.js?v=20261012-v72" defer></script></body></html>
+</script><script src="../js/brightace-composer.js?v=20261021c" defer></script><script src="../js/admin-navigation.js?v=20261012-v72" defer></script></body></html>
