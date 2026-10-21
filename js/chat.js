@@ -342,7 +342,7 @@ async function gateStoredSessionBeforeRendering(){
     // Fail closed for a pending OTP: never reveal a verification form if access
     // status cannot be confirmed. Preserve existing verified sessions on outages.
     if(session?.verified){openChat();if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000)expireClientSession();else scheduleClientExpiry();}
-    else {if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";setNotice("We could not confirm access to your request. Please try again shortly.","warning");}
+    else {if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";const message=/Unknown BrightAce action/i.test(String(err?.message||""))?"BrightAce’s request-access service is outdated. Please contact BrightAce support while the current backend version is deployed.":"We could not confirm access to your request. Please try again shortly.";setNotice(message,"warning");}
   }
 }
 

@@ -3,7 +3,7 @@
  */
 (function(w,d){
   'use strict';
-  const API=w.BRIGHTACE_API_URL||'https://script.google.com/macros/s/AKfycbzwomGZZZwzKCCAEVhFo9OBTkgz_aKNA6DyO7cIYh_cN8g90e-8dCPl18Bs5XxaH13u/exec';
+  const API=w.BRIGHTACE_API_URL||'https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec';
   const KEY='brightace_display_currency_v1';
   const EXPLICIT_KEY='brightace_display_currency_explicit_v2';
   const TTL=60*60*1000;
