@@ -4,15 +4,15 @@
 
 The administrator can publish a public promotional entry with an image, video, audio file, PDF/document, or supported public file. A media entry can also include an optional HTTPS click-through link (for example, a Google Form).
 
-- **Image, no click-through link:** visitors click the image to open it in a dedicated full-size viewer page. The image uses `contain` sizing so the whole picture is visible; it is not automatically cropped in the public card.
+- **Image, no click-through link:** visitors click the image to open an in-page full-size overlay. Close it with the X, Escape, or by clicking outside the preview; no new page is opened. The image uses `contain` sizing so the whole picture is visible; it is not automatically cropped in the public card.
 - **Image, click-through link provided:** clicking the image opens the destination in a new tab.
-- **Video, no click-through link:** clicking the video card opens the dedicated viewer. YouTube, Vimeo, Google Drive video previews, and direct HTTPS video files are supported.
+- **Video, no click-through link:** clicking the video card opens an in-page player overlay. Close it with the X, Escape, or by clicking outside the preview; no new page is opened. YouTube, Vimeo, Google Drive video previews, and direct HTTPS video files are supported.
 - **Video, click-through link provided:** clicking the video card opens the destination link instead.
-- **PDF/document, no click-through link:** the public card offers an “Open document” action. Google Drive documents open in their Drive viewer; direct HTTPS files open at their source.
+- **PDF/document, no click-through link:** the public card shows a compact PDF/document icon and a download action. A supplied click-through link takes precedence and opens its destination (for example, a Google Form).
 - **PDF/document, click-through link provided:** the document card's action opens the supplied destination.
 - **Audio:** audio is playable on the public card when there is no click-through link; otherwise the linked destination is offered.
 
-The dedicated viewer is responsive on desktop, phones, and tablets.
+The in-page viewer is responsive on desktop, phones, and tablets. Images are displayed with contain sizing, and video uses a player/embed when the provider permits it. For Drive media, confirm “Anyone with the link — Viewer” sharing; private Drive media cannot be made visible by frontend code.
 
 ## How to publish an image
 

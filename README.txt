@@ -1,3 +1,14 @@
+# BrightAce Academy V90 — Client Access, Resource UX & Reliability Repair
+
+Build: `2026-10-21-V90-CLIENT-ACCESS-RESOURCE-UX-REPAIR`  
+API marker: `brightace-json-v90`
+
+This package includes the V90 repairs for the public admissions preflight action gate, in-page public resource image/video viewer, PDF download cards, verified resource-payment status transitions, duplicate attachment composer prevention, client inactivity expiry checks, rating star colors, and deployment metadata. See `BRIGHTACE_V90_CLIENT_ACCESS_RESOURCE_UX_REPAIR_REPORT.md` for changed files, validation results, and deployment checklist.
+
+Deploy the complete static website and the full `backend/` folder together. For Apps Script, create a new deployment version of the same Web App and preserve the existing `/exec` URL and script properties. Live WhatsApp, payment-provider, Drive sharing, and audio behavior still require staging verification after deployment.
+
+---
+
 V63 Production Hardening + Security + QA
 Built directly from V62; see V63_PRODUCTION_HARDENING_SECURITY_QA_REPORT.md.
 
