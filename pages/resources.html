@@ -32,7 +32,8 @@
 (function(){
  const API=window.BRIGHTACE_API_URL||'',grid=document.getElementById('promoGrid'),notice=document.getElementById('promoNotice');
  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
- function safeUrl(s){try{const u=new URL(String(s||''),location.href);return u.protocol==='https:'?u.href:''}catch(e){return ''}}
+ function safeUrl(s){try{const u=new URL(String(s||''),location.href);return (u.protocol==='https:'||u.origin===location.origin)?u.href:''}catch(e){return ''}}
+ function linkTarget(url){try{return new URL(url,location.href).origin===location.origin?'':' target=\"_blank\" rel=\"noopener noreferrer\"'}catch(e){return ' target=\"_blank\" rel=\"noopener noreferrer\"'}}
  function driveId(url){const s=String(url||'');let m=s.match(/drive\.google\.com\/(?:file\/d\/|document\/d\/|spreadsheets\/d\/|presentation\/d\/)([A-Za-z0-9_-]{10,})/i);if(!m)m=s.match(/[?&]id=([A-Za-z0-9_-]{10,})/i);return m?m[1]:''}
  function youtubeId(url){try{const u=new URL(url);if(/(^|\.)youtu\.be$/i.test(u.hostname))return u.pathname.split('/').filter(Boolean)[0]||'';if(/(^|\.)youtube\.com$/i.test(u.hostname)||/(^|\.)youtube-nocookie\.com$/i.test(u.hostname)){if(u.pathname==='/watch')return u.searchParams.get('v')||'';const m=u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/);return m?m[1]:''}}catch(e){}return ''}
  function vimeoId(url){try{const u=new URL(url);if(/(^|\.)vimeo\.com$/i.test(u.hostname)){const m=u.pathname.match(/\/(\d+)/);return m?m[1]:''}}catch(e){}return ''}
@@ -52,23 +53,23 @@
    if(url&&type==='IMAGE'){
      const id=driveId(url),src=id?'https://drive.google.com/uc?export=view&id='+encodeURIComponent(id):url;
      const img='<img class="resource-media-image" src="'+esc(src)+'" alt="'+esc(x.title)+'" loading="lazy" decoding="async">';
-     media=clickUrl?'<a class="resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+esc(x.title)+' link">'+img+'</a>':'<button type="button" class="resource-media-trigger" data-media-open="'+esc(x.promoId)+'" aria-label="View full image: '+esc(x.title)+'">'+img+'</button>';
+     media=clickUrl?'<a class="resource-media-link" href="'+esc(clickUrl)+'"'+linkTarget(clickUrl)+' aria-label="Open '+esc(x.title)+' link">'+img+'</a>':'<button type="button" class="resource-media-trigger" data-media-open="'+esc(x.promoId)+'" aria-label="View full image: '+esc(x.title)+'">'+img+'</button>';
    }else if(url&&type==='VIDEO'){
      const yt=youtubeId(url),vm=vimeoId(url),id=driveId(url);
      let thumb='';
      if(yt)thumb='<img src="https://img.youtube.com/vi/'+encodeURIComponent(yt)+'/hqdefault.jpg" alt="" loading="lazy">';
      else if(id)thumb='<img src="https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w800" alt="" loading="lazy">';
      else thumb='<span aria-hidden="true" style="font-size:3rem">▶</span>';
-     media=clickUrl?'<a class="resource-media-trigger resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer" aria-label="Open link for '+esc(x.title)+'">'+thumb+'<span class="resource-play-mark">↗</span></a>':'<button type="button" class="resource-media-trigger" data-media-open="'+esc(x.promoId)+'" aria-label="Play '+esc(x.title)+'">'+thumb+'<span class="resource-play-mark">▶</span></button>';
+     media=clickUrl?'<a class="resource-media-trigger resource-media-link" href="'+esc(clickUrl)+'"'+linkTarget(clickUrl)+' aria-label="Open link for '+esc(x.title)+'">'+thumb+'<span class="resource-play-mark">↗</span></a>':'<button type="button" class="resource-media-trigger" data-media-open="'+esc(x.promoId)+'" aria-label="Play '+esc(x.title)+'">'+thumb+'<span class="resource-play-mark">▶</span></button>';
    }else if(url&&type==='AUDIO'){
-     if(clickUrl)media='<a class="resource-media-link" href="'+esc(clickUrl)+'" target="_blank" rel="noopener noreferrer"><div class="resource-file-preview">🎧 <strong>'+esc(x.title)+'</strong><p>Open linked audio resource ↗</p></div></a>';
+     if(clickUrl)media='<a class="resource-media-link" href="'+esc(clickUrl)+'"'+linkTarget(clickUrl)+'><div class="resource-file-preview">🎧 <strong>'+esc(x.title)+'</strong><p>Open linked audio resource ↗</p></div></a>';
      else media='<audio class="resource-media-audio" controls preload="metadata" aria-label="'+esc(x.title)+'" src="'+esc(url)+'">Your browser does not support audio playback.</audio>';
    }else if(url&&type==='DOCUMENT'){
      const target=clickUrl||downloadHref(url);
-     media='<div class="resource-file-preview resource-pdf-tile"><span aria-hidden="true" style="font-size:3.2rem;line-height:1">📄</span><div><strong>'+esc(x.mediaFileName||x.title||'PDF document')+'</strong><p>'+ (clickUrl?'Open the linked resource.':'Download this PDF/document.')+'</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" '+(clickUrl?'target="_blank" rel="noopener noreferrer"':'download')+'>'+(clickUrl?'Open linked page ↗':'Download PDF ↓')+'</a></div></div>';
+     media='<div class="resource-file-preview resource-pdf-tile"><span aria-hidden="true" style="font-size:3.2rem;line-height:1">📄</span><div><strong>'+esc(x.mediaFileName||x.title||'PDF document')+'</strong><p>'+ (clickUrl?'Open the linked resource.':'Download this PDF/document.')+'</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" '+(clickUrl?linkTarget(clickUrl):'download')+'>'+(clickUrl?'Open linked page ↗':'Download PDF ↓')+'</a></div></div>';
    }else if(url&&type!=='NONE'){
      const href=mediaHref(url,type),label=type==='FILE'?'Open / download file':'Open resource file',target=clickUrl||href;
-     media='<div class="resource-file-preview"><span aria-hidden="true">📎</span><div><strong>'+esc(x.mediaFileName||label)+'</strong><p>'+(clickUrl?'Open the linked resource.':'Open or download this public file.')+'</p><a class="btn btn-outline btn-small" href="'+esc(target)+'" target="_blank" rel="noopener noreferrer">'+(clickUrl?'Visit linked page ↗':'Open '+esc(label)+' ↗')+'</a></div></div>';
+     media='<div class="resource-file-preview"><span aria-hidden="true">📎</span><div><strong>'+esc(x.mediaFileName||label)+'</strong><p>'+(clickUrl?'Open the linked resource.':'Open or download this public file.')+'</p><a class="btn btn-outline btn-small" href="'+esc(target)+'"'+linkTarget(target)+'>'+(clickUrl?'Visit linked page ↗':'Open '+esc(label)+' ↗')+'</a></div></div>';
    }else media='<div class="resource-media-empty" aria-hidden="true">✦</div>';
    return '<article class="resource-card"><div class="resource-thumb resource-media-wrap">'+media+'</div><div class="resource-card-content"><span class="resource-tag">'+esc(x.category||'Learning support')+'</span><h3>'+esc(x.title)+'</h3><p>'+esc(x.description||'Explore BrightAce learning support.')+'</p>'+(x.audience?'<p class="resource-meta"><strong>Who it is for:</strong> '+esc(x.audience)+'</p>':'')+(x.educationalValue?'<p class="resource-meta"><strong>Learning value:</strong> '+esc(x.educationalValue)+'</p>':'')+'<a class="btn btn-outline" href="client-dashboard.html">Request through your dashboard →</a></div></article>';
  }
@@ -87,4 +88,4 @@
  }
  load();
 })();
-</script><script src="../js/brightace-composer.js?v=20261021c" defer></script></body></html>
+</script><script src="../js/brightace-composer.js?v=20261022v93-resource-activity" defer></script></body></html>
