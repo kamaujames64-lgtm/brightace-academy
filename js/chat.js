@@ -16,6 +16,7 @@ let session=null;
 try{session=JSON.parse(localStorage.getItem(CHAT_KEY)||"null");}catch(e){localStorage.removeItem(CHAT_KEY);session=null;}
 let selectedFiles=[],pollTimer=null,lastMessageSignature="",firstMessageRender=true,lastIncomingMessageIds=new Set(),firstIncomingSync=true,alertAudio=null,lastSyncCursor="",lastSyncConversationId="";const pendingMessages=new Map();
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function phoneValue(id){const input=document.getElementById(id);return String(window.BrightAcePhonePicker?.getValue?.(input)||input?.value||"").trim()}
 function apiReady(){return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(CHAT_API_URL)}
 function setNotice(text,type="info"){if(!chatNotice)return;chatNotice.textContent=text;chatNotice.className="chat-notice "+type;chatNotice.hidden=!text}
 function setVerificationNotice(text,type="info"){if(!verificationNotice)return;verificationNotice.textContent=text;verificationNotice.className="chat-notice "+type;verificationNotice.hidden=!text}
@@ -167,7 +168,7 @@ document.getElementById("editNumberBtn")?.addEventListener("click",()=>{saveStar
 document.getElementById("exitChatBtn")?.addEventListener("click",returnToStartForm);
 document.getElementById("startForm")?.addEventListener("submit",async e=>{
   e.preventDefault();
-  const btn=document.getElementById("startChatBtn"),name=document.getElementById("studentName").value.trim(),phone=document.getElementById("studentPhone").value.trim(),task=document.getElementById("taskDescription").value.trim()||"General BrightAce support request",budget=Math.max(0,Number(document.getElementById("studentBudget").value||0)),currency=document.getElementById("studentCurrency").value,deadline=document.getElementById("studentDeadline").value.trim();
+  const btn=document.getElementById("startChatBtn"),name=document.getElementById("studentName").value.trim(),phone=phoneValue("studentPhone"),task=document.getElementById("taskDescription").value.trim()||"General BrightAce support request",budget=Math.max(0,Number(document.getElementById("studentBudget").value||0)),currency=document.getElementById("studentCurrency").value,deadline=document.getElementById("studentDeadline").value.trim();
   if(!name||!phone||!task||!(budget>0))return;
   if(!apiReady()){setNotice("The BrightAce verification service is not connected. Please try again when the live service is available.","error");return}
   const oldText=btn?.textContent;
@@ -283,6 +284,10 @@ hideReturningClientBtn?.addEventListener("click",()=>{
   if(returningArea)returningArea.style.display="none";
   if(document.getElementById("chatStart"))document.getElementById("chatStart").style.display="block";
 });
+if(new URLSearchParams(location.search).get("mode")==="returning"){
+  showReturningClientBtn?.click();
+  document.getElementById("returningClientName")?.focus();
+}
 async function beginReturningClient(name,phone){
   // A returning client is allowed to verify while new admissions are paused,
   // but blocked/suspended/inactive contacts must be stopped before a code is sent.
@@ -300,7 +305,7 @@ returningForm?.addEventListener("submit",async e=>{
   e.preventDefault();unlockChatAudio();
   const btn=document.getElementById("returningClientBtn");
   const name=document.getElementById("returningClientName")?.value.trim();
-  const phone=document.getElementById("returningClientPhone")?.value.trim();
+  const phone=phoneValue("returningClientPhone");
   if(!name||!phone)return;
   if(btn){btn.disabled=true;btn.textContent="SENDING CODE…"}
   try{const result=await beginReturningClient(name,phone);if(result?.blocked){if(btn){btn.disabled=false;btn.textContent="SEND VERIFICATION CODE →"}return}if(btn)btn.textContent="CODE SENT ✓"}catch(err){if(!showRestrictionAndClearVerification(err?.message)){setNotice(err?.message||"We could not find your existing BrightAce request.","error")}if(btn){btn.disabled=false;btn.textContent="SEND VERIFICATION CODE →"}}
@@ -312,7 +317,7 @@ returningVerificationForm?.addEventListener("submit",async e=>{
   if(btn){btn.disabled=true;btn.textContent="VERIFYING…"}
   try{
     const d=await post("returningClientVerify",{conversationId:returningConversationId,code});
-    session={id:d.conversationId||returningConversationId,name:d.clientName||document.getElementById("returningClientName")?.value.trim()||"",phone:document.getElementById("returningClientPhone")?.value.trim()||"",started:new Date().toISOString(),verified:true,clientAccessToken:d.clientAccessToken,clientSessionToken:d.clientSessionToken,clientSessionExpiresAt:d.clientSessionExpiresAt,lastActivityAt:Date.now()};
+    session={id:d.conversationId||returningConversationId,name:d.clientName||document.getElementById("returningClientName")?.value.trim()||"",phone:phoneValue("returningClientPhone")||"",started:new Date().toISOString(),verified:true,clientAccessToken:d.clientAccessToken,clientSessionToken:d.clientSessionToken,clientSessionExpiresAt:d.clientSessionExpiresAt,lastActivityAt:Date.now()};
     localStorage.setItem(CHAT_KEY,JSON.stringify(session));sessionStorage.setItem(CHAT_KEY,JSON.stringify(session));
     if(returningArea)returningArea.style.display="none";
     if(returningVerificationArea)returningVerificationArea.style.display="none";
@@ -320,7 +325,7 @@ returningVerificationForm?.addEventListener("submit",async e=>{
   }catch(err){if(!showRestrictionAndClearVerification(err?.message)){const note=document.getElementById("returningVerificationNotice");if(note){note.textContent=err?.message||"Verification failed. Please try again.";note.className="chat-notice error";note.hidden=false}}if(btn){btn.disabled=false;btn.textContent="VERIFY & CONTINUE"}}
 });
 document.getElementById("returningResendBtn")?.addEventListener("click",async e=>{
-  const btn=e.currentTarget,name=document.getElementById("returningClientName")?.value.trim(),phone=document.getElementById("returningClientPhone")?.value.trim();if(!phone||!name)return;
+  const btn=e.currentTarget,name=document.getElementById("returningClientName")?.value.trim(),phone=phoneValue("returningClientPhone");if(!phone||!name)return;
   btn.disabled=true;btn.textContent="SENDING…";
   try{const result=await beginReturningClient(name,phone);if(result?.blocked){btn.textContent="SEND NEW CODE";return}btn.textContent="CODE SENT ✓"}catch(err){if(!showRestrictionAndClearVerification(err?.message)){const note=document.getElementById("returningVerificationNotice");if(note){note.textContent=err?.message||"A new code could not be sent.";note.className="chat-notice error";note.hidden=false}}}finally{setTimeout(()=>{btn.disabled=false;btn.textContent="SEND NEW CODE"},800)}
 });

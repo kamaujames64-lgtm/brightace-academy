@@ -391,3 +391,14 @@ input[type="submit"], input[type="button"] { cursor: pointer; }
     font-size: 12px;
   }
 }
+
+
+/* V100: responsive action controls and compact status labels site-wide. */
+.btn, a.btn, button.btn, .ba-button { box-sizing:border-box; max-width:100%; min-width:0; line-height:1.25; overflow-wrap:anywhere; text-align:center; }
+.ba-pill, .ba-status, .status-badge, .badge { max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.3; }
+@media (max-width:600px) {
+  .btn, a.btn, button.btn, .ba-button { min-height:34px; padding:7px 10px; font-size:.76rem; border-radius:9px; }
+  .actions, .ba-actions, .button-row { flex-wrap:wrap; gap:7px; }
+  .actions > .btn, .ba-actions > .btn, .button-row > .btn { flex:0 1 auto; }
+  .card, .ba-card, .panel { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+}

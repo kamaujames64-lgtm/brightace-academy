@@ -99,7 +99,7 @@
     wrap.insertBefore(display,input);wrap.insertBefore(select,display);wrap.appendChild(menu);wrap.appendChild(help);
 
     const list=menu.querySelector('.ba-country-list'),search=menu.querySelector('.ba-country-search'),count=menu.querySelector('.ba-country-count');
-    const initial=infer(input.value);if(initial)select.value=initial[0];
+    const initial=infer(input.value);if(initial)select.value=initial[0];else{const localeCountry=String(navigator.language||'en-US').split('-').pop().toUpperCase();if(unique.some(c=>c[0]===localeCountry))select.value=localeCountry;else if(unique.some(c=>c[0]==='US'))select.value='US';}
     // Once the user chooses a country, keep that country locked while they type.
     // A local number such as Kenya's 725... must never be reinterpreted as +7.
     let countryManuallySelected=false;
