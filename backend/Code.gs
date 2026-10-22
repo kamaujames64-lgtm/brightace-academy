@@ -2682,7 +2682,7 @@ function adminMarkWorkCompleted_(d){
   requireAdmin_(d.adminToken);
   const c=findConversation_(d.conversationId); if(!c) throw new Error("Student request not found.");
   if(!c.assignedTutor || c.assignedTutor==="Unassigned") throw new Error("Assign the work to a tutor first.");
-  if(String(c.qaStatus||"PENDING").toUpperCase()!=="APPROVED") throw new Error("Admin QA approval is required before this work can be completed.");
+  // Completion is an authorized admin decision; confirmed payment is the financial prerequisite. QA remains available as a separate quality workflow, not a second completion gate.
   const paid=findPaidPaymentForConversation_(c.conversationId); if(!paid) throw new Error("The student payment must be confirmed as PAID before this work can be completed.");
   if(String(c.assignmentStatus).toUpperCase()==="COMPLETED") return json_({ok:true,workId:c.conversationId,status:"COMPLETED",tutor:c.assignedTutor,tutorPayout:Number(c.tutorPayout||0),currency:c.agreedCurrency||c.currency,alreadyCompleted:true});
   if(String(c.assignmentStatus).toUpperCase()==="REJECTED") throw new Error("Rejected work cannot be completed.");
