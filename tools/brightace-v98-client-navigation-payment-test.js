@@ -11,7 +11,7 @@ check('Client request payment state is linked by conversation ID',/payments\.fil
 check('Paid requests display PAID',/aria-label="Payment paid">PAID/.test(js),'Paid status is explicit.');
 check('Unpaid requests have a payment shortcut',/PAY NOW/.test(js)&&/payment\.html\?request=/.test(js)&&/VIEW \/ PAY INVOICES/.test(js),'Existing payment requests link directly to checkout; missing invoices route to Payments.');
 check('Workspace navigation shell can appear while access preflight runs',/const accessCheck=post\('publicRequestIntakeStatus'/.test(js)&&/const earlyRoot=document\.querySelector\('\[data-client-root\]'\)/.test(js),'The first paint is no longer held entirely behind the preflight request.');
-check('Service worker namespace invalidates previous client assets',sw.includes('brightace-perf-20261022-v99-client-files-livechat'),'Updated HTML and JavaScript can be fetched under the new cache namespace.');
+check('Service worker namespace invalidates previous client assets',sw.includes('brightace-perf-20261022-v100-responsive-tutoring-phone'),'Updated HTML and JavaScript can be fetched under the new cache namespace.');
 
 check('Client work page renders visible file cards with open and download actions',/Files from BrightAce and your tutor/.test(js)&&/map\(renderClientFile\)/.test(js)&&/DOWNLOAD/.test(js),'Delivered attachments are shown with filenames, metadata, preview/open and download actions.');
 check('File download clicks show downloading and download-started feedback',/data-client-download/.test(js)&&/DOWNLOADING/.test(js)&&/Download started\. Check your browser downloads/.test(js),'The UI acknowledges the browser download start without falsely claiming completion.');
