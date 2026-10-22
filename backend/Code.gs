@@ -275,6 +275,7 @@ function doPost(e){
     if(body.action === "clientDashboard") return clientDashboard_(body);
     if(body.action === "clientSubmitFeedback") return clientSubmitFeedback_(body);
     if(body.action === "clientSendComment") return clientSendComment_(body);
+    if(body.action === "clientWorkMessages") return clientWorkMessages_(body);
     if(body.action === "tutorSendVerification") return tutorSendVerification_(body);
     if(body.action === "tutorVerifyLogin") return tutorVerifyLogin_(body);
     if(body.action === "tutorSessionProfile") return tutorSessionProfile_(body.tutorToken);
@@ -1837,6 +1838,16 @@ function clientSendComment_(d){
   updateConversation_(c.conversationId,new Date(),saved.id);
   try{CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_HISTORY");CacheService.getScriptCache().remove("BA_ADMIN_QUALITY")}catch(e){}
   return json_({ok:true,messageId:saved.id,attachment:stored||null,message:"Comment added to the BrightAce work record."});
+}
+
+function clientWorkMessages_(d){
+  // Live refresh endpoint: authenticate the verified client and scope every
+  // returned message/file to the exact conversation owned by that client.
+  const c=clientConversationFromSession_(d),cid=String(c.conversationId);
+  const messages=readConversationMessages_(cid).map(function(m){return Object.assign({},m,{conversationId:cid,attachment:hydrateAttachment_(m.attachment)});}).slice(-100);
+  const documents=[];
+  messages.forEach(function(m){if(m.attachment)(Array.isArray(m.attachment)?m.attachment:[m.attachment]).forEach(function(a){if(a)documents.push(Object.assign({messageId:m.id,conversationId:cid,sender:m.sender,timestamp:m.timestamp},hydrateAttachment_(a)));});});
+  return json_({ok:true,conversationId:cid,messages:messages,documents:documents.slice(-100),serverTime:new Date().toISOString()});
 }
 
 function clientSubmitFeedback_(d){
