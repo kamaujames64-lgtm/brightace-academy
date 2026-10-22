@@ -24,7 +24,21 @@
   const digits=v=>String(v||'').replace(/\D/g,'');
   function infer(v){let n=digits(v);if(n.startsWith('00'))n=n.slice(2);const ordered=unique.slice().sort((a,b)=>b[2].length-a[2].length);for(const c of ordered){if(n.startsWith(c[2])&&n.length>c[2].length+5)return c;}if(/^0[17]\d{8}$/.test(n))return unique.find(x=>x[0]==='KE');return null;}
   function localPart(input,code){let n=digits(input);if(n.startsWith('00'))n=n.slice(2);const ordered=unique.slice().sort((a,b)=>b[2].length-a[2].length);for(const c of ordered){if(n.startsWith(c[2])&&n.length>c[2].length+5){n=n.slice(c[2].length);break;}}if(/^0\d+/.test(n))n=n.slice(1);return n;}
-  function fullValue(input,select){const opt=select?.options?.[select.selectedIndex];const code=String(opt?.dataset?.dial||'').replace(/\D/g,'');const local=localPart(input.value,code);return local?`+${code}${local}`:'';}
+  function fullValue(input,select){
+    const raw=String(input?.value||'').trim();
+    const opt=select?.options?.[select.selectedIndex];
+    const code=String(opt?.dataset?.dial||'').replace(/\D/g,'');
+    const explicitInternational=raw.startsWith('+')||raw.startsWith('00');
+    if(explicitInternational){
+      const guessed=infer(raw);
+      if(guessed){
+        const internationalDigits=digits(raw).replace(/^00/,'');
+        return internationalDigits ? `+${internationalDigits}` : '';
+      }
+    }
+    const local=localPart(raw,code);
+    return local&&code?`+${code}${local}`:'';
+  }
   const EXAMPLES={US:'(201) 555-0123',CA:'(416) 555-0123',GB:'7400 123456',KE:'712 345 678',TZ:'712 345 678',UG:'712 345 678',RW:'788 123 456',ZA:'71 234 5678',NG:'801 234 5678',GH:'24 123 4567',IN:'98765 43210',PK:'300 1234567',BD:'1712 345678',AU:'412 345 678',NZ:'21 234 567',DE:'151 23456789',FR:'6 12 34 56 78',IT:'312 345 6789',ES:'612 345 678',BR:'11 91234-5678',MX:'55 1234 5678',JP:'90 1234 5678',CN:'138 0013 8000',AE:'50 123 4567',SA:'50 123 4567',TR:'501 234 5678'};
   function countryByCode(code){return unique.find(c=>c[2]===String(code).replace(/\D/g,''));}
   function styles(){
@@ -123,7 +137,25 @@
     search.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeMenu();display.focus()}else if(e.key==='ArrowDown'){e.preventDefault();list.querySelector('.ba-country-option')?.focus()}});
     document.addEventListener('click',e=>{if(!wrap.contains(e.target)&&!menu.contains(e.target))closeMenu()},true);
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&menu.classList.contains('is-open')){closeMenu();display.focus()}},true);
-    input.addEventListener('input',()=>{const c=selected();if(!countryManuallySelected&&input.value.trim().startsWith('+')){const guessed=infer(input.value);if(guessed&&guessed[0]!==c.iso){select.value=guessed[0];updateUI();}}const cc=selected();const raw=digits(input.value).slice(0,maxLocalDigits(cc.iso));input.value=formatLocal(raw,cc.iso);sync();});
+    input.addEventListener('input',()=>{
+      const typed=String(input.value||'').trim();
+      const explicitInternational=typed.startsWith('+')||typed.startsWith('00');
+      const guessed=explicitInternational?infer(typed):null;
+      if(guessed){
+        // An explicitly international number overrides the currently selected country.
+        select.value=guessed[0];
+        countryManuallySelected=false;
+        const local=localPart(typed,guessed[2]).slice(0,maxLocalDigits(guessed[0]));
+        input.value=formatLocal(local,guessed[0]);
+        updateUI();
+        sync();
+        return;
+      }
+      const cc=selected();
+      const raw=digits(typed).slice(0,maxLocalDigits(cc.iso));
+      input.value=formatLocal(raw,cc.iso);
+      sync();
+    });
     input.addEventListener('blur',sync);sync();
   }
   function init(){document.querySelectorAll('input[type="tel"],input').forEach(enhance)}
