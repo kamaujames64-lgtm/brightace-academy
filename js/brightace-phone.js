@@ -22,8 +22,33 @@
   const flag=iso=>String(iso||'').toUpperCase().replace(/[A-Z]/g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));
   const FLAG_FONT='BrightAceFlags';
   const digits=v=>String(v||'').replace(/\D/g,'');
-  function infer(v){let n=digits(v);if(n.startsWith('00'))n=n.slice(2);const ordered=unique.slice().sort((a,b)=>b[2].length-a[2].length);for(const c of ordered){if(n.startsWith(c[2])&&n.length>c[2].length+5)return c;}if(/^0[17]\d{8}$/.test(n))return unique.find(x=>x[0]==='KE');return null;}
-  function localPart(input,code){let n=digits(input);if(n.startsWith('00'))n=n.slice(2);const ordered=unique.slice().sort((a,b)=>b[2].length-a[2].length);for(const c of ordered){if(n.startsWith(c[2])&&n.length>c[2].length+5){n=n.slice(c[2].length);break;}}if(/^0\d+/.test(n))n=n.slice(1);return n;}
+  // Shared calling codes must not be resolved by array order (which previously
+  // caused +1 to select an unrelated Caribbean flag). Prefer the currently
+  // selected country when it shares the code; otherwise use a documented default.
+  const SHARED_CODE_DEFAULTS={'1':'US','7':'RU','39':'IT'};
+  function infer(v,preferredIso){
+    let n=digits(v);if(n.startsWith('00'))n=n.slice(2);
+    const codes=[...new Set(unique.map(c=>c[2]))].sort((a,b)=>b.length-a.length);
+    for(const code of codes){
+      if(!n.startsWith(code)||n.length<=code.length+5)continue;
+      const matches=unique.filter(c=>c[2]===code);
+      if(matches.length===1)return matches[0];
+      const preferred=matches.find(c=>c[0]===preferredIso);
+      if(preferred)return preferred;
+      const defaultIso=SHARED_CODE_DEFAULTS[code];
+      const fallback=matches.find(c=>c[0]===defaultIso);
+      if(fallback)return fallback;
+      return matches[0]||null;
+    }
+    if(/^0[17]\d{8}$/.test(n))return unique.find(x=>x[0]==='KE');
+    return null;
+  }
+  function localPart(input,code){
+    let n=digits(input);if(n.startsWith('00'))n=n.slice(2);
+    const codes=[...new Set(unique.map(c=>c[2]))].sort((a,b)=>b.length-a.length);
+    for(const dial of codes){if(n.startsWith(dial)&&n.length>dial.length+5){n=n.slice(dial.length);break;}}
+    if(/^0\d+/.test(n))n=n.slice(1);return n;
+  }
   function fullValue(input,select){
     const raw=String(input?.value||'').trim();
     const opt=select?.options?.[select.selectedIndex];
@@ -113,7 +138,7 @@
     wrap.insertBefore(display,input);wrap.insertBefore(select,display);wrap.appendChild(menu);wrap.appendChild(help);
 
     const list=menu.querySelector('.ba-country-list'),search=menu.querySelector('.ba-country-search'),count=menu.querySelector('.ba-country-count');
-    const initial=infer(input.value);if(initial)select.value=initial[0];else{const localeCountry=String(navigator.language||'en-US').split('-').pop().toUpperCase();if(unique.some(c=>c[0]===localeCountry))select.value=localeCountry;else if(unique.some(c=>c[0]==='US'))select.value='US';}
+    const localeCountry=String(navigator.language||'').split('-').pop().toUpperCase();const initial=infer(input.value,localeCountry);if(initial)select.value=initial[0];else if(unique.some(c=>c[0]===localeCountry))select.value=localeCountry;else if(unique.some(c=>c[0]==='KE'))select.value='KE';else if(unique.some(c=>c[0]==='US'))select.value='US';
     // Once the user chooses a country, keep that country locked while they type.
     // A local number such as Kenya's 725... must never be reinterpreted as +7.
     let countryManuallySelected=false;
@@ -140,7 +165,7 @@
     input.addEventListener('input',()=>{
       const typed=String(input.value||'').trim();
       const explicitInternational=typed.startsWith('+')||typed.startsWith('00');
-      const guessed=explicitInternational?infer(typed):null;
+      const guessed=explicitInternational?infer(typed,selected().iso):null;
       if(guessed){
         // An explicitly international number overrides the currently selected country.
         select.value=guessed[0];
@@ -162,5 +187,5 @@
   // The visible phone field stays local/national. Its hidden companion carries the full international value.
   // No submit-time mutation is performed, so the country code never flashes into the visible box.
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-  window.BrightAcePhonePicker={init,getValue:input=>{const picker=input?.closest?.('.ba-phone-picker'),select=picker?.querySelector('.ba-phone-country-native');return input&&select?fullValue(input,select):String(input?.value||'').trim();},countries:unique};
+  window.BrightAcePhonePicker={init,getValue:input=>{const picker=input?.closest?.('.ba-phone-picker'),select=picker?.querySelector('.ba-phone-country-native');return input&&select?fullValue(input,select):String(input?.value||'').trim();},countries:unique,normalizeForTest:digits,inferCountryForTest:(value,preferredIso)=>infer(value,preferredIso)?.[0]||null};
 })();
