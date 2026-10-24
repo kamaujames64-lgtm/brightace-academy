@@ -712,14 +712,36 @@ function returningClientSendVerification_(d){
   if(!name)throw new Error("Enter the name used on your BrightAce request.");
   if(phone.length<7||phone.length>15)throw new Error("Enter a valid international WhatsApp number. Use +countrycode followed by the number.");
   assertClientMayVerify_(phone);
+  const isTestPhone=isVerificationTestPhone_(phone);
   const client=getClientByPhone_(phone);
   if(!client)throw new Error("No BrightAce client record was found for this WhatsApp number. If this is your first request, please use Start your support request.");
   if(String(client.status||"").toUpperCase()==="SUSPENDED"||String(client.status||"").toUpperCase()==="INACTIVE")throw new Error("This client account is not active. Please contact BrightAce Admin.");
-  const normalizeName=function(v){return String(v||"").trim().replace(/\\s+/g," ").toLowerCase();};
+  const normalizeName=function(v){return String(v||"").trim().replace(/\s+/g," ").toLowerCase();};
+  // For the explicitly configured test phone only, allow a test name when no
+  // real CLIENTS row exists. A real registered client must still match its name.
   const registeredName=normalizeName(client.clientName||"");
-  if(registeredName && registeredName!==normalizeName(name))
+  if((!isTestPhone||Number(client.row||0)>0) && registeredName && registeredName!==normalizeName(name))
     throw new Error("The name and WhatsApp number do not match the BrightAce client record. Please check your details and try again.");
-  const c=findConversationByPhone_(phone);
+  let c=findConversationByPhone_(phone);
+  // Test-only recovery: provision a clearly labelled synthetic conversation for
+  // the single designated test phone if none exists. This does not notify admins
+  // or WhatsApp and cannot run for ordinary client numbers.
+  if(!c && isTestPhone){
+    const sh=getConversationSheet_(),m=headerMap_(sh),now=new Date();
+    const id="TEST-LOGIN-"+Utilities.getUuid().replace(/-/g,"").slice(0,12).toUpperCase();
+    const values=new Array(sh.getLastColumn()).fill("");
+    const put=function(header,value){if(m[header])values[m[header]-1]=value;};
+    put("conversationId",id);put("studentName",name);put("studentPhone",phone);
+    put("startedAt",now);put("lastMessageAt",now);put("status","open");
+    put("assignedTutor","Unassigned");put("whatsappPhone",phone);
+    put("assignmentStatus","NEW_REQUEST");
+    put("workDescription","TEST-ONLY LOGIN SESSION — not a real support request.");
+    put("studentBudget",0);put("currency","KES");put("agreedAmount",0);put("agreedCurrency","KES");
+    put("verificationStatus","PENDING");put("verificationAttempts",0);put("verificationResendCount",0);
+    const row=sh.getLastRow()+1;sh.getRange(row,1,1,values.length).setValues([values]);
+    c=rowConversation_(values,row,sh,m);
+    try{cacheConversation_(row,values,sh,m);CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");}catch(e){}
+  }
   if(!c)throw new Error("No existing BrightAce request was found for this WhatsApp number. Please use Start your support request.");
   const conversationName=normalizeName(c.studentName||"");
   if(conversationName && conversationName!==normalizeName(name))
@@ -1571,31 +1593,15 @@ function clientDashboardBootstrap_(d){
   // client session. The request ID is only used to preserve the current request
   // context when it is still available.
   let client=null,activeToken="";
-  if(sessionToken){
-    try{client=requireClientSession_(sessionToken,phone);activeToken=sessionToken}catch(e){client=null}
-  }
+  // A browser-supplied request access token is NOT an authentication credential
+  // and must never be used to mint a new client session. Session recovery requires
+  // the server-issued session token; otherwise the client must verify again.
+  if(!sessionToken)throw new Error("Your client session has expired. Please verify your WhatsApp number again.");
+  try{client=requireClientSession_(sessionToken,phone);activeToken=sessionToken;}
+  catch(e){throw new Error("Your verified client session could not be restored. Please verify your WhatsApp number again.");}
 
   let c=id?findConversation_(id):null;
   if(c && normalizePhone_(c.studentPhone)!==phone)c=null;
-  if(!client && accessToken){
-    // Recovery path for a browser that lost the session token but retained the
-    // per-request access token. Do not require the saved request ID if it is stale.
-    if(!c)c=findConversationByPhone_(phone);
-    if(c && String(c.clientAccessToken||"")===accessToken){
-      const candidate=getClientByPhone_(phone);
-      if(candidate){
-        const clientSheet=getClientSheet_();
-        const last=candidate.row?new Date(getByHeader_(clientSheet,candidate.row,"lastActivityAt")||0).getTime():0;
-        const verifiedAt=new Date(c.verifiedAt||0).getTime();
-        const activityAt=last||verifiedAt;
-        if(activityAt && Date.now()-activityAt<=30*60*1000){
-          const issued=issueClientSession_(candidate,phone);client=candidate;activeToken=issued.clientSessionToken;
-        }
-      }
-    }
-  }
-
-  if(!client)throw new Error("Your verified client session could not be restored. Please verify your WhatsApp number again.");
 
   // If the stored request no longer exists, use the latest active request for
   // context. The dashboard itself still loads the complete request history.
@@ -2336,11 +2342,22 @@ function tutorDashboard_(d){
 }
 function tutorUpdateWorkStatus_(d){
   const p=requireTutor_(d.tutorToken),c=findConversation_(d.conversationId);if(!c)throw new Error("Work not found.");
-  if(normalizePhone_(c.assignedTutorPhone)!==p.tutorPhone && !(p.tutorId==="PRIMARY"&&c.assignedTutor===p.tutorName))throw new Error("This work is not assigned to you.");
-  const status=String(d.status||"").toUpperCase();if(["RECEIVED","IN_PROGRESS","READY_FOR_QA","REVISION_REQUESTED"].indexOf(status)<0)throw new Error("Invalid tutor work status.");
-  const sh=getConversationSheet_();setByHeader_(sh,c.row,"tutorWorkStatus",status);if(status==="IN_PROGRESS")setByHeader_(sh,c.row,"assignmentStatus","IN_PROGRESS");
+  // Authorise against the canonical assignment on every request; never trust a tutor-supplied name/phone.
+  if(normalizePhone_(c.assignedTutorPhone)!==p.tutorPhone && !(p.tutorId==="PRIMARY"&&c.assignedTutor===p.tutorName&&!c.assignedTutorPhone))throw new Error("This work is not assigned to you.");
+  const status=String(d.status||"").trim().toUpperCase();
+  // QA decisions such as REVISION_REQUESTED and QA_APPROVED belong to Admin, not the tutor.
+  if(["ACCEPTED","IN_PROGRESS","READY_FOR_QA"].indexOf(status)<0)throw new Error("Choose Accepted, In progress, or Ready for QA.");
+  const sh=getConversationSheet_(),previous=String(c.tutorWorkStatus||"RECEIVED").toUpperCase();
+  const assignmentStatus=status==="ACCEPTED"?"ASSIGNED":status;
+  setByHeader_(sh,c.row,"tutorWorkStatus",status);
+  setByHeader_(sh,c.row,"assignmentStatus",assignmentStatus);
+  if(status==="READY_FOR_QA")setByHeader_(sh,c.row,"tutorSubmittedAt",new Date());
+  const messageText="📌 Tutor work status updated: "+status.replace(/_/g," ")+(previous!==status?" (previously "+previous.replace(/_/g," ")+")":"");
+  const saved=saveMessage_(c.conversationId,"tutor",messageText,"work-status",null,p.tutorDisplayName||p.tutorName,p.tutorPhone);
+  updateConversation_(c.conversationId,new Date(),saved.id);
   invalidateWorkCaches_(c.conversationId,p.tutorPhone,p.tutorPhone,c.studentPhone);
-  auditTutor_(p,"STATUS_"+status,c.conversationId);return json_({ok:true,status:status,assignmentStatus:status==="IN_PROGRESS"?"IN_PROGRESS":c.assignmentStatus||"ASSIGNED"});
+  auditTutor_(p,"STATUS_"+status,c.conversationId+"; previous="+previous);
+  return json_({ok:true,status:status,tutorWorkStatus:status,assignmentStatus:assignmentStatus,message:"Work status updated and shared with the client and Admin."});
 }
 function tutorSubmitWork_(d){
   const p=requireTutor_(d.tutorToken),c=findConversation_(d.conversationId);if(!c)throw new Error("Work not found.");
