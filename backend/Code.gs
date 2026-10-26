@@ -1559,22 +1559,13 @@ function clientAuthConversation_(d){
   return c;
 }
 function clientConversationFromSessionOrAccess_(d){
-  const id=String(d.conversationId||"").trim(),phone=normalizePhone_(d.phone||"").trim(),accessToken=String(d.clientAccessToken||"").trim();
-  if(d.clientSessionToken){
-    try{return clientConversationFromSession_(d)}catch(sessionErr){
-      if(!id||!accessToken) throw sessionErr;
-      const c=clientAuthConversation_({conversationId:id,phone:phone,clientAccessToken:accessToken});
-      const profile=getClientByPhone_(phone||c.studentPhone);
-      if(!profile)throw sessionErr;
-      const issued=issueClientSession_(profile,phone||c.studentPhone);
-      return {conversation:c,clientSessionToken:issued.clientSessionToken};
-    }
-  }
-  const c=clientAuthConversation_({conversationId:id,phone:phone,clientAccessToken:accessToken});
-  const profile=getClientByPhone_(phone||c.studentPhone);
-  if(!profile)throw new Error("Client record not found. Please start a new verified chat.");
-  const issued=issueClientSession_(profile,phone||c.studentPhone);
-  return {conversation:c,clientSessionToken:issued.clientSessionToken};
+  // Security hardening: clientAccessToken alone must never mint or restore a
+  // session. The client must present the server-issued, unexpired session token
+  // created after the six-digit WhatsApp verification succeeds.
+  const token=String(d&&d.clientSessionToken||"").trim();
+  if(!token)throw new Error("A verified client session is required. Please verify your WhatsApp number again.");
+  const conversation=clientConversationFromSession_(d);
+  return {conversation:conversation,clientSessionToken:token};
 }
 function collectConversationAttachments_(conversationId){
   const sh=getSheet_("MESSAGES",messageHeaders_()),rows=sh.getDataRange().getValues(),m=headerMap_(sh),out=[];

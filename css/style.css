@@ -402,3 +402,8 @@ input[type="submit"], input[type="button"] { cursor: pointer; }
   .actions > .btn, .ba-actions > .btn, .button-row > .btn { flex:0 1 auto; }
   .card, .ba-card, .panel { min-width:0; max-width:100%; overflow-wrap:anywhere; }
 }
+
+/* BrightAce media display refinement: full thumbnails remain visible at checkout. */
+.resource-checkout-thumb{display:flex;align-items:center;justify-content:center;padding:8px;max-height:360px;overflow:hidden}
+.resource-checkout-thumb img{display:block;width:auto;max-width:100%;height:auto;max-height:340px;object-fit:contain;object-position:center;margin:auto}
+.resource-media-wrap video,.resource-media-wrap iframe{width:100%;max-width:100%;max-height:520px;object-fit:contain;background:#101827;border:0;border-radius:10px}

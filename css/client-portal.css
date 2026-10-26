@@ -356,3 +356,10 @@ body.client-portal-page #baMessageJobSelect:focus { border-color: #0878d8; box-s
 .ba-session-detail-grid small { color:var(--ba-muted,#6d8095); font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
 .ba-session-detail-grid strong { overflow-wrap:anywhere; line-height:1.45; font-size:.9rem; }
 .ba-session-detail-grid a { overflow-wrap:anywhere; }
+
+/* BrightAce secure media fit: previews show complete images, never crop them. */
+.ba-client-file-preview{grid-column:1/-1;display:flex;align-items:center;justify-content:center;width:100%;max-width:720px;max-height:58vh;min-height:80px;overflow:hidden;border-radius:12px;background:#f1f5f9;margin:2px 0 6px}
+.ba-client-file-preview img{display:block;width:auto;height:auto;max-width:100%;max-height:58vh;object-fit:contain;object-position:center}
+.ba-client-video-preview{min-height:120px;max-height:220px;flex-direction:column;gap:8px;padding:20px;text-decoration:none;color:#173f68;border:1px solid #dbe5ef}
+.ba-client-video-preview span{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:#173f68;color:#fff;font-size:1.4rem}
+.ba-client-video-preview small{max-width:100%;overflow-wrap:anywhere;text-align:center}
