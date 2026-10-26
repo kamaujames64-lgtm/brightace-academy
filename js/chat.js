@@ -348,13 +348,32 @@ async function gateStoredSessionBeforeRendering(){
     // Pausing admissions affects only an unverified new request, never a returning
     // verified client with an existing conversation/session.
     if(!session.verified&&access?.enabled!==true){session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";showBrightAceAccessModal('paused');return;}
-    if(session.verified){openChat();if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000)expireClientSession();else scheduleClientExpiry();}
+    if(session.verified){
+      // SECURITY: localStorage's `verified` flag is untrusted. Validate the
+      // server-issued session token BEFORE revealing chat history or dashboard controls.
+      if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000){expireClientSession();return;}
+      const verifiedSession=await post("clientDashboardBootstrap",{conversationId:session.id||session.conversationId,phone:session.phone,clientSessionToken:session.clientSessionToken,clientAccessToken:session.clientAccessToken||""});
+      if(!verifiedSession?.ok||!verifiedSession.clientSessionToken)throw new Error("Your verified client session could not be confirmed. Please verify your WhatsApp number again.");
+      session.clientSessionToken=verifiedSession.clientSessionToken;
+      session.clientSessionExpiresAt=verifiedSession.clientSessionExpiresAt||session.clientSessionExpiresAt||"";
+      if(verifiedSession.clientAccessToken)session.clientAccessToken=verifiedSession.clientAccessToken;
+      session.lastActivityAt=Date.now();
+      localStorage.setItem(CHAT_KEY,JSON.stringify(session));
+      openChat();scheduleClientExpiry();
+    }
     else if(session.id&&session.name&&session.phone){showVerification();setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number. If it has expired, request a new code.","info");}
   }catch(err){
-    // Fail closed for a pending OTP: never reveal a verification form if access
-    // status cannot be confirmed. Preserve existing verified sessions on outages.
-    if(session?.verified){openChat();if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000)expireClientSession();else scheduleClientExpiry();}
-    else {if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";const message=/Unknown BrightAce action/i.test(String(err?.message||""))?"BrightAce’s request-access service is outdated. Please contact BrightAce support while the current backend version is deployed.":"We could not confirm access to your request. Please try again shortly.";setNotice(message,"warning");}
+    // FAIL CLOSED: a local verified flag or an API outage must never reveal
+    // the prior conversation, dashboard button, or client navigation.
+    if(session?.verified){
+      const old=session;session=null;
+      try{[CHAT_KEY,"brightace_client_session_v4","brightace_chat_session_v4"].forEach(k=>{localStorage.removeItem(k);sessionStorage.removeItem(k)})}catch(e){}
+      if(pollTimer){pollTimer();pollTimer=null;}
+      if(chatArea)chatArea.style.display="none";
+      if(verificationArea)verificationArea.style.display="none";
+      if(startBox)startBox.style.display="block";
+      setNotice("Your previous client session could not be verified. Please sign in again and complete WhatsApp verification before opening your dashboard.","warning");
+    } else {if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";const message=/Unknown BrightAce action/i.test(String(err?.message||""))?"BrightAce’s request-access service is outdated. Please contact BrightAce support while the current backend version is deployed.":"We could not confirm access to your request. Please try again shortly.";setNotice(message,"warning");}
   }
 }
 

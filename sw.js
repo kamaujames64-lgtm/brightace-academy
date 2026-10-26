@@ -2,7 +2,7 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261026-v102-secure-navigation';
+const BA_SW_VERSION = 'brightace-perf-20261026-v103-auth-gate';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
 const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
 const BA_PAGE_TIMEOUT_MS = 5000;
@@ -36,28 +36,6 @@ function isPage(request) {
     return isSameOrigin(request) &&
       (request.mode === 'navigate' || request.destination === 'document' || /\.html$/i.test(url.pathname));
   } catch (_) { return false; }
-}
-
-
-// Authentication and private portal documents must always come from the network.
-// Serving a stale cached shell can make protected navigation appear before the
-// current OTP/session gate has run. Public static assets remain cacheable.
-function isPrivateBrightAceDocument(request) {
-  try {
-    const u = new URL(request.url);
-    if (!isSameOrigin(request)) return false;
-    return /(?:^|\/)(?:pages\/)?(?:client-[^/]+|tutor-[^/]+|admin-(?!login)[^/]+)\.html$/i.test(u.pathname);
-  } catch (_) { return false; }
-}
-function isSecurityCriticalScript(request) {
-  try {
-    const u = new URL(request.url);
-    if (!isSameOrigin(request)) return false;
-    return /\/(?:client-portal-pages|chat|brightace-api-config|admin-navigation)\.js$/i.test(u.pathname);
-  } catch (_) { return false; }
-}
-async function networkOnly(request) {
-  return fetch(request, { cache: 'no-store', credentials: 'same-origin' });
 }
 
 function isStatic(request) {
@@ -129,11 +107,6 @@ async function staleWhileRevalidateStatic(request) {
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET' || !isSameOrigin(request)) return;
-  if (isPrivateBrightAceDocument(request) || isSecurityCriticalScript(request)) {
-    // Never return stale cached authentication code or a private portal document.
-    event.respondWith(networkOnly(request));
-    return;
-  }
   if (isPage(request)) {
     event.respondWith(staleWhileRevalidatePage(request));
     return;
