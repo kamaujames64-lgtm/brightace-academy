@@ -1,0 +1,16 @@
+BRIGHTACE ACADEMY — SECURITY, PERFORMANCE, MEDIA AND REPORTING PATCH
+
+Included changes:
+1. Service worker version bumped to brightace-perf-20261026-v102-secure-navigation. Private client/tutor/admin documents and authentication-critical scripts are network-only and are not served from stale caches. Public static assets remain cacheable.
+2. Client chat-message retrieval now requires a valid server-issued clientSessionToken; clientAccessToken alone cannot mint a session.
+3. Client image previews show the full image with object-fit:contain; video attachments link to the existing full-screen resource viewer. Checkout thumbnails preserve full image proportions.
+4. Includes Python performance-engine foundation: bounded jobs, optional Redis shared cache, engine status, cache endpoints and load-test script. Redis remains optional/unconfigured.
+5. Adds pages/admin-reports.html using existing adminResourceAnalytics and adminObservability actions. AdSense is clearly marked not connected until configured.
+6. Adds REPORTING-API-AND-ADSENSE-GUIDE.md.
+
+IMPORTANT
+- This is a test ZIP; no GitHub Pages or Render deployment has been performed.
+- Apply backend/Code.gs to the SAME Apps Script project with all companion backend/BA_*.gs files; preserve Script Properties and the existing /exec URL. Deploy a new Web App version only after testing.
+- Test fresh clients, returning clients, expired sessions, direct navigation to every client page, and stale-service-worker scenarios. Legacy browser state without a valid server session token must complete WhatsApp verification again.
+- AdSense earnings require site approval and an authorized AdSense Management API connection.
+- 3,000 concurrent-user capacity has not been proven. Run staged load tests before making a scale claim.
