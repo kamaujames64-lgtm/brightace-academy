@@ -14,3 +14,9 @@ services:
         sync: false
       - key: MAX_BODY_BYTES
         value: "1048576"
+      - key: MAX_INFLIGHT_JOBS
+        value: "100"
+      - key: JOB_ADMISSION_TIMEOUT_SECONDS
+        value: "0.25"
+      - key: REDIS_MAX_CONNECTIONS
+        value: "100"

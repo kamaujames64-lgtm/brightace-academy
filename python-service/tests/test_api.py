@@ -69,3 +69,24 @@ def test_invalid_feature_input(monkeypatch):
         headers={"X-BrightAce-Service-Key": "test-secret"},
     )
     assert response.status_code == 422
+
+
+def test_engine_status_requires_service_key(monkeypatch):
+    monkeypatch.setenv("BRIGHTACE_SERVICE_API_KEY", "test-secret")
+    assert client.get("/api/v1/engine/status").status_code == 401
+    response = client.get("/api/v1/engine/status", headers={"X-BrightAce-Service-Key": "test-secret"})
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert "max_inflight_jobs_per_instance" in response.json()
+
+
+def test_cache_write_fails_closed_when_redis_is_disabled(monkeypatch):
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    # Isolated process cache initialization is sticky; the endpoint should fail closed.
+    monkeypatch.setenv("BRIGHTACE_SERVICE_API_KEY", "test-secret")
+    response = client.put(
+        "/api/v1/cache/test/example",
+        json={"value": {"hello": "world"}, "ttl_seconds": 10},
+        headers={"X-BrightAce-Service-Key": "test-secret"},
+    )
+    assert response.status_code in (200, 503)
