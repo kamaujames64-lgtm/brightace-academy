@@ -12,7 +12,7 @@ function buildProfessionalRequest(service,resource,help){let s="Hello BrightAce 
 function prefillServiceRequest(){const c=getRequestedContext(),field=document.getElementById("taskDescription");if(!field||field.value.trim()||(!c.service&&!c.resource&&!c.help))return;field.value=buildProfessionalRequest(c.service,c.resource,c.help);const heading=document.querySelector("#chatStart h3"),helper=document.querySelector("#chatStart .chat-helper");if(heading)heading.textContent=c.resource?`Request help with ${c.resource}`:`Request help with ${c.service}`;if(helper)helper.textContent=c.resource?`Your request has been started for ${c.resource}. Please review the description and add any specific details before sending your request.`:`Your request has been started for ${c.service}. Please review the description and add any specific details before sending your request.`}
 
 const startBox=document.getElementById("chatStart"),verificationArea=document.getElementById("verificationArea"),chatArea=document.getElementById("chatArea"),chatBody=document.getElementById("chatBody"),chatNotice=document.getElementById("chatNotice"),verificationNotice=document.getElementById("verificationNotice"),fileInput=document.getElementById("fileInput"),attachmentPreview=document.getElementById("attachmentPreview"),messageInput=document.getElementById("messageInput"),messageForm=document.getElementById("messageForm");
-let session=null;
+let session=null,clientSessionValidated=false;
 try{session=JSON.parse(localStorage.getItem(CHAT_KEY)||"null");}catch(e){localStorage.removeItem(CHAT_KEY);session=null;}
 let selectedFiles=[],pollTimer=null,lastMessageSignature="",firstMessageRender=true,lastIncomingMessageIds=new Set(),firstIncomingSync=true,alertAudio=null,lastSyncCursor="",lastSyncConversationId="";const pendingMessages=new Map();
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
@@ -119,7 +119,7 @@ function showClientTutorial(){
   box.addEventListener("keydown",e=>{if(e.key==="Escape")finish()});
   render();
 }
-function openChat(){if(!startBox||!chatArea||!session?.verified)return;startBox.style.display="none";if(verificationArea)verificationArea.style.display="none";chatArea.style.display="block";document.getElementById("studentDisplay").textContent=session?.name||"Student";showClientTutorial();if(apiReady()){setNotice("Connected to BrightAce live chat.","success");syncMessages();if(pollTimer)pollTimer();pollTimer=window.BrightAceScheduler.start("client-live-chat",()=>{if(session?.verified)return syncMessages(true)},POLL_MS)}else{setNotice("Live chat requires the BrightAce server connection.","warning");renderMessages(session?.localMessages||[])}}
+function openChat(){if(!startBox||!chatArea||!session?.verified||!session?.clientSessionToken||!clientSessionValidated)return;startBox.style.display="none";if(verificationArea)verificationArea.style.display="none";chatArea.style.display="block";document.getElementById("studentDisplay").textContent=session?.name||"Student";showClientTutorial();if(apiReady()){setNotice("Connected to BrightAce live chat.","success");syncMessages();if(pollTimer)pollTimer();pollTimer=window.BrightAceScheduler.start("client-live-chat",()=>{if(session?.verified)return syncMessages(true)},POLL_MS)}else{setNotice("Live chat requires the BrightAce server connection.","warning");renderMessages(session?.localMessages||[])}}
 function formatWhatsAppDisplay(phone){const raw=String(phone||"").replace(/\D/g,"");if(!raw)return"WhatsApp number";return "+"+raw}
 async function logoutClient(){const phone=String(session?.phone||'').trim(),token=String(session?.clientSessionToken||'').trim();try{[CHAT_KEY,'brightace_client_session_v4','brightace_chat_session_v4'].forEach(k=>{localStorage.removeItem(k);sessionStorage.removeItem(k)})}catch(e){}try{if(token&&phone){const b=new URLSearchParams();b.set('payload',JSON.stringify({action:'clientEndSession',phone,clientSessionToken:token}));await Promise.race([fetch(CHAT_API_URL,{method:'POST',body:b,cache:'no-store',keepalive:true}),new Promise(r=>setTimeout(r,2500))])}}catch(e){}window.location.replace('../index.html')}
 function updateVerificationPhone(){const el=document.getElementById("verificationPhone"),intro=document.getElementById("verificationIntro");if(!session)return;const display=formatWhatsAppDisplay(session.phone);if(el)el.textContent="WhatsApp: "+display;if(intro)intro.textContent="We sent a 6-digit verification code to your WhatsApp number ("+display+"). Enter the code below to securely initiate your BrightAce live chat."}
@@ -129,7 +129,7 @@ async function startRemoteChat(){return post("startChat",{id:session.id,name:ses
 async function sendVerificationRemote(){return post("sendVerification",{conversationId:session.id})}
 async function verifyRemoteChat(code){return post("verifyChat",{conversationId:session.id,code:String(code||"").trim()})}
 async function resendRemoteCode(){return post("resendVerification",{conversationId:session.id})}
-async function syncMessages(background=false,recoveryAttempt=false){if(syncMessagesBusy||!apiReady()||!session?.id||!session?.verified)return;const activeConversationId=String(session.id);if(lastSyncConversationId!==activeConversationId){lastSyncConversationId=activeConversationId;lastSyncCursor="";lastMessageSignature="";lastIncomingMessageIds=new Set();firstIncomingSync=true;firstMessageRender=true;pendingMessages.clear();session.localMessages=[];}syncMessagesBusy=true;try{const cursor=lastSyncCursor||"";const qs=`action=messages&sessionId=${encodeURIComponent(session.id)}&clientSessionToken=${encodeURIComponent(session.clientSessionToken||"")}&clientAccessToken=${encodeURIComponent(session.clientAccessToken||"")}&phone=${encodeURIComponent(session.phone||"")}&afterMessageId=${encodeURIComponent(cursor)}`;const r=await fetch(`${CHAT_API_URL}?${qs}`,{cache:"no-store"}),raw=await r.text();let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce /exec returned HTML instead of JSON. The production Web App is not serving the current API. Redeploy the latest backend as a new version of the SAME Web App and keep the existing /exec URL.")}if(d.ok){if(d.clientSessionToken){session.clientSessionToken=d.clientSessionToken;session.clientSessionExpiresAt=new Date(Date.now()+30*60*1000).toISOString();session.lastActivityAt=Date.now();localStorage.setItem(CHAT_KEY,JSON.stringify(session));}const messages=(d.messages||[]).filter(m=>{const sender=String(m.sender||"").toLowerCase();return sender==="student"||sender==="admin"}).slice().sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));if(d.syncCursor)lastSyncCursor=String(d.syncCursor);const incoming=messages.filter(m=>String(m.sender||"").toLowerCase()!=="student");if(!firstIncomingSync&&incoming.some(m=>m.id&&!lastIncomingMessageIds.has(m.id)))playNewMessageSound();lastIncomingMessageIds=new Set([...lastIncomingMessageIds,...incoming.map(m=>m.id).filter(Boolean)]);firstIncomingSync=false;if(messages.length){if(cursor){const current=Array.isArray(session.localMessages)?session.localMessages:[];const byId=new Map();current.forEach(m=>{if(m&&m.id)byId.set(String(m.id),m)});messages.forEach(m=>{if(m&&m.id)byId.set(String(m.id),Object.assign({},byId.get(String(m.id))||{},m));});const merged=[...byId.values()].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0)).slice(-100);renderMessages(merged);session.localMessages=merged;}else{const byId=new Map();messages.forEach(m=>{if(m&&m.id)byId.set(String(m.id),m)});const initial=[...byId.values()].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0)).slice(-100);renderMessages(initial);session.localMessages=initial;}}else if(!cursor){renderMessages([]);session.localMessages=[];}if(!background)setNotice("Connected to BrightAce live chat.","success")}}catch(e){const msg=String(e?.message||"");if(!recoveryAttempt&&session?.clientAccessToken&&/session|expired|verify|verified client|does not belong/i.test(msg)){try{const d=await post("clientDashboardBootstrap",{conversationId:session.id,phone:session.phone,clientSessionToken:session.clientSessionToken||"",clientAccessToken:session.clientAccessToken||""});session.clientAccessToken=d.clientAccessToken||session.clientAccessToken;session.clientSessionToken=d.clientSessionToken||session.clientSessionToken;session.clientSessionExpiresAt=d.clientSessionExpiresAt||session.clientSessionExpiresAt;session.lastActivityAt=Date.now();localStorage.setItem(CHAT_KEY,JSON.stringify(session));lastSyncCursor="";syncMessagesBusy=false;return await syncMessages(background,true)}catch(recoverErr){}}if(/session|expired|verify|verified client|does not belong|access token/i.test(msg)){expireClientSession();return}if(!background)setNotice("Live connection is temporarily unavailable. Retrying…","warning")}finally{syncMessagesBusy=false}}function setSelectedFiles(files){
+async function syncMessages(background=false,recoveryAttempt=false){if(syncMessagesBusy||!apiReady()||!session?.id||!session?.verified)return;const activeConversationId=String(session.id);if(lastSyncConversationId!==activeConversationId){lastSyncConversationId=activeConversationId;lastSyncCursor="";lastMessageSignature="";lastIncomingMessageIds=new Set();firstIncomingSync=true;firstMessageRender=true;pendingMessages.clear();session.localMessages=[];}syncMessagesBusy=true;try{const cursor=lastSyncCursor||"";const qs=`action=messages&sessionId=${encodeURIComponent(session.id)}&clientSessionToken=${encodeURIComponent(session.clientSessionToken||"")}&clientAccessToken=${encodeURIComponent(session.clientAccessToken||"")}&phone=${encodeURIComponent(session.phone||"")}&afterMessageId=${encodeURIComponent(cursor)}`;const r=await fetch(`${CHAT_API_URL}?${qs}`,{cache:"no-store"}),raw=await r.text();let d;try{d=JSON.parse(raw)}catch(e){throw Error("BrightAce /exec returned HTML instead of JSON. The production Web App is not serving the current API. Redeploy the latest backend as a new version of the SAME Web App and keep the existing /exec URL.")}if(d.ok){if(d.clientSessionToken){session.clientSessionToken=d.clientSessionToken;session.clientSessionExpiresAt=new Date(Date.now()+30*60*1000).toISOString();session.lastActivityAt=Date.now();localStorage.setItem(CHAT_KEY,JSON.stringify(session));}const messages=(d.messages||[]).filter(m=>{const sender=String(m.sender||"").toLowerCase();return sender==="student"||sender==="admin"}).slice().sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0));if(d.syncCursor)lastSyncCursor=String(d.syncCursor);const incoming=messages.filter(m=>String(m.sender||"").toLowerCase()!=="student");if(!firstIncomingSync&&incoming.some(m=>m.id&&!lastIncomingMessageIds.has(m.id)))playNewMessageSound();lastIncomingMessageIds=new Set([...lastIncomingMessageIds,...incoming.map(m=>m.id).filter(Boolean)]);firstIncomingSync=false;if(messages.length){if(cursor){const current=Array.isArray(session.localMessages)?session.localMessages:[];const byId=new Map();current.forEach(m=>{if(m&&m.id)byId.set(String(m.id),m)});messages.forEach(m=>{if(m&&m.id)byId.set(String(m.id),Object.assign({},byId.get(String(m.id))||{},m));});const merged=[...byId.values()].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0)).slice(-100);renderMessages(merged);session.localMessages=merged;}else{const byId=new Map();messages.forEach(m=>{if(m&&m.id)byId.set(String(m.id),m)});const initial=[...byId.values()].sort((a,b)=>new Date(a.timestamp||0)-new Date(b.timestamp||0)).slice(-100);renderMessages(initial);session.localMessages=initial;}}else if(!cursor){renderMessages([]);session.localMessages=[];}if(!background)setNotice("Connected to BrightAce live chat.","success")}}catch(e){const msg=String(e?.message||"");if(!recoveryAttempt&&session?.clientAccessToken&&/session|expired|verify|verified client|does not belong/i.test(msg)){try{const d=await post("clientDashboardBootstrap",{conversationId:session.id,phone:session.phone,clientSessionToken:session.clientSessionToken||"",clientAccessToken:session.clientAccessToken||""});session.clientAccessToken=d.clientAccessToken||session.clientAccessToken;session.clientSessionToken=d.clientSessionToken||session.clientSessionToken;session.clientSessionExpiresAt=d.clientSessionExpiresAt||session.clientSessionExpiresAt;session.lastActivityAt=Date.now();clientSessionValidated=true;localStorage.setItem(CHAT_KEY,JSON.stringify(session));lastSyncCursor="";syncMessagesBusy=false;return await syncMessages(background,true)}catch(recoverErr){}}if(/session|expired|verify|verified client|does not belong|access token/i.test(msg)){expireClientSession();return}if(!background)setNotice("Live connection is temporarily unavailable. Retrying…","warning")}finally{syncMessagesBusy=false}}function setSelectedFiles(files){
   selectedFiles=Array.from(files||[]).slice(0,MAX_ATTACHMENTS);
   if((files?.length||0)>MAX_ATTACHMENTS)setNotice(`You can attach up to ${MAX_ATTACHMENTS} files per message.`,"warning");
   if(!attachmentPreview)return;
@@ -209,7 +209,7 @@ document.getElementById("startForm")?.addEventListener("submit",async e=>{
 });
 
 let verificationBusy=false;
-async function verifyAndConnect(){if(verificationBusy)return;const input=document.getElementById("verificationCode"),btn=document.getElementById("verifyBtn"),code=input?.value.trim()||"";if(!/^\d{6}$/.test(code))return setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number.","error");verificationBusy=true;if(btn){btn.disabled=true;btn.textContent="VERIFYING…"}try{const d=await verifyRemoteChat(code);session.verified=true;session.clientAccessToken=d.clientAccessToken||session.clientAccessToken||"";session.clientSessionToken=d.clientSessionToken||session.clientSessionToken||"";session.clientSessionExpiresAt=d.clientSessionExpiresAt||"";session.lastActivityAt=Date.now();session.localMessages=[];lastSyncCursor="";localStorage.setItem(CHAT_KEY,JSON.stringify(session));openChat();setNotice(d.message||"WhatsApp verified. Your BrightAce live chat is now connected.","success");post("notifyAdmin",{conversationId:session.id}).catch(()=>{});syncMessages().catch(()=>{})}catch(err){if(!showRestrictionAndClearVerification(err?.message)&&!showPausedAndClearPendingVerification(err?.message))setVerificationNotice(err?.message||"The code could not be verified. Please try again.","error")}finally{verificationBusy=false;if(btn){btn.disabled=false;btn.textContent="VERIFY & CONNECT"}}}
+async function verifyAndConnect(){if(verificationBusy)return;const input=document.getElementById("verificationCode"),btn=document.getElementById("verifyBtn"),code=input?.value.trim()||"";if(!/^\d{6}$/.test(code))return setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number.","error");verificationBusy=true;if(btn){btn.disabled=true;btn.textContent="VERIFYING…"}try{const d=await verifyRemoteChat(code);if(!d.clientSessionToken)throw new Error("The server did not issue a verified client session. Please request a new code.");session.verified=true;clientSessionValidated=true;session.clientAccessToken=d.clientAccessToken||session.clientAccessToken||"";session.clientSessionToken=d.clientSessionToken||session.clientSessionToken||"";session.clientSessionExpiresAt=d.clientSessionExpiresAt||"";session.lastActivityAt=Date.now();session.localMessages=[];lastSyncCursor="";localStorage.setItem(CHAT_KEY,JSON.stringify(session));openChat();setNotice(d.message||"WhatsApp verified. Your BrightAce live chat is now connected.","success");post("notifyAdmin",{conversationId:session.id}).catch(()=>{});syncMessages().catch(()=>{})}catch(err){if(!showRestrictionAndClearVerification(err?.message)&&!showPausedAndClearPendingVerification(err?.message))setVerificationNotice(err?.message||"The code could not be verified. Please try again.","error")}finally{verificationBusy=false;if(btn){btn.disabled=false;btn.textContent="VERIFY & CONNECT"}}}
 document.getElementById("verificationForm")?.addEventListener("submit",async e=>{e.preventDefault();await verifyAndConnect()});
 document.getElementById("verificationCode")?.addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"").slice(0,6);if(e.target.value.length===6)verifyAndConnect()});
 
@@ -317,7 +317,7 @@ returningVerificationForm?.addEventListener("submit",async e=>{
   if(btn){btn.disabled=true;btn.textContent="VERIFYING…"}
   try{
     const d=await post("returningClientVerify",{conversationId:returningConversationId,code});
-    session={id:d.conversationId||returningConversationId,name:d.clientName||document.getElementById("returningClientName")?.value.trim()||"",phone:phoneValue("returningClientPhone")||"",started:new Date().toISOString(),verified:true,clientAccessToken:d.clientAccessToken,clientSessionToken:d.clientSessionToken,clientSessionExpiresAt:d.clientSessionExpiresAt,lastActivityAt:Date.now()};
+    session={id:d.conversationId||returningConversationId,name:d.clientName||document.getElementById("returningClientName")?.value.trim()||"",phone:phoneValue("returningClientPhone")||"",started:new Date().toISOString(),verified:true,clientAccessToken:d.clientAccessToken,clientSessionToken:d.clientSessionToken,clientSessionExpiresAt:d.clientSessionExpiresAt,lastActivityAt:Date.now()};clientSessionValidated=!!d.clientSessionToken;if(!clientSessionValidated)throw new Error("The server did not issue a verified client session. Please request a new code.");
     localStorage.setItem(CHAT_KEY,JSON.stringify(session));sessionStorage.setItem(CHAT_KEY,JSON.stringify(session));
     if(returningArea)returningArea.style.display="none";
     if(returningVerificationArea)returningVerificationArea.style.display="none";
@@ -340,41 +340,46 @@ function scheduleClientExpiry(){if(!session?.verified)return;const last=Number(s
 function resetClientActivity(){if(!session?.verified)return;const now=Date.now();if(session.lastActivityAt&&now-Number(session.lastActivityAt)>30*60*1000){expireClientSession();return}session.lastActivityAt=now;try{localStorage.setItem(CHAT_KEY,JSON.stringify(session))}catch(e){}scheduleClientExpiry();if(session.clientSessionToken&&Date.now()-lastClientServerTouch>5*60*1000){lastClientServerTouch=Date.now();post("clientTouchSession",{clientSessionToken:session.clientSessionToken,phone:session.phone}).then(r=>{session.clientSessionExpiresAt=r.expiresAt;localStorage.setItem(CHAT_KEY,JSON.stringify(session));scheduleClientExpiry()}).catch(e=>{if(/session|expired|verify/i.test(String(e?.message||"")))expireClientSession()})}}
 document.addEventListener("click",resetClientActivity,{passive:true});document.addEventListener("keydown",resetClientActivity,{passive:true});document.addEventListener("input",resetClientActivity,{passive:true});
 async function gateStoredSessionBeforeRendering(){
-  if(!session)return;
-  if(!session.phone){if(!session.verified){session=null;try{localStorage.removeItem(CHAT_KEY)}catch(e){}}return;}
-  try{
-    const access=await post("publicRequestIntakeStatus",{phone:session.phone});
-    if(access?.blocked){showRestrictionAndClearVerification("This client account is blocked or inactive.",access.reason);return;}
-    // Pausing admissions affects only an unverified new request, never a returning
-    // verified client with an existing conversation/session.
-    if(!session.verified&&access?.enabled!==true){session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";showBrightAceAccessModal('paused');return;}
-    if(session.verified){
-      // SECURITY: localStorage's `verified` flag is untrusted. Validate the
-      // server-issued session token BEFORE revealing chat history or dashboard controls.
-      if(!session.clientSessionToken||!session.lastActivityAt||Date.now()-Number(session.lastActivityAt)>30*60*1000){expireClientSession();return;}
-      const verifiedSession=await post("clientDashboardBootstrap",{conversationId:session.id||session.conversationId,phone:session.phone,clientSessionToken:session.clientSessionToken,clientAccessToken:session.clientAccessToken||""});
-      if(!verifiedSession?.ok||!verifiedSession.clientSessionToken)throw new Error("Your verified client session could not be confirmed. Please verify your WhatsApp number again.");
-      session.clientSessionToken=verifiedSession.clientSessionToken;
-      session.clientSessionExpiresAt=verifiedSession.clientSessionExpiresAt||session.clientSessionExpiresAt||"";
-      if(verifiedSession.clientAccessToken)session.clientAccessToken=verifiedSession.clientAccessToken;
-      session.lastActivityAt=Date.now();
-      localStorage.setItem(CHAT_KEY,JSON.stringify(session));
-      openChat();scheduleClientExpiry();
-    }
-    else if(session.id&&session.name&&session.phone){showVerification();setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number. If it has expired, request a new code.","info");}
-  }catch(err){
-    // FAIL CLOSED: a local verified flag or an API outage must never reveal
-    // the prior conversation, dashboard button, or client navigation.
-    if(session?.verified){
-      const old=session;session=null;
-      try{[CHAT_KEY,"brightace_client_session_v4","brightace_chat_session_v4"].forEach(k=>{localStorage.removeItem(k);sessionStorage.removeItem(k)})}catch(e){}
-      if(pollTimer){pollTimer();pollTimer=null;}
-      if(chatArea)chatArea.style.display="none";
-      if(verificationArea)verificationArea.style.display="none";
-      if(startBox)startBox.style.display="block";
-      setNotice("Your previous client session could not be verified. Please sign in again and complete WhatsApp verification before opening your dashboard.","warning");
-    } else {if(verificationArea)verificationArea.style.display="none";if(startBox)startBox.style.display="block";const message=/Unknown BrightAce action/i.test(String(err?.message||""))?"BrightAce’s request-access service is outdated. Please contact BrightAce support while the current backend version is deployed.":"We could not confirm access to your request. Please try again shortly.";setNotice(message,"warning");}
+  // Browser storage is never proof of verification. Keep private chat UI hidden
+  // until Apps Script validates the server-issued session on this page load.
+  clientSessionValidated=false;
+  if(chatArea)chatArea.style.display="none";
+  if(!session){if(startBox)startBox.style.display="block";return;}
+  if(!session.verified){
+    if(session.id&&session.name&&session.phone){showVerification();setVerificationNotice("Enter the 6-digit code sent to your WhatsApp number. If it has expired, request a new code.","info");}
+    else {session=null;try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY)}catch(e){}if(startBox)startBox.style.display="block";}
+    return;
   }
+  if(!session.phone||!session.clientSessionToken){rejectStoredClientSession();return;}
+  try{
+    // This protected bootstrap validates token, phone, expiry and account status
+    // on the server. No conversation, appointment or dashboard controls are shown
+    // until this call succeeds.
+    const d=await post("clientDashboardBootstrap",{conversationId:session.id,phone:session.phone,clientSessionToken:session.clientSessionToken,clientAccessToken:session.clientAccessToken||""});
+    if(!d||!d.clientSessionToken)throw new Error("The server did not confirm a verified client session.");
+    session.clientSessionToken=d.clientSessionToken;
+    session.clientAccessToken=d.clientAccessToken||session.clientAccessToken||"";
+    session.clientSessionExpiresAt=d.clientSessionExpiresAt||d.expiresAt||session.clientSessionExpiresAt||"";
+    session.lastActivityAt=Date.now();
+    clientSessionValidated=true;
+    localStorage.setItem(CHAT_KEY,JSON.stringify(session));sessionStorage.setItem(CHAT_KEY,JSON.stringify(session));
+    if(startBox)startBox.style.display="none";
+    openChat();scheduleClientExpiry();
+  }catch(err){
+    // Fail closed on expired tokens, backend errors, or network failures.
+    // Do not reuse cached conversation messages or trust a saved `verified` flag.
+    rejectStoredClientSession();
+    setNotice("For your security, please verify your WhatsApp number again before accessing your conversation or dashboard.","warning");
+  }
+}
+function rejectStoredClientSession(){
+  const old=session;session=null;clientSessionValidated=false;
+  try{[CHAT_KEY,"brightace_client_session_v4","brightace_chat_session_v4"].forEach(k=>{localStorage.removeItem(k);sessionStorage.removeItem(k)});}catch(e){}
+  if(pollTimer){pollTimer();pollTimer=null;}
+  if(chatArea)chatArea.style.display="none";
+  if(verificationArea)verificationArea.style.display="none";
+  if(startBox)startBox.style.display="block";
+  if(old?.clientSessionToken&&old?.phone)post("clientEndSession",{phone:old.phone,clientSessionToken:old.clientSessionToken}).catch(()=>{});
 }
 
 prefillServiceRequest();
