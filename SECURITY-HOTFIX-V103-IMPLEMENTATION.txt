@@ -1,0 +1,15 @@
+BrightAce Academy — v103 client session gate hotfix
+
+BASELINE
+Built from the user-uploaded brightace-academy-security-performance-reporting-v102(1).zip.
+
+CHANGES
+- js/chat.js: a browser-stored `verified` flag no longer opens the private chat. The page requires a server-issued clientSessionToken and a successful `clientDashboardBootstrap` response on each fresh page load.
+- Network errors, invalid/expired tokens, missing server session tokens, and bootstrap failures fail closed: private chat content is hidden, local chat-session copies are cleared, and the user must verify again.
+- Dashboard, Exit live chat, LOG OUT controls and conversation contents stay inside the hidden chat area until the server validation succeeds.
+- pages/chat.html: cache-buster updated for chat.js.
+- sw.js: cache version bumped to prompt fresh assets.
+- Existing Apps Script backend and other website/business files are unchanged in this focused patch. The backend in the baseline already rejects clientDashboardBootstrap without a server-issued client session token; that same backend must be deployed for the gate to be effective.
+
+TESTING / LIMITATIONS
+This is a source-level patch, not a live deployment or end-to-end production security certification. Test on a GitHub branch and the same Apps Script Web App deployment before merging. Direct client portal pages also rely on the existing `client-portal-pages.js` server bootstrap gate; verify every client page URL in staging.
