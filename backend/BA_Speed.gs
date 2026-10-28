@@ -38,12 +38,12 @@ function baTutorProfilesFast_(requests){
   const phones={},names={};
   (requests||[]).forEach(function(x){
     const p=normalizePhone_(x&&x.tutorPhone||''); if(p)phones[p]=1;
-    const n=String(x&&x.tutor||x&&x.assignedTutor||'').trim().toLowerCase(); if(n&&n!=='unassigned'&&n!=='tutor assignment pending')names[n]=1;
+    [x&&x.tutor,x&&x.assignedTutor,x&&x.tutorName,x&&x.tutorDisplayName].forEach(function(value){const n=String(value||'').trim().toLowerCase();if(n&&n!=='unassigned'&&n!=='tutor assignment pending')names[n]=1;});
   });
   const ids=Object.keys(phones).sort(),nameIds=Object.keys(names).sort();
   if(!ids.length&&!nameIds.length)return {};
-  const profileVersion=PropertiesService.getScriptProperties().getProperty('BA_TUTOR_PROFILE_CACHE_VERSION')||'1';
-  const key='BA_TUTOR_PROFILES_FAST_V4_'+profileVersion+'_'+ids.join(',')+'__N_'+nameIds.join(',');
+  const profileVersion=PropertiesService.getScriptProperties().getProperty('BA_TUTOR_PROFILE_CACHE_VERSION')||'2';
+  const key='BA_TUTOR_PROFILES_FAST_V5_'+profileVersion+'_'+ids.join(',')+'__N_'+nameIds.join(',');
   const hit=baCacheGetJson_(key); if(hit&&typeof hit==='object')return hit;
   const sh=getTutorSheet_(),m=headerMap_(sh),rowSet={};
   ids.forEach(function(ph){if(m.tutorPhone)baFastRowsForPhone_(sh,'tutorPhone',ph,'BA_FAST_TUTOR_PHONE').forEach(function(r){rowSet[r]=1;});});
@@ -51,7 +51,7 @@ function baTutorProfilesFast_(requests){
   const rows=baFastReadRows_(sh,Object.keys(rowSet).map(Number)),out={};
   for(const item of rows){const r=item.values,phone=m.tutorPhone?normalizePhone_(r[m.tutorPhone-1]||''):'',name=String(m.tutorName?r[m.tutorName-1]||'':'').trim().toLowerCase();
     const profile={profilePictureUrl:tutorProfilePictureUrl_(m.profilePictureUrl?String(r[m.profilePictureUrl-1]||''):''),description:m.description?String(r[m.description-1]||''):'',professionalTitle:m.professionalTitle?String(r[m.professionalTitle-1]||''):'',adminRating:m.adminRating?Math.max(0,Math.min(5,Number(r[m.adminRating-1]||0))):0,tutorPhone:phone,tutorName:String(m.tutorName?r[m.tutorName-1]||'':'')};
-    if(phone&&phones[phone])out[phone]=profile;if(name&&names[name])out['name:'+name]=profile;
+    if(phone&&phones[phone])out[phone]=profile;if(name&&names[name])out['name:'+name]=profile;const display=String(m.tutorDisplayName?r[m.tutorDisplayName-1]||'':'').trim().toLowerCase();if(display&&names[display])out['name:'+display]=profile;
   }
   baCachePutJson_(key,out,120); return out;
 }

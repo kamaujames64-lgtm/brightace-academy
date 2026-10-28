@@ -1,0 +1,11 @@
+/* Optional visual feedback for soft navigation; no layout changes to site components. */
+.ba-speed-progress {
+  position: fixed; inset: 0 auto auto 0; width: 0; height: 3px; z-index: 2147483647;
+  opacity: 0; pointer-events: none; background: linear-gradient(90deg, #18a0fb, #25c7a5, #ffd45a);
+  transition: width .18s ease, opacity .22s ease;
+}
+.ba-speed-progress.is-loading { width: 72%; opacity: 1; }
+.ba-speed-progress.is-done { width: 100%; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .ba-speed-progress { transition: none; }
+}

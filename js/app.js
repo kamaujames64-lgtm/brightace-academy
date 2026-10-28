@@ -151,7 +151,7 @@ document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e
     if(!('serviceWorker' in navigator))return;
     try{
       var base=location.pathname.indexOf('/pages/')>=0?'../':'./';
-      navigator.serviceWorker.register(base+'sw.js',{scope:base}).catch(function(){});
+      navigator.serviceWorker.register(base+'sw.js',{scope:base,updateViaCache:'none'}).catch(function(){});
     }catch(e){}
   }
   function prefetch(url){
