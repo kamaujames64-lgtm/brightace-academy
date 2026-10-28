@@ -15,10 +15,11 @@ const recovery=read('backend/BA_DisasterRecovery.gs');
 const qa=read('backend/BA_ProductionQA.gs');
 const admin=read('pages/admin.html');
 const qapage=read('pages/admin-production-qa.html');
-const marker='2026-10-12-V85-INTEGRATED-SESSION-FEEDBACK-FINANCE-MESSAGING-REPAIR';
-const successorV63=code.includes('2026-10-12-V85-INTEGRATED-SESSION-FEEDBACK-FINANCE-MESSAGING-REPAIR');
-if(code.includes(marker)||successorV63)ok('V55 build marker',successorV63?'Current V63 release supersedes the historical V55 marker.':'Code.gs declares the V55 build marker.');else bad('V55 build marker','Expected marker missing from Code.gs.');
-if((code.includes('brightace-json-v55')&&dep.includes('brightace-json-v55'))||(code.includes('brightace-json-v85')&&dep.includes('brightace-json-v85')))ok('V55 JSON marker',successorV63?'Current V63 API marker supersedes the historical V55 marker.':'API marker is present.');else bad('V55 JSON marker','API marker missing.');
+const marker='2026-10-21-V94-CLIENT-BLOCK-TUTOR-RATING-ADMIN-EDIT';
+const apiMarker='brightace-json-v94';
+if(code.includes(marker))ok('Current build marker',true,'Code.gs declares the current V94 backend build.');else bad('Current build marker','Expected V94 build marker missing from Code.gs.');
+if(code.includes(apiMarker)&&dep.includes(apiMarker))ok('Health/version API marker consistency',true,'Health and deployment metadata agree on brightace-json-v94.');else bad('Health/version API marker consistency','Code.gs and BA_Deployment.gs must both report brightace-json-v94.');
+if(/brightace-json-v94/.test(read('backend/BA_ProductionQA.gs'))&&/brightace-json-v94/.test(read('backend/BA_ProductionHardening.gs')))ok('QA endpoint API markers',true,'QA and production hardening endpoints use the current API marker.');else bad('QA endpoint API markers','QA endpoints contain stale API markers.');
 for(const f of ['BA_Security.gs','BA_Sessions.gs','BA_RateLimit.gs','BA_Data.gs','BA_Cache.gs','BA_Messages.gs','BA_Sync.gs','BA_Validation.gs','BA_Files.gs','BA_ClientHistory.gs','BA_MessageDelivery.gs','BA_FinancialIntegrity.gs','BA_Observability.gs','BA_DisasterRecovery.gs','BA_ProductionQA.gs']){if(fs.existsSync(path.join(root,'backend',f)))ok('Backend module',f);else bad('Backend module',f);}
 for(const action of ['adminProductionQa','adminRecoveryManifest','adminCreateRecoverySnapshot','adminFinancialIntegrity','adminObservability']){if(code.includes('"'+action+'"'))ok('Action route',action);else bad('Action route',action);}
 if(admin.includes('admin-production-qa.html'))ok('Admin navigation','Production QA workspace linked.');else bad('Admin navigation','Production QA link missing.');

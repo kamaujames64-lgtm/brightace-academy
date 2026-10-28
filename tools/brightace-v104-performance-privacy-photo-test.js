@@ -7,11 +7,11 @@ check('Chat session restores only from tab storage',/session=JSON\.parse\(sessio
 check('Verified chat bootstrap gates private conversation UI',/clientDashboardBootstrap/.test(chat)&&/clientSessionValidated=false/.test(chat)&&/openChat\(\)/.test(chat));
 check('Opening chat hides returning-client and OTP panels',/function openChat\(\)[\s\S]{0,600}returningClientArea[\s\S]{0,250}returningVerificationArea/.test(chat));
 check('Pending OTP is preflighted before verification UI',/gateStoredSessionBeforeRendering\(\)[\s\S]{0,1800}publicRequestIntakeStatus[\s\S]{0,600}showVerification\(\)/.test(chat));
-check('Private tutor snapshot uses tab storage',/function loadSnapshot\(\)[\s\S]{0,180}sessionStorage\.getItem\(DATA_CACHE\)/.test(tutoring)&&/function saveSnapshot\(d\)[\s\S]{0,180}sessionStorage\.setItem\(DATA_CACHE/.test(tutoring));
-check('Tutoring cache is shown only after server bootstrap',tutoring.indexOf('clientDashboardBootstrap')>=0&&tutoring.indexOf('const cached=loadSnapshot()')>tutoring.indexOf('clientDashboardBootstrap'));
+check('Private tutor snapshot uses tab storage after session validation',/TUTOR_SESSION_SNAPSHOT_KEY/.test(portal)&&/sessionStorage\.getItem\(TUTOR_SESSION_SNAPSHOT_KEY\)/.test(portal)&&/sessionStorage\.setItem\(TUTOR_SESSION_SNAPSHOT_KEY/.test(portal));
+check('Tutoring cache is only used after the shared portal session bootstrap',/await ensureSession\(s\)/.test(portal)&&/const freshPromise=post\('clientTutorSessions'/.test(portal));
 check('Client portal navigation router handles supported routes without document reload',/Same-document client portal navigation/.test(portal)&&/history\.pushState/.test(portal)&&/navigateClientRoute/.test(portal));
 check('Client portal auth session is tab-scoped',/function getSession\(\)[\s\S]{0,220}sessionStorage\.getItem\(KEY\)/.test(portal)&&/function saveSession\(s\)[\s\S]{0,160}sessionStorage\.setItem\(KEY/.test(portal));
-check('Tutor photos accept alternate API fields and Drive URLs',/tutorPhotoUrl/.test(tutoring)&&/tutorDisplayName/.test(backend)&&/drive\.google\.com\/thumbnail/.test(tutoring));
-check('Service worker cache namespace is v104',/v104-session-photo-speed-fix/.test(sw));
-check('Public soft-navigation updates styles and canonical metadata',engine.includes('link[rel=\"stylesheet\"],style')&&engine.includes('link[rel=\"canonical\"]'));
+check('Tutor photos accept alternate API fields and Drive URLs',/tutorPhotoUrl/.test(portal)&&/tutorDisplayName/.test(backend)&&/drive\.google\.com\/thumbnail/.test(portal));
+check('Service worker cache namespace is v104',/v105-network-first-workspace-fix/.test(sw));
+check('Public soft-navigation updates styles and canonical metadata',engine.includes('link[rel=\"stylesheet\"]')&&engine.includes('link[rel=\"canonical\"]')&&engine.includes('Promise.all(added)'));
 let failed=0;for(const c of checks){console.log((c.ok?'PASS ':'FAIL ')+c.name);if(!c.ok)failed++;}console.log(`\nBrightAce v104 checks: ${checks.length-failed}/${checks.length} passed`);process.exitCode=failed?1:0;

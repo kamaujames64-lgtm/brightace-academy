@@ -2,11 +2,11 @@
 const fs=require('fs'),path=require('path');
 const root=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
-const code=read('backend/Code.gs'), successorV90=/2026-10-21-V90-CLIENT-ACCESS-RESOURCE-UX-REPAIR/.test(code), fi=read('backend/BA_FinancialIntegrity.gs'), dep=read('backend/BA_Deployment.gs');
+const code=read('backend/Code.gs'), successorV94=/2026-10-21-V94-CLIENT-BLOCK-TUTOR-RATING-ADMIN-EDIT/.test(code), fi=read('backend/BA_FinancialIntegrity.gs'), dep=read('backend/BA_Deployment.gs');
 const checks=[];const c=(name,ok,detail)=>checks.push({name,ok,detail});
-c('V52 build marker present',/2026-09-19-V52-FRONTEND-MOBILE-PERFORMANCE/.test(code)||successorV90,'Current V90 release supersedes the historical V52 build marker.');
-c('V52 JSON marker present',/brightace-json-v52/.test(code)||/brightace-json-v90/.test(code),'Current V90 health marker supersedes the historical V52 marker.');
-c('Deployment metadata matches V52',(/brightace-json-v52/.test(dep)&&/frontendPerformanceEngine:"v52-visibility-aware-polling"/.test(dep))||/brightace-json-v90/.test(dep),'Current V90 deployment retains and supersedes the historical V52 performance requirements.');
+c('V52 build marker present',/2026-09-19-V52-FRONTEND-MOBILE-PERFORMANCE/.test(code)||successorV94,'Current V94 release supersedes the historical V52 build marker.');
+c('V52 JSON marker present',/brightace-json-v52/.test(code)||/brightace-json-v94/.test(code),'Current V94 health marker supersedes the historical V52 marker.');
+c('Deployment metadata matches V52',(/brightace-json-v52/.test(dep)&&/frontendPerformanceEngine:"v52-visibility-aware-polling"/.test(dep))||/brightace-json-v94/.test(dep),'Current V94 deployment retains and supersedes the historical V52 performance requirements.');
 c('Visibility-aware scheduler present',/BrightAceScheduler/.test(read('js/app.js'))&&/visibilitychange/.test(read('js/app.js')),'Shared scheduler pauses background polling and resumes on visibility.');
 c('Scheduler avoids overlapping work',/running=false/.test(read('js/app.js'))&&/if\(running\)/.test(read('js/app.js')),'Scheduler has an in-flight guard.');
 c('Scheduler uses timeout recursion',/setTimeout\(tick/.test(read('js/app.js'))&&!/setInterval/.test(read('js/app.js')),'Scheduler avoids permanent interval timers.');

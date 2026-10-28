@@ -2,10 +2,9 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261028-v104-session-photo-speed-fix';
+const BA_SW_VERSION = 'brightace-perf-20261028-v105-network-first-workspace-fix';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
 const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
-const BA_PAGE_TIMEOUT_MS = 5000;
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -64,66 +63,34 @@ function isStatic(request) {
   return isSameOrigin(request) && ['script', 'style', 'image', 'font'].includes(request.destination);
 }
 
-async function fetchWithTimeout(request) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BA_PAGE_TIMEOUT_MS);
-  try {
-    return await fetch(request, { cache: 'no-store', signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function refreshPageCache(request, cache) {
-  try {
-    const response = await fetchWithTimeout(request);
-    // Only cache successful same-origin static-site documents. API calls are
-    // cross-origin and bypass this worker; never cache API/private responses.
-    if (response && response.ok && response.type === 'basic') {
-      await cache.put(request, response.clone());
-    }
-    return response;
-  } catch (_) {
-    return null;
-  }
-}
-
-async function staleWhileRevalidatePage(request) {
+async function networkFirstPage(request) {
   const cache = await caches.open(BA_PAGE_CACHE);
-  const cached = await cache.match(request);
-
-  if (cached) {
-    // Return the current document immediately. Refresh the cache in the
-    // background so users are not left staring at a blank page for a network
-    // timeout and are never force-reloaded when an update arrives.
-    refreshPageCache(request, cache).catch(() => {});
-    return cached;
-  }
-
-  const fresh = await refreshPageCache(request, cache);
-  if (fresh) return fresh;
-
-  const homeUrl = new URL('index.html', self.registration.scope).href;
-  const offlineHtml = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Temporarily offline | BrightAce Academy</title><body style="font-family:system-ui,sans-serif;max-width:42rem;margin:12vh auto;padding:1.25rem;line-height:1.6"><h1>BrightAce Academy is temporarily offline</h1><p>This page could not be reached right now. Check your internet connection and try again.</p><p><a href="' + homeUrl + '">Return to the homepage</a></p></body></html>';
-  return new Response(offlineHtml, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
-}
-
-async function staleWhileRevalidateStatic(request) {
-  const cache = await caches.open(BA_STATIC_CACHE);
-  const cached = await cache.match(request);
-  const refresh = fetch(request).then(response => {
+  try {
+    const response = await fetch(request, { cache: 'no-store', credentials: 'same-origin' });
     if (response && response.ok && response.type === 'basic') {
       cache.put(request, response.clone()).catch(() => {});
     }
     return response;
-  });
-
-  // If cached, return immediately while refreshing for the next visit.
-  if (cached) {
-    refresh.catch(() => {});
-    return cached;
+  } catch (_) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    const homeUrl = new URL('index.html', self.registration.scope).href;
+    const offlineHtml = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Temporarily offline | BrightAce Academy</title><body style="font-family:system-ui,sans-serif;max-width:42rem;margin:12vh auto;padding:1.25rem;line-height:1.6"><h1>BrightAce Academy is temporarily offline</h1><p>This page could not be reached right now. Check your internet connection and try again.</p><p><a href="' + homeUrl + '">Return to the homepage</a></p></body></html>';
+    return new Response(offlineHtml, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
   }
-  return refresh;
+}
+
+async function networkFirstStatic(request) {
+  const cache = await caches.open(BA_STATIC_CACHE);
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response && response.ok && response.type === 'basic') cache.put(request, response.clone()).catch(() => {});
+    return response;
+  } catch (_) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw new Error('BrightAce asset unavailable and no offline copy exists.');
+  }
 }
 
 self.addEventListener('fetch', event => {
@@ -135,10 +102,10 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (isPage(request)) {
-    event.respondWith(staleWhileRevalidatePage(request));
+    event.respondWith(networkFirstPage(request));
     return;
   }
   if (isStatic(request)) {
-    event.respondWith(staleWhileRevalidateStatic(request));
+    event.respondWith(networkFirstStatic(request));
   }
 });

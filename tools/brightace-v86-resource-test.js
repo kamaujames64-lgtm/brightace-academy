@@ -4,7 +4,7 @@ const fs=require("fs"),path=require("path"),vm=require("vm"),root=path.resolve(_
 const read=p=>fs.readFileSync(path.join(root,p),"utf8");
 const code=read("backend/Code.gs"),res=read("backend/BA_Resources.gs"),sec=read("backend/BA_Security.gs"),schema=read("backend/BA_SpreadsheetSchema.gs"),admin=read("pages/admin-resources.html"),client=read("js/client-portal-pages.js"),pub=read("pages/resources.html"),checkout=read("pages/resource-checkout.html"),composer=read("js/brightace-composer.js");
 const tests=[];const check=(name,ok,detail)=>tests.push({name,ok:!!ok,detail});
-check("V90 build marker",/2026-10-21-V90-CLIENT-ACCESS-RESOURCE-UX-REPAIR/.test(code)&&/brightace-json-v90/.test(code),"Health/version identity updated.");
+check("V94 build marker",/2026-10-21-V94-CLIENT-BLOCK-TUTOR-RATING-ADMIN-EDIT/.test(code)&&/brightace-json-v94/.test(code),"Health/version identity updated.");
 check("Direct upload endpoint dispatched and allowlisted",/adminUploadResourceFile/.test(code)&&/adminUploadResourceFile/.test(sec),"Admin direct-upload action is reachable only through the existing action gate.");
 check("Direct upload is Super Admin gated",/function adminUploadResourceFile_\(d\)\s*\{\s*requireSuperAdmin_/.test(res),"Server checks role before processing file bytes.");
 check("Upload size limits differ by workflow",/PRIVATE_DELIVERY"\?4\*1024\*1024:20\*1024\*1024/.test(res),"Private client delivery remains capped at 4 MB; other direct uploads cap at 20 MB.");

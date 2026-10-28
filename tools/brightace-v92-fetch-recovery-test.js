@@ -19,7 +19,7 @@ check('Tutor Overview retries only safe reads', tutor.includes('safeRead?3:1') &
 check('Tutor Overview avoids overlapping dashboard refreshes', tutor.includes('tutorOverviewLoadBusy') && tutor.includes('if(tutorOverviewLoadBusy)return'));
 check('Admin-message failure no longer discards loaded dashboard data', tutor.includes('adminMessagesFailed') && tutor.includes('Your overview data is still loaded'));
 const scheduler=tutor.slice(tutor.indexOf('BrightAceScheduler.start("tutor-dashboard"')); check('Dashboard polling does not reload withdrawals on every tick', scheduler.includes('load(true)') && !scheduler.slice(0,180).includes('loadWithdrawals') && scheduler.includes('30000'));
-check('Service worker cache version bumped for V100 responsive tutoring and phone update', sw.includes('brightace-perf-20261022-v100-responsive-tutoring-phone'));
+check('Service worker cache version bumped for V100 responsive tutoring and phone update', sw.includes('brightace-perf-20261028-v105-network-first-workspace-fix'));
 check('Central API config matches the sole deployment ID', config.includes([...endpoints][0]));
 
 const earnings=fs.readFileSync(path.join(root,'pages/tutor-earnings.html'),'utf8');
