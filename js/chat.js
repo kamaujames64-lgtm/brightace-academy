@@ -5,7 +5,8 @@ const POLL_MS=10000, MAX_FILE_MB=25, MAX_ATTACHMENTS=10; let syncMessagesBusy=fa
 
 function showClientStartAfterExpiry(){
   try{localStorage.removeItem(CHAT_KEY);sessionStorage.removeItem(CHAT_KEY);history.replaceState({},document.title,window.location.pathname)}catch(e){}
-  window.location.replace("../index.html");
+  // Keep expired clients on the returning-client sign-in screen instead of sending them to public home.
+  window.location.replace("chat.html?mode=returning");
 }
 function getRequestedContext(){try{const p=new URLSearchParams(window.location.search);return{service:(p.get("subject")||p.get("service")||"").trim(),resource:(p.get("resource")||"").trim(),help:(p.get("help")||"").trim()}}catch(e){return{service:"",resource:"",help:""}}}
 function buildProfessionalRequest(service,resource,help){let s="Hello BrightAce Academy, I would like academic support";if(service)s+=" with "+service;if(resource)s+=(service?".":"")+" I am requesting help with the resource: "+resource;if(help)s+="\n\nHelp requested: "+help;s+=".\n\nPlease let me know the details you need from me. I can provide the specific questions, assignment instructions or requirements, relevant files/materials, and my preferred deadline. I would also like to discuss the appropriate support and next steps.";return s}

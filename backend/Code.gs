@@ -1389,6 +1389,8 @@ function invalidateWorkCaches_(conversationId,oldTutorPhone,newTutorPhone,studen
     const clientPhone=normalizePhone_(studentPhone||"");
     if(clientPhone){
       CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+clientPhone);
+      CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V2_"+clientPhone);
+      CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V3_"+clientPhone);
       CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+clientPhone);
       baCacheRemove_("BA_CLIENT_REQUEST_HISTORY_"+clientPhone);
     }
@@ -1732,7 +1734,7 @@ function clientTutorSessions_(d){
   const phone=normalizePhone_(d.phone||''), token=String(d.clientSessionToken||'').trim();
   if(!phone) throw new Error('Your verified client session could not be restored. Please verify your WhatsApp number again.');
   const client=requireClientSession_(token,phone);
-  const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_V2_'+phone;
+  const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_V3_'+phone;
   try{const hit=safeJson_(CacheService.getScriptCache().get(cacheKey)||'');if(hit&&Array.isArray(hit.requests)&&Array.isArray(hit.schedules))return json_(Object.assign({ok:true,clientSessionToken:token},hit));}catch(e){}
   const convSh=getConversationSheet_(),cm=headerMap_(convSh),rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_TUTOR_CONV_PHONE'):[],convRows=baFastReadRows_(convSh,rowNums),requests=[];
   for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
@@ -2061,18 +2063,26 @@ function adminStatement_(token,from,to){const built=buildAdminStatement_(token,f
 function tutorAcceptWork_(d){
   const p=requireTutor_(d.tutorToken),c=findConversation_(d.conversationId);if(!c)throw new Error("Work not found.");
   if(normalizePhone_(c.assignedTutorPhone)!==p.tutorPhone && !(p.tutorId==="PRIMARY"&&c.assignedTutor===p.tutorName))throw new Error("This work is not assigned to you.");
+  const current=String(c.tutorWorkStatus||"RECEIVED").trim().toUpperCase();
+  // Acceptance is a one-way state transition. Repeated clicks/retries are idempotent
+  // and must not add duplicate timeline messages or reset work already in progress.
+  if(["ACCEPTED","IN_PROGRESS","READY_FOR_QA","REVISION_REQUESTED","QA_APPROVED","COMPLETED"].includes(current)){
+    return json_({ok:true,status:current,tutorWorkStatus:current,assignmentStatus:String(c.assignmentStatus||"ASSIGNED").toUpperCase(),alreadyAccepted:true,message:current==="ACCEPTED"?"This work has already been accepted.":"This work has already moved to the next workflow stage."});
+  }
+  if(["DECLINED","CANCELLED","REJECTED","CLOSED"].includes(current))throw new Error("This work is no longer available for acceptance. Ask BrightAce Admin to review the assignment.");
+  if(!["","RECEIVED","ASSIGNED","PENDING","NEW_REQUEST"].includes(current))throw new Error("This work cannot be accepted from its current status: "+current+".");
   const sh=getConversationSheet_();setByHeader_(sh,c.row,"tutorWorkStatus","ACCEPTED");setByHeader_(sh,c.row,"assignmentStatus","ASSIGNED");
+  const msg=String(d.note||"Tutor accepted the assigned work.").trim();const saved=saveMessage_(c.conversationId,"tutor","✅ Work accepted by tutor. "+msg,"work-status",null,p.tutorDisplayName,p.tutorPhone);
+  updateConversation_(c.conversationId,new Date(),saved.id);
   invalidateWorkCaches_(c.conversationId,p.tutorPhone,p.tutorPhone,c.studentPhone);
-  const msg=String(d.note||"Tutor accepted the assigned work.").trim();saveMessage_(c.conversationId,"tutor","✅ Work accepted by tutor. "+msg,"work-comment",null,p.tutorDisplayName,p.tutorPhone);
-  invalidateWorkCaches_(c.conversationId,p.tutorPhone,p.tutorPhone,c.studentPhone);
-  auditTutor_(p,"ACCEPT_WORK",c.conversationId);return json_({ok:true,status:"ACCEPTED",tutorWorkStatus:"ACCEPTED",assignmentStatus:"ASSIGNED",message:"Work accepted successfully."});
+  auditTutor_(p,"ACCEPT_WORK",c.conversationId);return json_({ok:true,status:"ACCEPTED",tutorWorkStatus:"ACCEPTED",assignmentStatus:"ASSIGNED",alreadyAccepted:false,message:"Work accepted successfully. The client and Admin views have been updated."});
 }
 function tutorDeclineWork_(d){
   const p=requireTutor_(d.tutorToken),c=findConversation_(d.conversationId);if(!c)throw new Error("Work not found.");
   if(normalizePhone_(c.assignedTutorPhone)!==p.tutorPhone && !(p.tutorId==="PRIMARY"&&c.assignedTutor===p.tutorName))throw new Error("This work is not assigned to you.");
   const reason=String(d.reason||"").trim();if(!reason)throw new Error("A reason is required when declining work.");
   const sh=getConversationSheet_();setByHeader_(sh,c.row,"tutorWorkStatus","DECLINED");setByHeader_(sh,c.row,"assignmentStatus","NEW_REQUEST");setByHeader_(sh,c.row,"rejectionReason",reason);
-  saveMessage_(c.conversationId,"tutor","❌ Tutor declined this assignment. Reason: "+reason,"work-comment",null,p.tutorDisplayName,p.tutorPhone);auditTutor_(p,"DECLINE_WORK",c.conversationId+" — "+reason);return json_({ok:true,status:"DECLINED",message:"Work declined and returned to the admin work queue."});
+  const saved=saveMessage_(c.conversationId,"tutor","❌ Tutor declined this assignment. Reason: "+reason,"work-status",null,p.tutorDisplayName,p.tutorPhone);updateConversation_(c.conversationId,new Date(),saved.id);invalidateWorkCaches_(c.conversationId,p.tutorPhone,p.tutorPhone,c.studentPhone);auditTutor_(p,"DECLINE_WORK",c.conversationId+" — "+reason);return json_({ok:true,status:"DECLINED",tutorWorkStatus:"DECLINED",assignmentStatus:"NEW_REQUEST",message:"Work declined and returned to the Admin work queue."});
 }
 
 /* ===================== TUTOR DASHBOARD ===================== */
@@ -2339,6 +2349,14 @@ function tutorUpdateWorkStatus_(d){
   // QA decisions such as REVISION_REQUESTED and QA_APPROVED belong to Admin, not the tutor.
   if(["ACCEPTED","IN_PROGRESS","READY_FOR_QA"].indexOf(status)<0)throw new Error("Choose Accepted, In progress, or Ready for QA.");
   const sh=getConversationSheet_(),previous=String(c.tutorWorkStatus||"RECEIVED").toUpperCase();
+  const allowed={
+    ACCEPTED:["","RECEIVED","ASSIGNED","PENDING","NEW_REQUEST"],
+    IN_PROGRESS:["ACCEPTED","IN_PROGRESS","REVISION_REQUESTED"],
+    READY_FOR_QA:["ACCEPTED","IN_PROGRESS","READY_FOR_QA","REVISION_REQUESTED"]
+  };
+  if(previous===status)return json_({ok:true,status:previous,tutorWorkStatus:previous,assignmentStatus:String(c.assignmentStatus||"ASSIGNED").toUpperCase(),alreadySet:true,message:"This work is already at that status."});
+  if(!allowed[status].includes(previous))throw new Error("This status change is not allowed from "+previous.replace(/_/g," ")+'. BrightAce Admin must resolve the current workflow stage first.');
+  if(status==="ACCEPTED"&&String(c.assignmentStatus||"").toUpperCase()!=="ASSIGNED")throw new Error("This work is not currently assigned and cannot be accepted.");
   const assignmentStatus=status==="ACCEPTED"?"ASSIGNED":status;
   setByHeader_(sh,c.row,"tutorWorkStatus",status);
   setByHeader_(sh,c.row,"assignmentStatus",assignmentStatus);
@@ -2353,6 +2371,9 @@ function tutorUpdateWorkStatus_(d){
 function tutorSubmitWork_(d){
   const p=requireTutor_(d.tutorToken),c=findConversation_(d.conversationId);if(!c)throw new Error("Work not found.");
   if(normalizePhone_(c.assignedTutorPhone)!==p.tutorPhone && !(p.tutorId==="PRIMARY"&&c.assignedTutor===p.tutorName))throw new Error("This work is not assigned to you.");
+  const currentStatus=String(c.tutorWorkStatus||"RECEIVED").toUpperCase();
+  if(["QA_APPROVED","COMPLETED","CANCELLED","REJECTED","CLOSED","DECLINED"].includes(currentStatus))throw new Error("This work is no longer accepting tutor submissions because it has already been approved or closed.");
+  if(!["ACCEPTED","IN_PROGRESS","READY_FOR_QA","REVISION_REQUESTED"].includes(currentStatus))throw new Error("Accept the assigned work before submitting a draft or final delivery.");
   let attachments=[];if(Array.isArray(d.attachments))attachments=saveAttachments_(c.conversationId,d.attachments);
   const note=String(d.note||"").trim(),submissionType=String(d.submissionType||"DRAFT").toUpperCase();if(!["DRAFT","FINAL"].includes(submissionType))throw new Error("Choose DRAFT or FINAL.");if(!note&&!attachments.length)throw new Error("Add a submission note or at least one file.");
   const stored=attachments.length===1?attachments[0]:attachments;

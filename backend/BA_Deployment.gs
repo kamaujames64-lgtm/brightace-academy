@@ -8,7 +8,7 @@ function baDeploymentInfo_(){
     ok:true,
     service:"BrightAce Academy Live Chat",
     build:BRIGHTACE_BUILD,
-    api:"brightace-json-v90",
+    api:"brightace-json-v94",
     protocol:"json",
     statementEngine:"comprehensive-v44",
     scalabilityEngine:"v43+v46",

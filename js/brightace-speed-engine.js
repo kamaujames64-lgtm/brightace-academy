@@ -124,16 +124,33 @@
     if (doc.querySelector('meta[http-equiv="refresh"]')) return false;
     return true;
   }
-  function syncDocument(doc, url) {
+  async function syncDocument(doc, url) {
     var nextMain = doc.querySelector('main');
     if (!nextMain || !root) return false;
+    // Keep shared stylesheets mounted. Adding a replacement only after its load
+    // prevents a flash of unstyled content when navigating between public pages.
+    var currentLinks = Array.prototype.slice.call(document.head.querySelectorAll('link[rel="stylesheet"]'));
+    var destinationLinks = Array.prototype.slice.call(doc.head.querySelectorAll('link[rel="stylesheet"]'));
+    var destinationHrefs = destinationLinks.map(function (n) { return new URL(n.href, url.href).href; });
+    var added = [];
+    destinationLinks.forEach(function (source) {
+      var href = new URL(source.href, url.href).href;
+      if (!currentLinks.some(function (existing) { return new URL(existing.href, location.href).href === href; })) {
+        var clone = source.cloneNode(true); clone.href = href; clone.dataset.baSoftStyle = '1';
+        added.push(new Promise(function (resolve) { clone.addEventListener('load', resolve, { once: true }); clone.addEventListener('error', resolve, { once: true }); }));
+        document.head.appendChild(clone);
+      }
+    });
+    if (added.length) await Promise.race([Promise.all(added), new Promise(function (resolve) { setTimeout(resolve, 1800); })]);
+    currentLinks.forEach(function (node) {
+      var href = new URL(node.href, location.href).href;
+      if (destinationHrefs.indexOf(href) < 0) node.remove();
+    });
+    document.head.querySelectorAll('style').forEach(function (node) { node.remove(); });
+    doc.head.querySelectorAll('style').forEach(function (source) { var clone = source.cloneNode(true); clone.dataset.baSoftStyle = '1'; document.head.appendChild(clone); });
     root.replaceWith(nextMain);
     root = nextMain;
     document.title = doc.title || document.title;
-    // Public pages can have page-specific inline CSS. Keep the stylesheets in
-    // sync too, otherwise a soft navigation could render the new page unstyled.
-    document.head.querySelectorAll('link[rel="stylesheet"],style').forEach(function (node) { node.remove(); });
-    doc.head.querySelectorAll('link[rel="stylesheet"],style').forEach(function (node) { document.head.appendChild(node.cloneNode(true)); });
     var description = doc.querySelector('meta[name="description"]');
     var currentDescription = document.querySelector('meta[name="description"]');
     if (description && currentDescription) currentDescription.content = description.content;
@@ -164,7 +181,7 @@
       if (id !== currentNav) return;
       var doc = new DOMParser().parseFromString(html, 'text/html');
       if (!pageIsSafeForSoftNavigation(doc, url)) throw new Error('Page needs full browser navigation for safe initialization');
-      if (!syncDocument(doc, url)) throw new Error('No main content');
+      if (!(await syncDocument(doc, url))) throw new Error('No main content');
       if (push) history.pushState({ baSoftNavigation: true }, '', url.href);
       window.scrollTo({ top: 0, left: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'instant' });
       perf.vitals.lastSoftNavigationMs = Math.round(performance.now() - started);

@@ -27,7 +27,7 @@ function baProductionReadiness_(){
     add('Config: '+x.key,!!String(value).trim(),x.sensitive?(value?'Configured; value is intentionally not exposed.':'Missing required secret.'):(value?'Configured.':'Missing required configuration.'),'CONFIG');
   });
   add('Build marker is present',/^\d{4}-\d{2}-\d{2}-V\d+-[A-Z0-9-]+$/.test(BRIGHTACE_BUILD),BRIGHTACE_BUILD,'DEPLOYMENT');
-  add('JSON API marker is present',true,'health/version use brightace-json-v90.','DEPLOYMENT');
+  add('JSON API marker is present',true,'health/version use brightace-json-v94.','DEPLOYMENT');
   add('Threat defense request cap',typeof baThreatCheckRawRequest_==='function' && Number(BA_V63_MAX_REQUEST_BYTES_)>0,'Oversized requests are rejected before business logic.','SECURITY');
   add('Prototype-pollution defense',typeof baThreatCheckObject_==='function','Reserved object keys are rejected.','SECURITY');
   add('Archive defense',typeof baThreatSecureUploadCheck_==='function','Uploaded archive contents are inspected before storage.','SECURITY');
@@ -58,7 +58,7 @@ function adminProductionReadiness_(token){
   requireSuperAdmin_(token);
   const checks=baProductionReadiness_();
   const failed=checks.filter(function(x){return !x.ok;}).length;
-  return json_({ok:failed===0,build:BRIGHTACE_BUILD,api:'brightace-json-v90',generatedAt:new Date().toISOString(),summary:{total:checks.length,passed:checks.length-failed,failed:failed},checks:checks,manualReleaseGates:[
+  return json_({ok:failed===0,build:BRIGHTACE_BUILD,api:'brightace-json-v94',generatedAt:new Date().toISOString(),summary:{total:checks.length,passed:checks.length-failed,failed:failed},checks:checks,manualReleaseGates:[
     'Deploy this exact package as a new Apps Script version while keeping the existing /exec URL.',
     'Verify /exec?action=health and /exec?action=version return JSON with V63 markers.',
     'Run a dedicated payment-provider test transaction and verify amount/currency/reference handling.',

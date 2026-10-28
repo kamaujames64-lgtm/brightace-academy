@@ -32,7 +32,7 @@ function baQaCheck_(name,ok,detail,category){
 function baQaRuntimeChecks_(){
   const out=[];
   out.push(baQaCheck_("Build marker is present",/^\d{4}-\d{2}-\d{2}-V\d+-[A-Z0-9-]+$/.test(BRIGHTACE_BUILD),BRIGHTACE_BUILD,"DEPLOYMENT"));
-  out.push(baQaCheck_("JSON API marker is present",true,"brightace-json-v90 is returned by health/version endpoints.","DEPLOYMENT"));
+  out.push(baQaCheck_("JSON API marker is present",true,"brightace-json-v94 is returned by health/version endpoints.","DEPLOYMENT"));
   let ss=null;
   try{ ss=SpreadsheetApp.openById(getConfig_().spreadsheetId); out.push(baQaCheck_("Spreadsheet access",true,"Configured production spreadsheet opened successfully.","DATA")); }
   catch(e){ out.push(baQaCheck_("Spreadsheet access",false,String(e&&e.message||e),"DATA")); }
@@ -85,5 +85,5 @@ function adminProductionQa_(token){
   checks.push(baQaCheck_("Resource access expiry column is defined",baAccessHeaders_().indexOf("expiresAt")>=0,"RESOURCE_ACCESS supports expiresAt.","RESOURCES"));
   const finalPass=checks.filter(function(x){return x.ok;}).length;
   const finalFail=checks.length-finalPass;
-  return json_({ok:finalFail===0,build:BRIGHTACE_BUILD,api:"brightace-json-v90",generatedAt:new Date().toISOString(),summary:{total:checks.length,passed:finalPass,failed:finalFail},checks:checks,workflowMatrix:matrix,liveMutationTests:"NOT_RUN",liveMutationNote:"V63 remains read-only for automated QA. Payment, refund, withdrawal, message delivery, resource purchase, access revocation/restore, and recovery restore must be tested manually with dedicated test data after deployment."});
+  return json_({ok:finalFail===0,build:BRIGHTACE_BUILD,api:"brightace-json-v94",generatedAt:new Date().toISOString(),summary:{total:checks.length,passed:finalPass,failed:finalFail},checks:checks,workflowMatrix:matrix,liveMutationTests:"NOT_RUN",liveMutationNote:"V63 remains read-only for automated QA. Payment, refund, withdrawal, message delivery, resource purchase, access revocation/restore, and recovery restore must be tested manually with dedicated test data after deployment."});
 }
