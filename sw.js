@@ -2,7 +2,7 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261026-v103-client-session-gate';
+const BA_SW_VERSION = 'brightace-perf-20261028-v104-session-photo-speed-fix';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
 const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
 const BA_PAGE_TIMEOUT_MS = 5000;
@@ -46,7 +46,7 @@ function isPrivateBrightAceDocument(request) {
   try {
     const u = new URL(request.url);
     if (!isSameOrigin(request)) return false;
-    return /(?:^|\/)(?:pages\/)?(?:client-[^/]+|tutor-[^/]+|admin-(?!login)[^/]+)\.html$/i.test(u.pathname);
+    return /(?:^|\/)(?:pages\/)?(?:client-[^/]+|tutor-[^/]+|admin-(?!login)[^/]+|chat|payment|receipt|client-statement|resource-checkout|verify-statement)\.html$/i.test(u.pathname);
   } catch (_) { return false; }
 }
 function isSecurityCriticalScript(request) {
