@@ -8,7 +8,7 @@
  * IMPORTANT: keep tokens in Apps Script Script Properties. Never put secrets in GitHub Pages JS.
  */
 
-const BRIGHTACE_BUILD="2026-10-21-V94-CLIENT-BLOCK-TUTOR-RATING-ADMIN-EDIT"
+const BRIGHTACE_BUILD="2026-10-28-V106-IDLE-SESSION-QA-WORKFLOW"
 const CONFIG = {
   spreadsheetIdKey: "SPREADSHEET_ID",
   driveFolderIdKey: "CHAT_DRIVE_FOLDER_ID",
@@ -90,7 +90,7 @@ function requireActionPermission_(body){
   const profile=getAdminProfile_(body.adminToken);if(String(profile.role||"").toUpperCase()==="SUPER_ADMIN")return true;
   // Read-only tutor finance workspace actions are available to every authenticated admin;
   // the financial mutation actions remain protected by the existing permission map.
-  const readOnlyTutorFinance=["adminSessionProfile","adminChangeOwnPassword","adminUpdatePublicProfile","adminUploadProfile","adminRemoveProfile","adminListTutorBalances","adminListTutorEarningsDetails","adminListTutorWallets","adminListTutorWithdrawals","adminListWorkHistory"];
+  const readOnlyTutorFinance=["adminSessionProfile","adminTouchSession","adminChangeOwnPassword","adminUpdatePublicProfile","adminUploadProfile","adminRemoveProfile","adminListTutorBalances","adminListTutorEarningsDetails","adminListTutorWallets","adminListTutorWithdrawals","adminListWorkHistory"];
   if(readOnlyTutorFinance.indexOf(action)>=0)return true;
   const users=getAdminUsers_(),u=users.find(x=>String(x.username||"")===String(profile.username||""));
   const perms=Array.isArray(u&&u.permissions)?u.permissions:[];
@@ -112,7 +112,7 @@ function doGet(e){
     if(p["hub.mode"] === "subscribe") return verifyWebhook_(p);
     const action=String(p.action||"health"); __baAction=action;
     baSecurityGateGet_(p);
-    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v94",time:new Date().toISOString(),observability:baObservabilityHealth_()});
+    if(action==="health") return json_({ok:true,service:"BrightAce Academy Live Chat",build:BRIGHTACE_BUILD,api:"brightace-json-v106",time:new Date().toISOString(),observability:baObservabilityHealth_()});
     if(action==="version") return json_(baDeploymentInfo_());
     if(action==="fxRates") return baFxRates_();
     if(action==="messages") return getMessages_(p.sessionId,p.clientSessionToken,p.phone,p.afterMessageId,p.clientAccessToken);
@@ -210,6 +210,7 @@ function doPost(e){
     if(body.action === "initializePayment") return initializePayment_(body.requestId,body.clientSessionToken,body.phone);
     if(body.action === "adminLogin") return adminLogin_(body.password,body.username);
     if(body.action === "adminSessionProfile") { const p=getAdminProfile_(body.adminToken); const au=getAdminUsers_().find(x=>String(x.username||"").toLowerCase()===String(p.username||"").toLowerCase())||{}; return json_({ok:true,admin:{username:String(p.username||""),name:String(p.adminName||au.name||p.username||"Admin"),role:String(p.role||"ADMIN").toUpperCase(),professionalTitle:String(au.professionalTitle||""),description:String(au.description||""),profilePictureUrl:tutorProfilePictureUrl_(String(au.profilePictureUrl||"")),alternativePhone:String(au.alternativePhone||""),emergencyContactName:String(au.emergencyContactName||""),emergencyContactPhone:String(au.emergencyContactPhone||""),whatsappPhone:normalizePhone_(au.whatsappPhone||p.whatsappPhone||"")}}); }
+    if(body.action === "adminTouchSession") return adminTouchSession_(body.adminToken);
     if(body.action === "adminChangeOwnPassword") return adminChangeOwnPassword_(body);
     if(body.action === "adminListConversations") return adminListConversations_(body.adminToken,body.fresh===true);
     if(body.action === "adminGetConversation") return adminGetConversation_(body.adminToken, body.conversationId);
@@ -279,6 +280,7 @@ function doPost(e){
     if(body.action === "tutorSendVerification") return tutorSendVerification_(body);
     if(body.action === "tutorVerifyLogin") return tutorVerifyLogin_(body);
     if(body.action === "tutorSessionProfile") return tutorSessionProfile_(body.tutorToken);
+    if(body.action === "tutorTouchSession") return tutorTouchSession_(body.tutorToken);
     if(body.action === "tutorUploadProfile") return tutorUploadProfile_(body); if(body.action === "tutorRemoveProfile") return tutorRemoveProfile_(body);
     if(body.action === "tutorUpdatePublicProfile") return tutorUpdatePublicProfile_(body);
     if(body.action === "tutorSaveProfessionalProfile") return tutorUpdatePublicProfile_(body);
@@ -1133,16 +1135,16 @@ function adminLogin_(password,username){
     // Keep the username "owner" stable so the account can later display the
     // owner's real name (for example MugoKamau) without losing owner privileges.
     const isPrimaryOwner=String(uName).trim().toLowerCase()==="owner";
-    const token=(isPrimaryOwner?"OWNER_":"ADMIN_")+Utilities.getUuid()+Utilities.getUuid(),profile={username:uName,adminName:String(u.name||u.username||"Admin"),role:isPrimaryOwner?"SUPER_ADMIN":String(u.role||"ADMIN").toUpperCase(),whatsappPhone:normalizePhone_(u.whatsappPhone||""),tokenIssuedAt:Date.now(),lastSeenAt:Date.now(),tokenExpiresAt:Date.now()+(isPrimaryOwner?10*365*24*60*60*1000:30*24*60*60*1000)};CacheService.getScriptCache().remove(rateKey);CacheService.getScriptCache().put("BA_ADMIN_"+token,JSON.stringify(profile),21600);PropertiesService.getScriptProperties().setProperty("BA_ADMIN_TOKEN_"+token,JSON.stringify(profile));return json_({ok:true,adminToken:token,expiresIn:30*24*60*60,tokenIssuedAt:profile.tokenIssuedAt,admin:{username:profile.username,name:profile.adminName,role:profile.role}});
+    const token=(isPrimaryOwner?"OWNER_":"ADMIN_")+Utilities.getUuid()+Utilities.getUuid(),profile={username:uName,adminName:String(u.name||u.username||"Admin"),role:isPrimaryOwner?"SUPER_ADMIN":String(u.role||"ADMIN").toUpperCase(),whatsappPhone:normalizePhone_(u.whatsappPhone||""),tokenIssuedAt:Date.now(),lastSeenAt:Date.now(),tokenExpiresAt:Date.now()+(isPrimaryOwner?10*365*24*60*60*1000:30*24*60*60*1000)};CacheService.getScriptCache().remove(rateKey);CacheService.getScriptCache().put("BA_ADMIN_"+token,JSON.stringify(profile),21600);PropertiesService.getScriptProperties().setProperty("BA_ADMIN_TOKEN_"+token,JSON.stringify(profile));return json_({ok:true,adminToken:token,expiresIn:(isPrimaryOwner?10*365*24*60*60:30*24*60*60),tokenIssuedAt:profile.tokenIssuedAt,admin:{username:profile.username,name:profile.adminName,role:profile.role}});
   }
   const configuredHash=String(props.getProperty(CONFIG.adminPasswordHashKey)||"").trim().toLowerCase(),configured=props.getProperty(CONFIG.adminPasswordKey)||"";if(!configuredHash&&!configured)return json_({ok:false,error:"Admin access is not configured yet. Add ADMIN_PASSWORD_SHA256 (preferred) or ADMIN_PASSWORD in Script Properties."});
   if((configuredHash&&sha256Hex_(String(password||""))!==configuredHash)||(!configuredHash&&String(password||"")!==configured)){CacheService.getScriptCache().put(rateKey,String(rate+1),600);return json_({ok:false,error:"Incorrect admin password."});}
-  const token="OWNER_"+Utilities.getUuid()+Utilities.getUuid(),profile={username:"owner",adminName:"Owner",role:"SUPER_ADMIN",whatsappPhone:CONFIG.defaultAdminWhatsAppPhone,tokenIssuedAt:Date.now(),lastSeenAt:Date.now(),tokenExpiresAt:Date.now()+10*365*24*60*60*1000};CacheService.getScriptCache().remove(rateKey);CacheService.getScriptCache().put("BA_ADMIN_"+token,JSON.stringify(profile),21600);PropertiesService.getScriptProperties().setProperty("BA_ADMIN_TOKEN_"+token,JSON.stringify(profile));return json_({ok:true,adminToken:token,expiresIn:30*24*60*60,tokenIssuedAt:profile.tokenIssuedAt,admin:{username:profile.username,name:profile.adminName,role:profile.role}});
+  const token="OWNER_"+Utilities.getUuid()+Utilities.getUuid(),profile={username:"owner",adminName:"Owner",role:"SUPER_ADMIN",whatsappPhone:CONFIG.defaultAdminWhatsAppPhone,tokenIssuedAt:Date.now(),lastSeenAt:Date.now(),tokenExpiresAt:Date.now()+10*365*24*60*60*1000};CacheService.getScriptCache().remove(rateKey);CacheService.getScriptCache().put("BA_ADMIN_"+token,JSON.stringify(profile),21600);PropertiesService.getScriptProperties().setProperty("BA_ADMIN_TOKEN_"+token,JSON.stringify(profile));return json_({ok:true,adminToken:token,expiresIn:10*365*24*60*60,tokenIssuedAt:profile.tokenIssuedAt,admin:{username:profile.username,name:profile.adminName,role:profile.role}});
 }
 function getAdminProfile_(token){
   token=String(token||"").trim();
   if(!token)throw new Error("Admin login is required or has expired. Please sign in again.");
-  const now=Date.now(),ownerSessionLifetime=10*365*24*60*60*1000,adminSessionLifetime=30*24*60*60*1000,renewInterval=5*60*1000,key="BA_ADMIN_TOKEN_"+token;
+  const now=Date.now(),key="BA_ADMIN_TOKEN_"+token;
   // The persistent Script Properties record is authoritative. A cache entry can
   // legitimately be older than the persistent record after another admin request
   // renews the same session. Never let a stale cache entry delete a valid session.
@@ -1150,35 +1152,31 @@ function getAdminProfile_(token){
   try{cacheProfile=safeJson_(CacheService.getScriptCache().get("BA_ADMIN_"+token)||"")}catch(e){}
   try{persistedProfile=safeJson_(PropertiesService.getScriptProperties().getProperty(key)||"")}catch(e){}
   let p=persistedProfile||cacheProfile;
-  // Owner tokens are explicitly prefixed at issuance. If Google Apps Script cache or
-  // Script Properties temporarily loses the record, recover the owner profile from
-  // the bearer token itself instead of forcing the owner back to Admin Sign In.
-  if(!p && token.indexOf("OWNER_")===0){
-    p={username:"owner",adminName:"Owner",role:"SUPER_ADMIN",whatsappPhone:CONFIG.defaultAdminWhatsAppPhone,tokenIssuedAt:now,lastSeenAt:now,tokenExpiresAt:now+ownerSessionLifetime};
-    try{PropertiesService.getScriptProperties().setProperty(key,JSON.stringify(p))}catch(e){}
-    try{CacheService.getScriptCache().put("BA_ADMIN_"+token,JSON.stringify(p),21600)}catch(e){}
-  }
+  // A missing server-side session record is not reconstructed from a bearer token.
+  // Even owner sessions must reauthenticate when their authoritative record is gone.
   if(cacheProfile&&persistedProfile){
     p=(Number(persistedProfile.lastSeenAt||0)>=Number(cacheProfile.lastSeenAt||0))?persistedProfile:cacheProfile;
   }
   if(!p||Number(p.tokenExpiresAt||0)<=now){
-    // A cache record may be stale/expired while persistent storage is still valid.
-    if(persistedProfile&&Number(persistedProfile.tokenExpiresAt||0)>now)p=persistedProfile;
-    else{
-      try{PropertiesService.getScriptProperties().deleteProperty(key)}catch(e){}
-      throw new Error("Admin login is required or has expired. Please sign in again.");
-    }
+    try{PropertiesService.getScriptProperties().deleteProperty(key);CacheService.getScriptCache().remove("BA_ADMIN_"+token)}catch(e){}
+    throw new Error("Admin login is required or has expired. Please sign in again.");
   }
-  const lastSeen=Number(p.lastSeenAt||0);
-  const isPrimaryOwner=String(p.username||"").trim().toLowerCase()==="owner";
-  const sessionLifetime=isPrimaryOwner?ownerSessionLifetime:adminSessionLifetime;
-  if(!lastSeen || now-lastSeen>=renewInterval || Number(p.tokenExpiresAt)-now<7*24*60*60*1000){
-    p.lastSeenAt=now;
-    p.tokenExpiresAt=now+sessionLifetime;
-    try{PropertiesService.getScriptProperties().setProperty(key,JSON.stringify(p))}catch(e){}
+  const lastSeen=Number(p.lastSeenAt||0),idleLimit=30*60*1000;
+  if(!lastSeen||now-lastSeen>=idleLimit){
+    try{PropertiesService.getScriptProperties().deleteProperty(key);CacheService.getScriptCache().remove("BA_ADMIN_"+token)}catch(e){}
+    throw new Error("Admin session expired after 30 minutes without activity. Please sign in again.");
   }
+  // Do not renew lastSeenAt here: background API polling is not human activity.
+  // Only adminTouchSession_ refreshes the inactivity deadline.
   try{CacheService.getScriptCache().put("BA_ADMIN_"+token,JSON.stringify(p),21600)}catch(e){}
   return p;
+}
+function adminTouchSession_(token){
+  const p=getAdminProfile_(token),now=Date.now(),key="BA_ADMIN_TOKEN_"+String(token||"").trim();
+  p.lastSeenAt=now;p.tokenExpiresAt=now+(String(p.username||"").trim().toLowerCase()==="owner"?10*365*24*60*60*1000:30*24*60*60*1000);
+  PropertiesService.getScriptProperties().setProperty(key,JSON.stringify(p));
+  CacheService.getScriptCache().put("BA_ADMIN_"+String(token||"").trim(),JSON.stringify(p),21600);
+  return json_({ok:true,lastSeenAt:now,idleTimeoutMs:30*60*1000});
 }
 function requireAdmin_(token){getAdminProfile_(token);return true}
 function requireSuperAdmin_(token){const p=getAdminProfile_(token);if(String(p.role||"").toUpperCase()!=="SUPER_ADMIN")throw new Error("Super admin permission required.");return true}
@@ -1401,12 +1399,20 @@ function invalidateWorkCaches_(conversationId,oldTutorPhone,newTutorPhone,studen
 }
 function adminAssignWork_(d){
   requireAdmin_(d.adminToken);const c=findConversation_(d.conversationId);if(!c)throw new Error("Student request not found.");
-  const oldTutorPhone=normalizePhone_(c.assignedTutorPhone||"");
+  const oldTutorPhone=normalizePhone_(c.assignedTutorPhone||""),oldAssignment=String(c.assignmentStatus||"").toUpperCase(),oldWork=String(c.tutorWorkStatus||"").toUpperCase();
+  if(["COMPLETED","REJECTED","CANCELLED","CLOSED"].includes(oldAssignment)||["COMPLETED","REJECTED","CANCELLED","CLOSED"].includes(oldWork))throw new Error("This request is closed. Use the Admin restore workflow before assigning it again.");
   const tutorName=String(d.tutorName||"").trim(),tutorPhone=resolveTutorPhone_(tutorName,d.tutorPhone||""),assignedAdminUsername=String(d.assignedAdminUsername||"").trim(),assignedAdminName=String(d.assignedAdminName||"").trim();
   if(!tutorName)throw new Error("Select or enter a tutor.");if(!c.studentBudget||c.studentBudget<=0)throw new Error("Student budget is missing.");
   const chosenTutor=getTutorByPhone_(tutorPhone);if(chosenTutor&&String(chosenTutor.status||"ACTIVE").toUpperCase()==="SUSPENDED")throw new Error("This tutor is suspended and cannot receive new work.");
   const gross=Number(c.agreedAmount||c.studentBudget),tutorPayout=Math.round(gross*0.50*100)/100,brightAce=Math.round(gross*0.50*100)/100;
-  const sh=getConversationSheet_(),hm=headerMap_(sh),updates=[["assignedTutor",tutorName],["assignedTutorPhone",tutorPhone],["tutorPayout",tutorPayout],["brightAceShare",brightAce],["assignmentStatus","ASSIGNED"],["agreedAmount",gross],["agreedCurrency",c.agreedCurrency||c.currency],["assignedAdminUsername",assignedAdminUsername],["assignedAdminName",assignedAdminName]];updates.forEach(u=>{if(hm[u[0]])sh.getRange(c.row,hm[u[0]]).setValue(u[1])});
+  const tutorChanged=!!oldTutorPhone&&oldTutorPhone!==normalizePhone_(tutorPhone),hasSameTutor=!!oldTutorPhone&&oldTutorPhone===normalizePhone_(tutorPhone);
+  const preserveStage=hasSameTutor&&oldWork&&!(["DECLINED","RECEIVED","NEW_REQUEST","PENDING"].includes(oldWork));
+  const resetStage=tutorChanged||!oldTutorPhone||!preserveStage;
+  const nextWork=resetStage?"RECEIVED":oldWork;
+  const nextAssignment=resetStage?"ASSIGNED":oldAssignment;
+  const sh=getConversationSheet_(),hm=headerMap_(sh),updates=[["assignedTutor",tutorName],["assignedTutorPhone",tutorPhone],["tutorPayout",tutorPayout],["brightAceShare",brightAce],["assignmentStatus",nextAssignment],["agreedAmount",gross],["agreedCurrency",c.agreedCurrency||c.currency],["assignedAdminUsername",assignedAdminUsername],["assignedAdminName",assignedAdminName]];
+  if(resetStage){updates.push(["tutorWorkStatus","RECEIVED"],["qaStatus","PENDING"],["tutorSubmittedAt",""],["tutorSubmissionNote",""],["qaAt",""],["qaBy",""],["qaNotes",""]);}
+  updates.forEach(u=>{if(hm[u[0]])sh.getRange(c.row,hm[u[0]]).setValue(u[1])});
   let assignmentAttachments=[];if(Array.isArray(d.attachments)&&d.attachments.length)assignmentAttachments=saveAttachments_(c.conversationId,d.attachments);
   const tutorMsg="📚 BrightAce work assignment\n\nWork ID: "+c.conversationId+"\nClient: "+c.studentName+"\nDeadline: "+(c.deadline||"As agreed")+"\n\nTask:\n"+c.workDescription+"\n\nYour assigned payout: "+c.currency+" "+tutorPayout.toFixed(2)+"\n\nAssigned documents are available in your BrightAce Tutor Dashboard. All student communication remains under BrightAce Academy administration. Please do not request direct payment from the student.";
   let whatsappSent=false;if(tutorPhone){try{sendWhatsAppText_(tutorPhone,tutorMsg);whatsappSent=true}catch(e){console.error(e)}}
@@ -1464,9 +1470,9 @@ function requireClientSession_(token,phone){
     const last=Number(cached.lastActivityAt||0),exp=Number(cached.expiresAt||0);
     if(last&&now-last<=maxIdle&&exp>now){
       if(String(cached.client?.status||'ACTIVE').toUpperCase()==='SUSPENDED')throw new Error('BrightAce Academy is unable to provide services to this contact at this time. If you believe this decision was made in error, please contact BrightAce Support using the Contact link at the bottom of this page.');
-      const client=Object.assign({},cached.client||{},{row:Number(cached.client?.row||0)||0,clientPhone:target});
-      baRefreshClientSessionCache_(hash,cached,now);
-      return client;
+      // Authenticated reads (including message polling) validate the session but
+      // must not extend inactivity. Only clientTouchSession_ records real activity.
+      return Object.assign({},cached.client||{},{row:Number(cached.client?.row||0)||0,clientPhone:target,lastActivityAt:last});
     }
   }
   // Cache miss recovery: validate against the canonical CLIENTS row once, then
@@ -1476,9 +1482,13 @@ function requireClientSession_(token,phone){
   const sh=c.row?getClientSheet_():null,stored=c.row?String(getByHeader_(sh,c.row,'sessionTokenHash')||''):'',lastRaw=c.row?getByHeader_(sh,c.row,'lastActivityAt'):'';
   const sheetLast=lastRaw?new Date(lastRaw).getTime():0;
   if(!stored||stored!==hash||!sheetLast||now-sheetLast>maxIdle)throw new Error('Your client session has expired after inactivity. Please verify your WhatsApp number again.');
-  cached={phone:target,lastActivityAt:now,expiresAt:now+maxIdle,lastSheetSyncAt:now,client:baClientSessionSnapshot_(c,target)};
-  cache.put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify(cached),1800);
-  return c;
+  // On cache recovery, preserve the last recorded user activity from the CLIENTS
+  // sheet. A background API read must never revive an idle session.
+  const recoveredActivity=sheetLast,expiresAt=recoveredActivity+maxIdle;
+  if(now-recoveredActivity>=maxIdle||expiresAt<=now)throw new Error('Your client session has expired after inactivity. Please verify your WhatsApp number again.');
+  cached={phone:target,lastActivityAt:recoveredActivity,expiresAt:expiresAt,lastSheetSyncAt:recoveredActivity,client:baClientSessionSnapshot_(c,target)};
+  cache.put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify(cached),Math.max(1,Math.ceil((expiresAt-now)/1000)));
+  return Object.assign({},c,{lastActivityAt:recoveredActivity});
 }
 function clientConversationFromSession_(d){
   const client=requireClientSession_(d.clientSessionToken,d.phone),id=String(d.conversationId||"").trim();if(!id)throw new Error("Request ID is required.");
@@ -1603,16 +1613,16 @@ function clientDashboardBootstrap_(d){
     // A valid client account can legitimately exist before its first request.
     const profile=getClientByPhone_(phone);
     if(!profile)throw new Error("Your client record could not be found. Please verify your WhatsApp number again.");
-    const exp=new Date(Date.now()+30*60*1000);
-    if(profile.row){setByHeader_(getClientSheet_(),profile.row,"lastActivityAt",new Date());setByHeader_(getClientSheet_(),profile.row,"sessionExpiresAt",exp);}
+    const activityAt=Number(client.lastActivityAt||0),exp=new Date(activityAt+30*60*1000);
+    if(!activityAt||exp.getTime()<=Date.now())throw new Error("Your client session has expired after 30 minutes of inactivity. Please verify your WhatsApp number again.");
     return json_({ok:true,clientSessionToken:activeToken,clientSessionExpiresAt:exp.toISOString(),clientAccessToken:"",student:{name:profile.clientName||"Verified Client",phone:phone,profilePictureUrl:String(profile.profilePictureUrl||""),displayCurrency:baNormalizeCurrency_(profile.displayCurrency)}});
   }
 
   const sh=getConversationSheet_(),existing=String(getByHeader_(sh,c.row,"clientAccessToken")||"");
   const token=existing||accessToken||Utilities.getUuid()+Utilities.getUuid();
   if(!existing)setByHeader_(sh,c.row,"clientAccessToken",token);
-  const exp=new Date(Date.now()+30*60*1000);
-  if(client.row){setByHeader_(getClientSheet_(),client.row,"lastActivityAt",new Date());setByHeader_(getClientSheet_(),client.row,"sessionExpiresAt",exp);}
+  const activityAt=Number(client.lastActivityAt||0),exp=new Date(activityAt+30*60*1000);
+  if(!activityAt||exp.getTime()<=Date.now())throw new Error("Your client session has expired after 30 minutes of inactivity. Please verify your WhatsApp number again.");
   return json_({ok:true,clientAccessToken:token,clientSessionToken:activeToken,clientSessionExpiresAt:exp.toISOString(),profilePictureUrl:String(client.profilePictureUrl||"")});
 }
 function clientAllMessages_(phone){
@@ -2152,7 +2162,7 @@ function tutorVerifyLogin_(d){
   if(expiry&&new Date(expiry).getTime()<Date.now())throw new Error("That tutor verification code has expired.");
   if(attempts>=3)throw new Error("Too many incorrect attempts. Request a new code.");
   if(String(getByHeader_(sh,t.row,"loginCodeHash")||"")!==sha256Hex_(code)){setByHeader_(sh,t.row,"loginAttempts",attempts+1);throw new Error("Incorrect tutor verification code.");}
-  const token=Utilities.getUuid()+Utilities.getUuid(),profile={tutorId:t.tutorId,tutorName:t.tutorName,tutorDisplayName:t.tutorDisplayName,tutorPhone:t.tutorPhone},tokenExpiry=new Date(Date.now()+30*24*60*60*1000).getTime();
+  const token=Utilities.getUuid()+Utilities.getUuid(),now=Date.now(),profile={tutorId:t.tutorId,tutorName:t.tutorName,tutorDisplayName:t.tutorDisplayName,tutorPhone:t.tutorPhone,lastSeenAt:now},tokenExpiry=new Date(now+30*24*60*60*1000).getTime();
   profile.tokenExpiresAt=tokenExpiry;
   CacheService.getScriptCache().put("BA_TUTOR_"+token,JSON.stringify(profile),21600);
   PropertiesService.getScriptProperties().setProperty("BA_TUTOR_TOKEN_"+token,JSON.stringify(profile));
@@ -2161,11 +2171,22 @@ function tutorVerifyLogin_(d){
 }
 function requireTutor_(token){
   token=String(token||"").trim();if(!token)throw new Error("Tutor login is required or has expired. Please verify your registered WhatsApp number again.");
-  let p=safeJson_(CacheService.getScriptCache().get("BA_TUTOR_"+token)||"");
-  if(!p||!p.tutorPhone){p=safeJson_(PropertiesService.getScriptProperties().getProperty("BA_TUTOR_TOKEN_"+token)||"");if(p&&p.tutorPhone&&Number(p.tokenExpiresAt||0)>Date.now())CacheService.getScriptCache().put("BA_TUTOR_"+token,JSON.stringify(p),21600)}
-  if(!p||!p.tutorPhone||Number(p.tokenExpiresAt||0)<=Date.now())throw new Error("Tutor login is required or has expired. Please verify your registered WhatsApp number again.");
+  const key="BA_TUTOR_TOKEN_"+token,cacheKey="BA_TUTOR_"+token,now=Date.now(),idleLimit=30*60*1000;
+  let cached=safeJson_(CacheService.getScriptCache().get(cacheKey)||""),persisted=safeJson_(PropertiesService.getScriptProperties().getProperty(key)||""),p=persisted||cached;
+  if(cached&&persisted&&Number(persisted.lastSeenAt||0)<Number(cached.lastSeenAt||0))p=cached;
+  if(!p||!p.tutorPhone||Number(p.tokenExpiresAt||0)<=now){try{PropertiesService.getScriptProperties().deleteProperty(key);CacheService.getScriptCache().remove(cacheKey)}catch(e){}throw new Error("Tutor login is required or has expired. Please verify your registered WhatsApp number again.");}
+  // Older V105 tutor tokens did not persist activity. Initialize them once on their
+  // first post-upgrade request, then enforce the inactivity deadline strictly.
+  if(!Number(p.lastSeenAt||0)){p.lastSeenAt=now;PropertiesService.getScriptProperties().setProperty(key,JSON.stringify(p));}
+  else if(now-Number(p.lastSeenAt)>=idleLimit){try{PropertiesService.getScriptProperties().deleteProperty(key);CacheService.getScriptCache().remove(cacheKey)}catch(e){}throw new Error("Tutor session expired after 30 minutes without activity. Please verify your registered WhatsApp number again.");}
   const live=getTutorByPhone_(p.tutorPhone);if(!live)throw new Error("This tutor account is no longer active. Please contact BrightAce Admin.");
-  p.tutorId=live.tutorId;p.tutorName=live.tutorName;p.tutorDisplayName=live.tutorDisplayName;p.tutorPhone=live.tutorPhone;return p;
+  p.tutorId=live.tutorId;p.tutorName=live.tutorName;p.tutorDisplayName=live.tutorDisplayName;p.tutorPhone=live.tutorPhone;
+  try{CacheService.getScriptCache().put(cacheKey,JSON.stringify(p),21600)}catch(e){}return p;
+}
+function tutorTouchSession_(token){
+  const p=requireTutor_(token),now=Date.now(),key="BA_TUTOR_TOKEN_"+String(token||"").trim();p.lastSeenAt=now;p.tokenExpiresAt=now+30*24*60*60*1000;
+  PropertiesService.getScriptProperties().setProperty(key,JSON.stringify(p));CacheService.getScriptCache().put("BA_TUTOR_"+String(token||"").trim(),JSON.stringify(p),21600);
+  return json_({ok:true,lastSeenAt:now,idleTimeoutMs:30*60*1000});
 }
 
 function tutorProfilePictureUrl_(url){
@@ -2520,13 +2541,18 @@ function adminListQuality_(token){
 function adminQaWork_(d){
   requireAdmin_(d.adminToken);const c=findConversation_(d.conversationId);if(!c)throw new Error("Work not found.");
   const decision=String(d.decision||"").toUpperCase(),notes=String(d.notes||"").trim();if(["APPROVE","REVISION"].indexOf(decision)<0)throw new Error("Choose approve or revision.");if(!notes)throw new Error("Add QA notes.");
+  const currentQA=String(c.qaStatus||"PENDING").toUpperCase(),currentWork=String(c.tutorWorkStatus||"RECEIVED").toUpperCase(),currentAssignment=String(c.assignmentStatus||"").toUpperCase();
+  if(["COMPLETED","CANCELLED","CLOSED","REJECTED","DECLINED"].includes(currentWork)||["COMPLETED","CANCELLED","CLOSED","REJECTED"].includes(currentAssignment))throw new Error("This request is closed and cannot be changed by QA.");
+  if(currentQA==="APPROVED"||currentAssignment==="QA_APPROVED")return json_({ok:true,qaStatus:"APPROVED",assignmentStatus:"QA_APPROVED",tutorWorkStatus:"QA_APPROVED",alreadyReviewed:true,message:"This submission has already been approved."});
+  if(currentWork!=="READY_FOR_QA")throw new Error("QA can review only a tutor submission marked Ready for QA. The tutor must submit or resubmit the work first.");
   const profile=getAdminProfile_(d.adminToken),sh=getConversationSheet_();
   setByHeader_(sh,c.row,"qaStatus",decision==="APPROVE"?"APPROVED":"REVISION_REQUIRED");setByHeader_(sh,c.row,"qaAt",new Date());setByHeader_(sh,c.row,"qaBy",profile.adminName||profile.username);setByHeader_(sh,c.row,"qaNotes",notes);
   if(decision==="APPROVE"){setByHeader_(sh,c.row,"assignmentStatus","QA_APPROVED");setByHeader_(sh,c.row,"tutorWorkStatus","QA_APPROVED");}
   else {setByHeader_(sh,c.row,"assignmentStatus","REVISION_REQUIRED");setByHeader_(sh,c.row,"tutorWorkStatus","REVISION_REQUESTED");}
-  const msg=decision==="APPROVE"?"✅ BrightAce Admin QA approved the tutor submission. Your completed work is now available in your dashboard.":"📝 BrightAce Admin QA requested a tutor revision. The team will update the work before final delivery.";
+  const msg=decision==="APPROVE"?"✅ BrightAce Admin QA approved the tutor's final submission. The request is now approved and awaiting completion confirmation by BrightAce Admin.":"📝 BrightAce Admin QA requested a tutor revision. The tutor has been notified of the requested changes; the request will return to QA after resubmission.";
   const saved=saveMessage_(c.conversationId,"admin",msg,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);
   try{sendWhatsAppText_(normalizePhone_(c.studentPhone),msg)}catch(e){}
+  try{saveTutorMessage_(normalizePhone_(c.assignedTutorPhone),String(c.assignedTutor||"BrightAce Tutor"),"admin","BrightAce QA",decision==="APPROVE"?"✅ QA approved your final submission. BrightAce Admin will confirm completion next.":"📝 QA requested revisions for work "+c.conversationId+": "+notes+". Please revise and resubmit for QA.","received",null)}catch(e){console.error(e)}
   invalidateWorkCaches_(c.conversationId,c.assignedTutorPhone,c.assignedTutorPhone,c.studentPhone);
   return json_({ok:true,qaStatus:decision==="APPROVE"?"APPROVED":"REVISION_REQUIRED",assignmentStatus:decision==="APPROVE"?"QA_APPROVED":"REVISION_REQUIRED",tutorWorkStatus:decision==="APPROVE"?"QA_APPROVED":"REVISION_REQUESTED"});
 }
@@ -2722,10 +2748,11 @@ function adminMarkWorkCompleted_(d){
   requireAdmin_(d.adminToken);
   const c=findConversation_(d.conversationId); if(!c) throw new Error("Student request not found.");
   if(!c.assignedTutor || c.assignedTutor==="Unassigned") throw new Error("Assign the work to a tutor first.");
-  // Completion is an authorized admin decision; confirmed payment is the financial prerequisite. QA remains available as a separate quality workflow, not a second completion gate.
+  // The only valid completion chain is assigned → accepted → tutor submission → QA approval → completed.
   const paid=findPaidPaymentForConversation_(c.conversationId); if(!paid) throw new Error("The student payment must be confirmed as PAID before this work can be completed.");
   if(String(c.assignmentStatus).toUpperCase()==="COMPLETED") return json_({ok:true,workId:c.conversationId,status:"COMPLETED",tutor:c.assignedTutor,tutorPayout:Number(c.tutorPayout||0),currency:c.agreedCurrency||c.currency,alreadyCompleted:true});
   if(String(c.assignmentStatus).toUpperCase()==="REJECTED") throw new Error("Rejected work cannot be completed.");
+  if(String(c.qaStatus||"").toUpperCase()!=="APPROVED"||String(c.tutorWorkStatus||"").toUpperCase()!=="QA_APPROVED") throw new Error("QA must approve the tutor's final submission before this work can be marked completed.");
   const amount=Number(c.agreedAmount||paid.amount||c.studentBudget||0),currency=String(c.agreedCurrency||paid.currency||c.currency||"KES").toUpperCase(),tutorPayout=Math.round(amount*0.50*100)/100;
   const existing=findPayoutForWork_(c.conversationId);
   if(!existing){
@@ -2733,8 +2760,13 @@ function adminMarkWorkCompleted_(d){
     for(let i=1;i<rows.length;i++) if(String(rows[i][1]||"")===String(c.assignedTutor)) tutorId=String(rows[i][0]||"");
     getTutorPayoutSheet_().appendRow(["PAY-"+Utilities.getUuid().replace(/-/g,"").slice(0,10).toUpperCase(),tutorId,c.assignedTutor,c.conversationId,paid.requestId,tutorPayout,currency,"OWED",new Date(),"","",""]);
   }
-  const csh=getConversationSheet_();setByHeader_(csh,c.row,"assignmentStatus","COMPLETED");setByHeader_(csh,c.row,"status","closed");setByHeader_(csh,c.row,"completedAt",new Date());
+  const csh=getConversationSheet_();setByHeader_(csh,c.row,"assignmentStatus","COMPLETED");setByHeader_(csh,c.row,"tutorWorkStatus","COMPLETED");setByHeader_(csh,c.row,"status","closed");setByHeader_(csh,c.row,"completedAt",new Date());
+  const completionMsg="✅ BrightAce has marked your request completed after tutor submission and Admin QA approval. You can review the delivered work and leave feedback in your client dashboard.";
+  const saved=saveMessage_(c.conversationId,"admin",completionMsg,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);
+  try{sendWhatsAppText_(normalizePhone_(c.studentPhone),completionMsg)}catch(e){console.error(e)}
+  try{saveTutorMessage_(normalizePhone_(c.assignedTutorPhone),String(c.assignedTutor||"BrightAce Tutor"),"admin","BrightAce Admin","✅ Work marked COMPLETED after QA approval. Your recorded payout is "+currency+" "+tutorPayout.toFixed(2)+".","received",null)}catch(e){console.error(e)}
   invalidateWorkCaches_(c.conversationId,c.assignedTutorPhone,c.assignedTutorPhone,c.studentPhone);
+  auditAdmin_(d.adminToken,"COMPLETE_WORK_AFTER_QA",c.conversationId);
   return json_({ok:true,workId:c.conversationId,status:"COMPLETED",tutor:c.assignedTutor,tutorPayout:tutorPayout,currency:currency});
 }
 function adminRejectWork_(d){
@@ -2749,8 +2781,9 @@ function adminRejectWork_(d){
 }
 function adminRestoreWork_(d){
   requireAdmin_(d.adminToken); const c=findConversation_(d.conversationId); if(!c) throw new Error("Student request not found.");
-  const sh=getConversationSheet_(); setByHeader_(sh,c.row,"status","open"); setByHeader_(sh,c.row,"assignmentStatus","NEW_REQUEST"); setByHeader_(sh,c.row,"completedAt",""); setByHeader_(sh,c.row,"rejectedAt",""); setByHeader_(sh,c.row,"rejectionReason","");
-  const saved=saveMessage_(c.conversationId,"admin","This BrightAce request has been restored to the active work queue.","admin",null); updateConversation_(c.conversationId,new Date(),saved.id);
+  if(String(c.assignmentStatus||"").toUpperCase()==="COMPLETED"||String(c.tutorWorkStatus||"").toUpperCase()==="COMPLETED")throw new Error("Completed work is a terminal stage and cannot be restored. Create a new request if further work is needed.");
+  const sh=getConversationSheet_(); setByHeader_(sh,c.row,"status","open"); setByHeader_(sh,c.row,"assignmentStatus","NEW_REQUEST"); setByHeader_(sh,c.row,"tutorWorkStatus","RECEIVED"); setByHeader_(sh,c.row,"qaStatus","PENDING"); setByHeader_(sh,c.row,"tutorSubmittedAt",""); setByHeader_(sh,c.row,"tutorSubmissionNote",""); setByHeader_(sh,c.row,"qaAt",""); setByHeader_(sh,c.row,"qaBy",""); setByHeader_(sh,c.row,"qaNotes",""); setByHeader_(sh,c.row,"completedAt",""); setByHeader_(sh,c.row,"rejectedAt",""); setByHeader_(sh,c.row,"rejectionReason","");
+  const saved=saveMessage_(c.conversationId,"admin","This BrightAce request has been restored to the active work queue. Its tutor and QA stages have been reset so Admin can assign it again.","admin",null); updateConversation_(c.conversationId,new Date(),saved.id);
   try{sendWhatsAppText_(normalizePhone_(c.studentPhone),"BrightAce Admin:\\n\\nYour BrightAce request has been restored to the active work queue. Admin will review the next step with you.")}catch(e){console.error(e)}
   invalidateWorkCaches_(c.conversationId,c.assignedTutorPhone,c.assignedTutorPhone,c.studentPhone);
   return json_({ok:true,workId:c.conversationId,status:"NEW_REQUEST"});

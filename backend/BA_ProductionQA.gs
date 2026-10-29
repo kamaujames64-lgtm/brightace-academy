@@ -12,13 +12,13 @@ function baQaRequiredFunctions_(){
     "baFinancialIntegrity_","baObservabilityHealth_","baRecoveryManifest_","baRecoverySnapshot_",
     "baProcessMessageDeliveryQueue_","baClientRequestHistory_","clientDashboard_","tutorDashboard_",
     "adminListWorkHistory_","adminStatement_","adminMarkTutorBalancePaid_","adminRecordTutorPayment_",
-    "baSecurityGateGet_","baSecurityGatePost_","getAdminProfile_","getConfig_","baResourceSheet_","baPurchaseSheet_","resourceInitializePayment_","resourceVerifyPayment_"
+    "baSecurityGateGet_","baSecurityGatePost_","getAdminProfile_","adminTouchSession_","requireTutor_","tutorTouchSession_","requireClientSession_","clientTouchSession_","getConfig_","baResourceSheet_","baPurchaseSheet_","resourceInitializePayment_","resourceVerifyPayment_"
   ];
 }
 
 function baQaExpectedActions_(){
   return [
-    "health","version","messages","clientDashboard","tutorDashboard","tutorGetWallet",
+    "health","version","messages","clientDashboard","tutorDashboard","tutorGetWallet","adminTouchSession","tutorTouchSession","clientTouchSession",
     "adminListConversations","adminListWorkHistory","adminFinancialIntegrity","adminObservability",
     "adminRecoveryManifest","adminProductionQa","adminCreateRecoverySnapshot",
     "adminStatement","adminMarkTutorBalancePaid","adminRecordTutorPayment","resources","resourceInitializePayment","resourceVerifyPayment","clientResourceCatalog","clientResourceLibrary","adminListResources","adminSaveResource","adminResourceAnalytics","adminResourceAccessLookup","adminSetResourceAccess"
@@ -32,7 +32,9 @@ function baQaCheck_(name,ok,detail,category){
 function baQaRuntimeChecks_(){
   const out=[];
   out.push(baQaCheck_("Build marker is present",/^\d{4}-\d{2}-\d{2}-V\d+-[A-Z0-9-]+$/.test(BRIGHTACE_BUILD),BRIGHTACE_BUILD,"DEPLOYMENT"));
-  out.push(baQaCheck_("JSON API marker is present",true,"brightace-json-v94 is returned by health/version endpoints.","DEPLOYMENT"));
+  out.push(baQaCheck_("JSON API marker is present",true,"brightace-json-v106 is returned by health/version endpoints.","DEPLOYMENT"));
+  out.push(baQaCheck_("Tutor/Admin idle timeout policy",typeof BA_SESSION_POLICY_!=="undefined"&&BA_SESSION_POLICY_.adminIdleMs===30*60*1000&&BA_SESSION_POLICY_.tutorIdleMs===30*60*1000&&typeof adminTouchSession_==="function"&&typeof tutorTouchSession_==="function","Privileged sessions require real activity within 30 minutes.","SECURITY"));
+  out.push(baQaCheck_("Client inactivity policy",typeof BA_SESSION_POLICY_!=="undefined"&&BA_SESSION_POLICY_.clientIdleMs===30*60*1000&&typeof clientTouchSession_==="function","Client sessions retain the 30-minute inactivity policy.","SECURITY"));
   let ss=null;
   try{ ss=SpreadsheetApp.openById(getConfig_().spreadsheetId); out.push(baQaCheck_("Spreadsheet access",true,"Configured production spreadsheet opened successfully.","DATA")); }
   catch(e){ out.push(baQaCheck_("Spreadsheet access",false,String(e&&e.message||e),"DATA")); }
@@ -63,6 +65,7 @@ function baQaWorkflowMatrix_(){
     {workflow:"Client live chat + history",status:"IMPLEMENTED",actions:["sendMessage","messages","clientDashboard","clientSubmitFeedback","clientSendComment"]},
     {workflow:"Admin admissions + assignments",status:"IMPLEMENTED",actions:["adminListClients","adminListConversations","adminAssignWork","adminRestoreWork","adminRejectWork"]},
     {workflow:"Tutor login + work lifecycle",status:"IMPLEMENTED",actions:["tutorSendVerification","tutorVerifyLogin","tutorDashboard","tutorUpdateWorkStatus","tutorSubmitWork"]},
+    {workflow:"Role-based idle session security",status:"IMPLEMENTED",actions:["adminTouchSession","tutorTouchSession","clientTouchSession"]},
     {workflow:"Scheduling",status:"IMPLEMENTED",actions:["adminCreateSchedule","adminListSchedules","adminUpdateSchedule"]},
     {workflow:"Client payments + refunds",status:"IMPLEMENTED",actions:["initializePayment","verifyPayment","submitRefundRequest","adminReviewRefundRequest"]},
     {workflow:"Tutor wallet + withdrawals",status:"IMPLEMENTED",actions:["tutorGetWallet","tutorSaveWallet","tutorRequestWithdrawal","adminMarkTutorBalancePaid"]},
@@ -85,5 +88,5 @@ function adminProductionQa_(token){
   checks.push(baQaCheck_("Resource access expiry column is defined",baAccessHeaders_().indexOf("expiresAt")>=0,"RESOURCE_ACCESS supports expiresAt.","RESOURCES"));
   const finalPass=checks.filter(function(x){return x.ok;}).length;
   const finalFail=checks.length-finalPass;
-  return json_({ok:finalFail===0,build:BRIGHTACE_BUILD,api:"brightace-json-v94",generatedAt:new Date().toISOString(),summary:{total:checks.length,passed:finalPass,failed:finalFail},checks:checks,workflowMatrix:matrix,liveMutationTests:"NOT_RUN",liveMutationNote:"V63 remains read-only for automated QA. Payment, refund, withdrawal, message delivery, resource purchase, access revocation/restore, and recovery restore must be tested manually with dedicated test data after deployment."});
+  return json_({ok:finalFail===0,build:BRIGHTACE_BUILD,api:"brightace-json-v106",generatedAt:new Date().toISOString(),summary:{total:checks.length,passed:finalPass,failed:finalFail},checks:checks,workflowMatrix:matrix,liveMutationTests:"NOT_RUN",liveMutationNote:"V106 remains read-only for automated QA. Payment, refund, withdrawal, message delivery, resource purchase, access revocation/restore, and recovery restore must be tested manually with dedicated test data after deployment."});
 }

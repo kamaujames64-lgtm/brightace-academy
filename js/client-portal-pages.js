@@ -117,12 +117,14 @@
   }
   async function ensureSession(s){
     if(!s?.verified||!s.phone)return false;
+    const lastActivity=Number(s.lastActivityAt||0);
+    if(!lastActivity||Date.now()-lastActivity>=30*60*1000){expirePortalSession();throw Error('Your client session expired after 30 minutes without activity. Please verify your WhatsApp number again.');}
     try{
       const d=await post('clientDashboardBootstrap',{conversationId:s.id||s.conversationId,phone:s.phone,clientSessionToken:s.clientSessionToken||'',clientAccessToken:s.clientAccessToken||''});
       s.clientAccessToken=d.clientAccessToken||s.clientAccessToken||'';
       s.clientSessionToken=d.clientSessionToken||s.clientSessionToken||'';
       s.clientSessionExpiresAt=d.clientSessionExpiresAt||d.expiresAt||s.clientSessionExpiresAt||'';
-      s.lastActivityAt=Date.now();saveSession(s);return true;
+      saveSession(s);return true;
     }catch(e){
       // A recoverable token problem should be surfaced clearly; do not silently render empty pages.
       throw e;

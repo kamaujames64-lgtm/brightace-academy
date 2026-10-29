@@ -44,7 +44,7 @@ body{background:var(--ba-bg);min-height:100vh}
   </section>
 </main>
 <footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
-<script src="../js/app.js?v=20261021interaction-safe87"></script>
+<script src="../js/app.js?v=20261028v106-idle-session-sound"></script>
 <script>
 const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec");
 const KEY="brightace_admin_token_v4";
@@ -78,4 +78,5 @@ form.addEventListener("submit",async function(e){
   }
 });
 </script>
+<script>(function(){if(new URLSearchParams(location.search).get("reason")==="idle"){setNotice("You were signed out after 30 minutes without activity. Please sign in again.","warning");try{sessionStorage.removeItem("brightace_idle_logout_notice_v1")}catch(e){}}})();</script>
 <script src="../js/brightace-composer.js?v=20261021c" defer></script></body></html>

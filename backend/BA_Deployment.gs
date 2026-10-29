@@ -8,7 +8,7 @@ function baDeploymentInfo_(){
     ok:true,
     service:"BrightAce Academy Live Chat",
     build:BRIGHTACE_BUILD,
-    api:"brightace-json-v94",
+    api:"brightace-json-v106",
     protocol:"json",
     statementEngine:"comprehensive-v44",
     scalabilityEngine:"v43+v46",
@@ -19,7 +19,7 @@ function baDeploymentInfo_(){
     disasterRecoveryEngine:"v54-disaster-recovery-data-protection",
     productionQaEngine:"v55-end-to-end-qa-production-readiness",
     resourceEngine:"v61-timed-resource-access",
-    productionHardeningEngine:"v85-session-feedback-finance-messaging+v66-speed"
+    productionHardeningEngine:"v106-idle-session-qa-workflow+v66-speed"
   };
 }
 

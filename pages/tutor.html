@@ -187,7 +187,7 @@ body:has(.ba-tutor-sticky-nav){padding-top:calc(var(--ba-tutor-nav-height) + env
 </div></section>
 </div></div></div></section></main>
 <footer class="footer"><div class="container footer-bottom"><span>© 2026 BrightAce Academy. All rights reserved.</span><span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms &amp; Conditions</a></span></div></footer>
-<script src="../js/app.js?v=20261021interaction-safe87"></script><script src="../js/statement-pdf.js"></script><script>
+<script src="../js/app.js?v=20261028v106-idle-session-sound"></script><script src="../js/statement-pdf.js"></script><script>
 const API=(window.BRIGHTACE_API_URL||"https://script.google.com/macros/s/AKfycbzs69au8SaV3o8wu2DHzD4VTY96oHVe0c_RUzEzzaMhD7yBkYnXujm_aJE7ZouY-JsK/exec"),KEY="brightace_tutor_token_v1";const $=id=>document.getElementById(id);let tutorToken=window.BrightAceTutorSession?.get?.()||sessionStorage.getItem(KEY)||localStorage.getItem(KEY)||"",data=null,selected=null,availabilityDirty=false,lastTutorMessageIds=new Set(),lastWorkMessageIds=new Set(),firstTutorLoad=true,alertAudio=null;
 function notice(t,type="info"){$("notice").textContent=t;$("notice").className="chat-notice "+type;$("notice").hidden=!t}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
@@ -314,4 +314,5 @@ const doTutorLogout=()=>{window.BrightAceTutorSession?.clear?.();try{sessionStor
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+<script>(function(){if(new URLSearchParams(location.search).get("reason")==="idle"){notice("You were signed out after 30 minutes without activity. Verify your registered WhatsApp number to sign in again.","warning");try{sessionStorage.removeItem("brightace_idle_logout_notice_v1")}catch(e){}}})();</script>
 </body></html>
