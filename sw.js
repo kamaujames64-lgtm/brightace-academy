@@ -2,7 +2,7 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261028-v105-network-first-workspace-fix';
+const BA_SW_VERSION = 'brightace-perf-20261028-v106-idle-session-workflow';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
 const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
 
@@ -45,14 +45,14 @@ function isPrivateBrightAceDocument(request) {
   try {
     const u = new URL(request.url);
     if (!isSameOrigin(request)) return false;
-    return /(?:^|\/)(?:pages\/)?(?:client-[^/]+|tutor-[^/]+|admin-(?!login)[^/]+|chat|payment|receipt|client-statement|resource-checkout|verify-statement)\.html$/i.test(u.pathname);
+    return /(?:^|\/)(?:pages\/)?(?:client-[^/]+|tutor(?:-(?!login)[^/]+)?|admin(?:-(?!login)[^/]+)?|chat|payment|receipt|client-statement|resource-checkout|verify-statement)\.html$/i.test(u.pathname);
   } catch (_) { return false; }
 }
 function isSecurityCriticalScript(request) {
   try {
     const u = new URL(request.url);
     if (!isSameOrigin(request)) return false;
-    return /\/(?:client-portal-pages|chat|brightace-api-config|admin-navigation)\.js$/i.test(u.pathname);
+    return /\/(?:app|client-portal-pages|chat|brightace-api-config|admin-navigation)\.js$/i.test(u.pathname);
   } catch (_) { return false; }
 }
 async function networkOnly(request) {

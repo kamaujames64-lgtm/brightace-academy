@@ -11,15 +11,18 @@ function bad(name,detail){fail.push({name,detail});}
 function read(rel){const f=path.join(root,rel);if(!fs.existsSync(f)){bad('Missing file',rel);return ''}return fs.readFileSync(f,'utf8');}
 const code=read('backend/Code.gs');
 const dep=read('backend/BA_Deployment.gs');
+const security=read('backend/BA_Security.gs');
 const recovery=read('backend/BA_DisasterRecovery.gs');
 const qa=read('backend/BA_ProductionQA.gs');
 const admin=read('pages/admin.html');
 const qapage=read('pages/admin-production-qa.html');
-const marker='2026-10-21-V94-CLIENT-BLOCK-TUTOR-RATING-ADMIN-EDIT';
-const apiMarker='brightace-json-v94';
-if(code.includes(marker))ok('Current build marker',true,'Code.gs declares the current V94 backend build.');else bad('Current build marker','Expected V94 build marker missing from Code.gs.');
-if(code.includes(apiMarker)&&dep.includes(apiMarker))ok('Health/version API marker consistency',true,'Health and deployment metadata agree on brightace-json-v94.');else bad('Health/version API marker consistency','Code.gs and BA_Deployment.gs must both report brightace-json-v94.');
-if(/brightace-json-v94/.test(read('backend/BA_ProductionQA.gs'))&&/brightace-json-v94/.test(read('backend/BA_ProductionHardening.gs')))ok('QA endpoint API markers',true,'QA and production hardening endpoints use the current API marker.');else bad('QA endpoint API markers','QA endpoints contain stale API markers.');
+const marker='2026-10-28-V106-IDLE-SESSION-QA-WORKFLOW';
+const apiMarker='brightace-json-v106';
+if(code.includes(marker))ok('Current build marker',true,'Code.gs declares the current V106 backend build.');else bad('Current build marker','Expected V106 build marker missing from Code.gs.');
+if(code.includes(apiMarker)&&dep.includes(apiMarker))ok('Health/version API marker consistency',true,'Health and deployment metadata agree on brightace-json-v106.');else bad('Health/version API marker consistency','Code.gs and BA_Deployment.gs must both report brightace-json-v106.');
+if(/brightace-json-v106/.test(read('backend/BA_ProductionQA.gs'))&&/brightace-json-v106/.test(read('backend/BA_ProductionHardening.gs')))ok('QA endpoint API markers',true,'QA and production hardening endpoints use the current API marker.');else bad('QA endpoint API markers','QA endpoints contain stale API markers.');
+if(/function adminTouchSession_/.test(code)&&/function tutorTouchSession_/.test(code)&&security.includes("'adminTouchSession'")&&security.includes("'tutorTouchSession'"))ok('Privileged idle session enforcement',true,'Admin/tutor touch endpoints are implemented and allowlisted.');else bad('Privileged idle session enforcement','Admin/tutor session touch endpoints are missing or not allowlisted.');
+if(/QA can review only a tutor submission marked Ready for QA/.test(code)&&/QA must approve the tutor's final submission before this work can be marked completed/.test(code))ok('QA workflow stage gates',true,'QA review and completion are guarded by the expected stage chain.');else bad('QA workflow stage gates','QA approval/completion stage gates are missing.');
 for(const f of ['BA_Security.gs','BA_Sessions.gs','BA_RateLimit.gs','BA_Data.gs','BA_Cache.gs','BA_Messages.gs','BA_Sync.gs','BA_Validation.gs','BA_Files.gs','BA_ClientHistory.gs','BA_MessageDelivery.gs','BA_FinancialIntegrity.gs','BA_Observability.gs','BA_DisasterRecovery.gs','BA_ProductionQA.gs']){if(fs.existsSync(path.join(root,'backend',f)))ok('Backend module',f);else bad('Backend module',f);}
 for(const action of ['adminProductionQa','adminRecoveryManifest','adminCreateRecoverySnapshot','adminFinancialIntegrity','adminObservability']){if(code.includes('"'+action+'"'))ok('Action route',action);else bad('Action route',action);}
 if(admin.includes('admin-production-qa.html'))ok('Admin navigation','Production QA workspace linked.');else bad('Admin navigation','Production QA link missing.');

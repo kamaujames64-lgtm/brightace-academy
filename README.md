@@ -1,6 +1,6 @@
 # BrightAce Academy — Workspace Repair (28 October 2026)
 
-This is the cleaned static website and Google Apps Script backend source for BrightAce Academy. It includes the V105 workspace reliability repairs.
+This is the cleaned static website and Google Apps Script backend source for BrightAce Academy. It includes the V106 session-security and QA workflow repairs on top of the V105 workspace reliability release.
 
 ## Main changes in this release
 
@@ -15,6 +15,12 @@ This is the cleaned static website and Google Apps Script backend source for Bri
 - Tutor work acceptance is idempotent; repeat clicks/retries do not create duplicate acceptance events or rewind the work state. Tutor status transitions and submissions are restricted to valid workflow stages, and updates invalidate client, tutor, admin and QA caches.
 - Booking a tutoring session and viewing session details remain available in the unified client shell.
 
+- Tutor and admin workspaces automatically sign out after 30 minutes without real user interaction; browser tokens are cleared and the backend enforces the same idle cutoff. Tutors must verify their registered WhatsApp number again; admins must sign in again. Background API polling does not count as activity.
+- Client inactivity remains 30 minutes and requires fresh WhatsApp verification. Client message polling and passive dashboard bootstrap no longer reset the real-user activity clock.
+- Admin QA can review only tutor work marked Ready for QA. Repeated review actions are idempotent, closed work cannot be casually reassigned, and final completion requires QA approval plus confirmed payment.
+- QA approval/revision and completion messages are sent to the relevant client/tutor channels; restoring work resets stale tutor and QA state before reassignment.
+- The existing BrightAce notification-sound engine and browser audio-unlock behavior are retained. The service worker now treats `app.js` and root-level admin/tutor dashboard documents as network-only security-critical resources.
+
 ## Deployment
 
 1. Keep a backup of the currently deployed site and backend.
@@ -27,4 +33,4 @@ This is the cleaned static website and Google Apps Script backend source for Bri
 
 Local JavaScript syntax and source-level regression tests were run. API load and cross-account privacy tests intentionally require a dedicated staging `/exec` URL and were not run because no staging URL was supplied. This package was not deployed to the live website, and real browser/device performance, live Apps Script behavior, payment integrations, and role-to-role end-to-end workflows still require staging verification.
 
-See `BRIGHTACE_WORKSPACE_REPAIR_REPORT_2026-10-28.md` for the detailed change list and test results.
+See `BRIGHTACE_WORKSPACE_REPAIR_REPORT_2026-10-28-V106.md` for the detailed change list and test results.

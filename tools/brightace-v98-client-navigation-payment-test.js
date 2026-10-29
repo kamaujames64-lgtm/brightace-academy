@@ -11,7 +11,7 @@ check('Client request payment state is linked by conversation ID',/payments\.fil
 check('Paid requests display PAID',/aria-label="Payment paid">PAID/.test(js),'Paid status is explicit.');
 check('Unpaid requests have a payment shortcut',/PAY NOW/.test(js)&&/payment\.html\?request=/.test(js)&&/VIEW \/ PAY INVOICES/.test(js),'Existing payment requests link directly to checkout; missing invoices route to Payments.');
 check('Client shell waits for server session validation',/if\(\!s\?\.verified\|\|\!s\.phone\)/.test(js)&&/await ensureSession\(s\)/.test(js)&&/insertAdjacentHTML\('afterbegin',nav/.test(js),'Private shell rendering follows the server-issued session bootstrap.');
-check('Service worker namespace invalidates previous client assets',sw.includes('brightace-perf-20261028-v105-network-first-workspace-fix'),'Updated HTML and JavaScript can be fetched under the new cache namespace.');
+check('Service worker namespace invalidates previous client assets',sw.includes('brightace-perf-20261028-v106-idle-session-workflow'),'Updated HTML and JavaScript can be fetched under the new cache namespace.');
 
 check('Client work page renders visible file cards with open and download actions',/Files from BrightAce and your tutor/.test(js)&&/map\(renderClientFile\)/.test(js)&&/DOWNLOAD/.test(js),'Delivered attachments are shown with filenames, metadata, preview/open and download actions.');
 check('File download clicks show downloading and download-started feedback',/data-client-download/.test(js)&&/DOWNLOADING/.test(js)&&/Download started\. Check your browser downloads/.test(js),'The UI acknowledges the browser download start without falsely claiming completion.');

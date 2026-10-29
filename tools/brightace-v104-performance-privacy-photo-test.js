@@ -12,6 +12,6 @@ check('Tutoring cache is only used after the shared portal session bootstrap',/a
 check('Client portal navigation router handles supported routes without document reload',/Same-document client portal navigation/.test(portal)&&/history\.pushState/.test(portal)&&/navigateClientRoute/.test(portal));
 check('Client portal auth session is tab-scoped',/function getSession\(\)[\s\S]{0,220}sessionStorage\.getItem\(KEY\)/.test(portal)&&/function saveSession\(s\)[\s\S]{0,160}sessionStorage\.setItem\(KEY/.test(portal));
 check('Tutor photos accept alternate API fields and Drive URLs',/tutorPhotoUrl/.test(portal)&&/tutorDisplayName/.test(backend)&&/drive\.google\.com\/thumbnail/.test(portal));
-check('Service worker cache namespace is v104',/v105-network-first-workspace-fix/.test(sw));
+check('Service worker cache namespace is v104',/v106-idle-session-workflow/.test(sw));
 check('Public soft-navigation updates styles and canonical metadata',engine.includes('link[rel=\"stylesheet\"]')&&engine.includes('link[rel=\"canonical\"]')&&engine.includes('Promise.all(added)'));
 let failed=0;for(const c of checks){console.log((c.ok?'PASS ':'FAIL ')+c.name);if(!c.ok)failed++;}console.log(`\nBrightAce v104 checks: ${checks.length-failed}/${checks.length} passed`);process.exitCode=failed?1:0;

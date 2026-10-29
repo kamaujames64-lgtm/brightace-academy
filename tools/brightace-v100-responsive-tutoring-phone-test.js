@@ -13,7 +13,7 @@ const checks = [
   ['tutor sign-in uses full international phone value', /BrightAcePhonePicker\?\.getValue\?\.\(\$\("phone"\)\)/.test(read('pages/tutor.html'))],
   ['tutor wallet stores international mobile value', /BrightAcePhonePicker\?\.getValue\?\.\(\$\("mobileNumber"\)\)/.test(read('pages/tutor.html')) && /BrightAcePhonePicker\?\.getValue\?\.\(\$\("mobileNumber"\)\)/.test(read('pages/tutor-wallet.html'))],
   ['rating label is BrightAce Rating in shared tutoring renderer', /BrightAce Rating/.test(read('js/client-portal-pages.js')) && !/BrightAce Admin rating/.test(read('js/client-portal-pages.js'))],
-  ['service worker cache namespace bumped', /v105-network-first-workspace-fix/.test(read('sw.js'))],
+  ['service worker cache namespace bumped', /v106-idle-session-workflow/.test(read('sw.js'))],
 ];
 let failed = 0;
 for (const [name, ok] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; }
