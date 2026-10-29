@@ -20,7 +20,7 @@ const checks=[
  ['Reassigning work resets stale tutor and QA stage; closed requests cannot be reassigned',/const resetStage=tutorChanged\|\|!oldTutorPhone\|\|!preserveStage/.test(code)&&/This request is closed\. Use the Admin restore workflow/.test(code)&&/\["tutorWorkStatus","RECEIVED"\],\["qaStatus","PENDING"\]/.test(code)],
  ['QA UI disables completion until approval and distinguishes waiting stages',/WAITING FOR QA APPROVAL/.test(qa)&&/WAITING FOR TUTOR REVISION/.test(qa)&&/WAITING FOR TUTOR SUBMISSION/.test(qa)],
  ['Existing notification sound and unlock flow remain available',/window\.BrightAceSound=\{unlock,play,newItems,checkDeadlines,notify\}/.test(app)&&/document\.addEventListener\("click",unlock/.test(app)&&/playNewMessageSound\(\)/.test(chat)],
- ['Shared app.js is network-only and service-worker cache is bumped',/app\.js\?v=20261028v106-idle-session-sound/.test(read('pages/tutor.html'))&&/brightace-perf-20261028-v106-idle-session-workflow/.test(sw)&&/function isSecurityCriticalScript[\s\S]{0,250}app\|client-portal-pages/.test(sw)]
+ ['Shared app.js is network-only and service-worker cache is bumped',/app\.js\?v=20261028v106-idle-session-sound/.test(read('pages/tutor.html'))&&/brightace-perf-20261029-v107-client-history-performance/.test(sw)&&/function isSecurityCriticalScript[\s\S]{0,250}app\|client-portal-pages/.test(sw)]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}: ${name}`);if(!ok)failed++;}
 console.log(`BrightAce V106 session/workflow regression checks: ${checks.length-failed}/${checks.length} passed.`);if(failed)process.exitCode=1;

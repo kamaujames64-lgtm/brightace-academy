@@ -883,6 +883,7 @@ function saveMessage_(id,sender,text,source,attachment,senderName,senderPhone){
   values[m.messageId-1]=messageId;values[m.conversationId-1]=id;values[m.sender-1]=sender;values[m.text-1]=text||"";values[m.source-1]=source;values[m.timestamp-1]=now;values[m.status-1]="received";values[m.attachmentJson-1]=attachment?JSON.stringify(attachment):"";
   if(m.senderName)values[m.senderName-1]=String(senderName||"");if(m.senderPhone)values[m.senderPhone-1]=normalizePhone_(senderPhone||"");
   sh.getRange(row,1,1,values.length).setValues([values]);
+  try{CacheService.getScriptCache().remove('BA_FAST_MSG_CONV_ID|'+String(id));}catch(e){}
   try{CacheService.getScriptCache().remove("BA_ADMIN_CONVERSATIONS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_ASSIGNMENTS");CacheService.getScriptCache().remove("BA_ADMIN_WORK_HISTORY");CacheService.getScriptCache().remove("BA_ADMIN_QUALITY")}catch(e){}
   const hydrated=hydrateAttachment_(attachment);
   try{const key=baMessageCacheKey_(id),raw=CacheService.getScriptCache().get(key),existing=raw?safeJson_(raw):null;if(Array.isArray(existing)){existing.push({id:messageId,sessionId:String(id),sender:String(sender),text:String(text||""),source:String(source||""),timestamp:now,status:"received",attachment:hydrated||null,senderName:String(senderName||""),senderPhone:normalizePhone_(senderPhone||"")});CacheService.getScriptCache().put(key,JSON.stringify(existing.slice(-100)),300)}else{CacheService.getScriptCache().remove(key)}}catch(e){}
@@ -1664,7 +1665,7 @@ function clientPortalSummary_(d){
   const convSh=getConversationSheet_(),cm=headerMap_(convSh);
   const rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_CONV_PHONE'):[];
   const convRows=baFastReadRows_(convSh,rowNums),requests=[];
-  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,assignedAdminUsername:c.assignedAdminUsername||'',assignedAdminName:c.assignedAdminName||'',deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,status:c.status});}catch(e){}}
+  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,assignedAdminUsername:c.assignedAdminUsername||'',assignedAdminName:c.assignedAdminName||'',deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const tutorProfiles=baTutorProfilesFast_(requests);requests.forEach(function(x){const ph=normalizePhone_(x.tutorPhone||''),nk='name:'+String(x.tutor||x.assignedTutor||'').trim().toLowerCase(),profile=tutorProfiles[ph]||tutorProfiles[nk]||null;if(profile){x.tutorProfilePictureUrl=profile.profilePictureUrl||'';x.tutorProfessionalTitle=profile.professionalTitle||'';x.tutorAdminRating=Number(profile.adminRating||0);x.tutorDescription=profile.description||'';}});
   baAttachAssignedAdminPhotos_(requests);
@@ -1696,9 +1697,16 @@ function clientPortalData_(d){
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
 
-  // Messages: read only the conversation-id column first, then fetch matching rows.
+  // V107: use a cached per-conversation row index instead of scanning the entire
+  // MESSAGES conversationId column on every client cache miss. TextFinder still
+  // scopes by exact conversation ID; the authenticated phone-to-conversation lookup
+  // above remains the source of allowed IDs.
   const msgSh=getSheet_('MESSAGES',messageHeaders_()), mm=headerMap_(msgSh), msgRowSet={};
-  if(mm.conversationId){const last=msgSh.getLastRow();if(last>=2){const vals=msgSh.getRange(2,mm.conversationId,last-1,1).getValues();for(let i=0;i<vals.length;i++){if(ids[String(vals[i][0]||'')])msgRowSet[i+2]=1;}}}
+  Object.keys(ids).forEach(function(cid){
+    if(!mm.conversationId)return;
+    const rows=baFastRowsForExact_(msgSh,'conversationId',cid,'BA_FAST_MSG_CONV_ID');
+    rows.forEach(function(n){msgRowSet[n]=1;});
+  });
   const msgRows=baFastReadRows_(msgSh,Object.keys(msgRowSet).map(Number)),messages=[];
   for(const item of msgRows){const r=item.values,cid=String(r[mm.conversationId-1]||'');try{messages.push({id:String(r[mm.messageId-1]||''),sessionId:cid,conversationId:cid,sender:String(r[mm.sender-1]||''),text:String(r[mm.text-1]||''),source:String(r[mm.source-1]||''),timestamp:r[mm.timestamp-1],status:String(r[mm.status-1]||'received'),attachment:hydrateAttachment_(mm.attachmentJson?safeJson_(r[mm.attachmentJson-1]||''):null),senderName:mm.senderName?String(r[mm.senderName-1]||''):'',senderPhone:mm.senderPhone?String(r[mm.senderPhone-1]||''):''});}catch(e){}}
   messages.sort((a,b)=>new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime());
