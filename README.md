@@ -1,6 +1,6 @@
-# BrightAce Academy — Workspace Repair (28 October 2026)
+# BrightAce Academy — Workspace Repair (29 October 2026)
 
-This is the cleaned static website and Google Apps Script backend source for BrightAce Academy. It includes the V106 session-security and QA workflow repairs on top of the V105 workspace reliability release.
+This is the cleaned static website and Google Apps Script backend source for BrightAce Academy. It includes the V106 session-security and QA workflow repairs plus V107 client API performance and request-history changes.
 
 ## Main changes in this release
 
@@ -20,6 +20,10 @@ This is the cleaned static website and Google Apps Script backend source for Bri
 - Admin QA can review only tutor work marked Ready for QA. Repeated review actions are idempotent, closed work cannot be casually reassigned, and final completion requires QA approval plus confirmed payment.
 - QA approval/revision and completion messages are sent to the relevant client/tutor channels; restoring work resets stale tutor and QA state before reassignment.
 - The existing BrightAce notification-sound engine and browser audio-unlock behavior are retained. The service worker now treats `app.js` and root-level admin/tutor dashboard documents as network-only security-critical resources.
+
+- V107 reduces `clientPortalData` cache-miss work by using exact per-conversation message-row indexes cached by the existing fast-index helper instead of rereading the entire message conversation-ID column for every client cache miss. New messages invalidate their conversation index.
+- V107 deduplicates identical in-flight `clientWorkMessages` reads, clears page-specific polling intervals during same-document navigation, and avoids immediately repeating a `clientTutorSessions` request when a fresh tab-local snapshot is already available. Status updates invalidate the client summary and tutor-session caches so live changes are not stranded behind stale cache entries.
+- V107 adds a private client History page and menu entry. Completed/rejected requests remain in operational client pages for seven days after their recorded terminal status timestamp, then appear in History. Missing terminal timestamps are not automatically archived. History includes links to work details and follow-up messages.
 
 ## Deployment
 
