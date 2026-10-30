@@ -389,7 +389,7 @@ body.client-portal-page .client-app-topbar{
   right:auto;
   transition:left .18s ease,width .18s ease;
 }
-body.client-portal-page .client-sidebar.collapsed~.client-app-topbar{
+body.client-portal-page.client-sidebar-is-collapsed .client-app-topbar{
   left:76px;
   width:calc(100% - 76px);
 }
@@ -399,7 +399,7 @@ body.client-portal-page .client-sidebar.collapsed~.client-app-topbar{
     width:100%;
     right:auto;
   }
-  body.client-portal-page .client-sidebar.collapsed~.client-app-topbar{
+  body.client-portal-page.client-sidebar-is-collapsed .client-app-topbar{
     left:0;
     width:100%;
   }
