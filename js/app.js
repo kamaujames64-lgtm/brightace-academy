@@ -173,9 +173,9 @@ document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e
   window.__baIdleSessionActivate=activate;activate();
 })();
 
-/* BrightAce V66 — instant repeat navigation.
- * Static pages/assets are handled by sw.js; these hints warm the next likely
- * workspace pages while the browser is idle. API calls are never prefetched.
+/* BrightAce V110 — reliable document navigation.
+ * The service worker may cache static assets only. HTML pages are always loaded
+ * by the browser as complete documents; no navigation interception or prefetch.
  */
 (function(){
   "use strict";
@@ -186,22 +186,5 @@ document.addEventListener("click",function(e){var a=e.target&&e.target.closest?e
       navigator.serviceWorker.register(base+'sw.js',{scope:base,updateViaCache:'none'}).catch(function(){});
     }catch(e){}
   }
-  function prefetch(url){
-    try{
-      var u=new URL(url,location.href);
-      if(u.origin!==location.origin||!/^https?:$/.test(u.protocol)||!/\.html$/i.test(u.pathname)||u.href===location.href)return;
-      if(prefetch.seen[u.href])return;prefetch.seen[u.href]=1;
-      fetch(u.href,{credentials:'same-origin',cache:'default'}).catch(function(){});
-    }catch(e){}
-  }
-  prefetch.seen=Object.create(null);
-  function warm(){
-    var links=[].slice.call(document.querySelectorAll('.ba-client-sidebar a[href],.tutor-nav a[href],.admin-topnav-pro a[href],.navx a[href],#siteNav a[href]'));
-    var current=location.href,unique=[];
-    links.forEach(function(a){try{var u=new URL(a.href,location.href);if(u.href!==current&&u.origin===location.origin&&!unique.some(function(x){return x===u.href}))unique.push(u.href)}catch(e){}});
-    var i=0;function next(){if(i>=Math.min(unique.length,8))return;prefetch(unique[i++]);if('requestIdleCallback'in window)requestIdleCallback(next,{timeout:800});else setTimeout(next,120)}
-    if('requestIdleCallback'in window)requestIdleCallback(next,{timeout:1200});else setTimeout(next,250);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){registerFastNavigation();warm()},{once:true});else{registerFastNavigation();warm()}
-  document.addEventListener('pointerover',function(e){var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(a)prefetch(a.href)},{passive:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',registerFastNavigation,{once:true});else registerFastNavigation();
 })();

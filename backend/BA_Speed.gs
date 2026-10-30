@@ -61,6 +61,7 @@ function baInvalidateClientSpeedCaches_(phone,conversationId){
     baCacheRemove_('BA_CLIENT_SCHEDULES_FAST_'+p);
     baCacheRemove_('BA_CLIENT_DASH_'+p);
     baCacheRemove_('BA_CLIENT_SUMMARY_'+p);
+    baCacheRemove_('BA_CLIENT_TUTOR_SESSIONS_FAST_V4_'+p);
     baCacheRemove_('BA_CLIENT_TUTOR_SESSIONS_FAST_V3_'+p);
     baCacheRemove_('BA_CLIENT_TUTOR_SESSIONS_FAST_V2_'+p);
     baCacheRemove_('BA_CLIENT_TUTOR_SESSIONS_FAST_'+p);

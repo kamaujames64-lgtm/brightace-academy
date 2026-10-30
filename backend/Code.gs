@@ -1402,7 +1402,7 @@ function invalidateWorkCaches_(conversationId,oldTutorPhone,newTutorPhone,studen
     if(clientPhone){
       CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+clientPhone);
       CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V2_"+clientPhone);
-      CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V3_"+clientPhone);
+      CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V4_"+clientPhone);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V3_"+clientPhone);
       CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+clientPhone);
       baCacheRemove_("BA_CLIENT_REQUEST_HISTORY_"+clientPhone);
     }
@@ -1710,7 +1710,7 @@ function clientPortalData_(d){
   const convSh=getConversationSheet_(), cm=headerMap_(convSh);
   const rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_CONV_PHONE'):[];
   const convRows=baFastReadRows_(convSh,rowNums), requests=[];
-  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
+  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutorSubmittedAt:c.tutorSubmittedAt,tutorSubmissionNote:c.tutorSubmissionNote,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,qaAt:c.qaAt,qaNotes:c.qaNotes,clientFeedback:c.clientFeedback||'',clientFeedbackAt:c.clientFeedbackAt||'',clientRating:Number(c.clientRating||0),feedback:c.clientFeedback||'',assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
 
@@ -1769,13 +1769,21 @@ function clientTutorSessions_(d){
   const phone=normalizePhone_(d.phone||''), token=String(d.clientSessionToken||'').trim();
   if(!phone) throw new Error('Your verified client session could not be restored. Please verify your WhatsApp number again.');
   const client=requireClientSession_(token,phone);
-  const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_V3_'+phone;
+  const cacheKey='BA_CLIENT_TUTOR_SESSIONS_FAST_V4_'+phone;
   try{const hit=safeJson_(CacheService.getScriptCache().get(cacheKey)||'');if(hit&&Array.isArray(hit.requests)&&Array.isArray(hit.schedules))return json_(Object.assign({ok:true,clientSessionToken:token},hit));}catch(e){}
   const convSh=getConversationSheet_(),cm=headerMap_(convSh),rowNums=cm.studentPhone?baFastRowsForPhone_(convSh,'studentPhone',phone,'BA_FAST_CLIENT_TUTOR_CONV_PHONE'):[],convRows=baFastReadRows_(convSh,rowNums),requests=[];
-  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,feedback:c.clientFeedback,assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
+  for(const item of convRows){try{const c=rowConversation_(item.values,item.row,convSh,cm);requests.push({conversationId:c.conversationId,studentName:c.studentName,studentPhone:c.studentPhone,workDescription:c.workDescription,assignmentStatus:c.assignmentStatus,tutorWorkStatus:c.tutorWorkStatus,tutorSubmittedAt:c.tutorSubmittedAt,tutorSubmissionNote:c.tutorSubmissionNote,tutor:c.assignedTutor,assignedTutor:c.assignedTutor,tutorPhone:resolveTutorPhone_(c.assignedTutor,c.assignedTutorPhone||''),deadline:c.deadline,requestedAt:c.startedAt,lastMessageAt:c.lastMessageAt,completedAt:c.completedAt,rejectedAt:c.rejectedAt,rejectionReason:c.rejectionReason,qaStatus:c.qaStatus,qaAt:c.qaAt,qaNotes:c.qaNotes,clientFeedback:c.clientFeedback||'',clientFeedbackAt:c.clientFeedbackAt||'',clientRating:Number(c.clientRating||0),feedback:c.clientFeedback||'',assignedAdminName:c.assignedAdminName,assignedAdminUsername:c.assignedAdminUsername||'',studentBudget:c.studentBudget,agreedAmount:c.agreedAmount,currency:c.currency,agreedCurrency:c.agreedCurrency,tutorPayout:c.tutorPayout,brightAceShare:c.brightAceShare,status:c.status});}catch(e){}}
   requests.sort((a,b)=>new Date(b.requestedAt||0).getTime()-new Date(a.requestedAt||0).getTime());
   const ids={};requests.forEach(x=>{if(x.conversationId)ids[String(x.conversationId)]=1;});
   const schedules=baClientSchedulesFast_(phone,Object.keys(ids));
+  // Preload every message and tutor submission for every owned Work ID so the
+  // client can switch jobs instantly without a second API round-trip.
+  const msgSh=getSheet_('MESSAGES',messageHeaders_()),mm=headerMap_(msgSh),msgRowSet={};
+  Object.keys(ids).forEach(function(cid){if(!mm.conversationId)return;baFastRowsForExact_(msgSh,'conversationId',cid,'BA_FAST_MSG_CONV_ID').forEach(function(n){msgRowSet[n]=1;});});
+  const msgRows=baFastReadRows_(msgSh,Object.keys(msgRowSet).map(Number)),messages=[];
+  for(const item of msgRows){const r=item.values,cid=String(r[mm.conversationId-1]||'');try{messages.push({id:String(r[mm.messageId-1]||''),sessionId:cid,conversationId:cid,sender:String(r[mm.sender-1]||''),text:String(r[mm.text-1]||''),source:String(r[mm.source-1]||''),timestamp:r[mm.timestamp-1],status:String(r[mm.status-1]||'received'),attachment:hydrateAttachment_(mm.attachmentJson?safeJson_(r[mm.attachmentJson-1]||''):null),senderName:mm.senderName?String(r[mm.senderName-1]||''):'',senderPhone:mm.senderPhone?String(r[mm.senderPhone-1]||''):''});}catch(e){}}
+  messages.sort(function(a,b){return new Date(a.timestamp||0).getTime()-new Date(b.timestamp||0).getTime();});
+  const tutorSubmissions=messages.filter(function(x){return String(x.sender||'').toLowerCase()==='tutor';});
   // Include each assigned tutor's current profile photo in this fast endpoint too.
   // The full portal endpoint already did this; omitting it here made My Tutors & Sessions
   // show initials even when the tutor had a saved profile picture.
@@ -1788,7 +1796,7 @@ function clientTutorSessions_(d){
   baAttachAssignedAdminPhotos_(requests);
   const bookings=listSessionBookingsForClient_(phone);
   const clientProfile=getClientByPhone_(phone);
-  const response={student:{name:client.clientName||'Verified Client',phone:phone,profilePictureUrl:String(clientProfile&&clientProfile.profilePictureUrl||'')},requests,schedules,bookingRequests:bookings,diagnostics:{requestCount:requests.length,scheduleCount:schedules.length,bookingCount:bookings.length}};
+  const response={student:{name:client.clientName||'Verified Client',phone:phone,profilePictureUrl:String(clientProfile&&clientProfile.profilePictureUrl||'')},requests,messages:messages.slice(-500),tutorSubmissions:tutorSubmissions.slice(-250),schedules,bookingRequests:bookings,diagnostics:{requestCount:requests.length,scheduleCount:schedules.length,bookingCount:bookings.length,messageCount:messages.length,tutorSubmissionCount:tutorSubmissions.length}};
   try{CacheService.getScriptCache().put(cacheKey,JSON.stringify(response),60);}catch(e){}
   return json_(Object.assign({ok:true,clientSessionToken:token},response));
 }
@@ -1844,7 +1852,7 @@ function adminReviewSessionBooking_(d){
   if(decision==='DECLINE'){
     setByHeader_(sh,row,'status','DECLINED');try{baCacheRemove_('BA_ADMIN_BOOKING_COUNT_PENDING_ADMIN_REVIEW')}catch(e){}setByHeader_(sh,row,'adminNotes',String(d.adminNotes||'Tutor unavailable for the requested time.').trim());setByHeader_(sh,row,'reviewedAt',new Date());setByHeader_(sh,row,'reviewedBy',adminName);SpreadsheetApp.flush();
     const msg='❌ BrightAce session request update\n\nYour requested session on '+b.requestedDate+' at '+b.startTime+' could not be confirmed for the selected tutor. '+String(d.adminNotes||'Please choose another time with BrightAce Admin.');
-    const saved=saveMessage_(b.conversationId,'admin',msg,'admin',null,adminName,'');updateConversation_(b.conversationId,new Date(),saved.id);try{sendWhatsAppText_(b.studentPhone,msg)}catch(e){}try{sendWhatsAppText_(b.tutorPhone,msg)}catch(e){};try{CacheService.getScriptCache().remove('BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(b.studentPhone));CacheService.getScriptCache().remove('BA_TUTOR_DASH_'+normalizePhone_(b.tutorPhone));}catch(e){};
+    const saved=saveMessage_(b.conversationId,'admin',msg,'admin',null,adminName,'');updateConversation_(b.conversationId,new Date(),saved.id);try{sendWhatsAppText_(b.studentPhone,msg)}catch(e){}try{sendWhatsAppText_(b.tutorPhone,msg)}catch(e){};try{CacheService.getScriptCache().remove('BA_CLIENT_TUTOR_SESSIONS_FAST_V4_'+normalizePhone_(b.studentPhone));CacheService.getScriptCache().remove('BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(b.studentPhone));CacheService.getScriptCache().remove('BA_TUTOR_DASH_'+normalizePhone_(b.tutorPhone));}catch(e){};
     return json_({ok:true,status:'DECLINED',bookingId:id});
   }
   const availability=getTutorAvailability_(b.tutorPhone),day=new Date(b.requestedDate+'T12:00:00').getDay(),inside=availability.length?availability.some(x=>x.active&&x.day===day&&b.startTime>=x.start&&b.endTime<=x.end):null;
@@ -1854,7 +1862,7 @@ function adminReviewSessionBooking_(d){
   const scheduleId='SCH-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase(),now=new Date();schedSh.appendRow([scheduleId,b.conversationId,b.tutorPhone,b.tutorName,b.requestedDate,b.startTime,b.endTime,b.timezone,zoom,'CONFIRMED',b.studentName,b.notes,now,now,'','',b.studentPhone]);setByHeader_(getConversationSheet_(),findConversation_(b.conversationId).row,'assignmentStatus','SCHEDULED');
   setByHeader_(sh,row,'status','CONFIRMED');try{baCacheRemove_('BA_ADMIN_BOOKING_COUNT_PENDING_ADMIN_REVIEW')}catch(e){}setByHeader_(sh,row,'adminNotes',String(d.adminNotes||'Tutor availability confirmed by Admin.').trim());setByHeader_(sh,row,'reviewedAt',now);setByHeader_(sh,row,'reviewedBy',adminName);setByHeader_(sh,row,'confirmedScheduleId',scheduleId);SpreadsheetApp.flush();
   const msg='✅ BrightAce tutoring session CONFIRMED\n\nWork ID: '+b.conversationId+'\nDate: '+b.requestedDate+'\nTime: '+b.startTime+'–'+b.endTime+' '+b.timezone+'\nTutor: '+b.tutorName+'\nZoom: '+zoom+'\n\nThe confirmed appointment is now visible in your BrightAce workspace.';
-  const saved=saveMessage_(b.conversationId,'admin',msg,'admin',null,adminName,'');updateConversation_(b.conversationId,new Date(),saved.id);try{sendWhatsAppText_(b.studentPhone,msg)}catch(e){}try{sendWhatsAppText_(b.tutorPhone,msg)}catch(e){};try{CacheService.getScriptCache().remove('BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(b.studentPhone));CacheService.getScriptCache().remove('BA_TUTOR_DASH_'+normalizePhone_(b.tutorPhone));}catch(e){}
+  const saved=saveMessage_(b.conversationId,'admin',msg,'admin',null,adminName,'');updateConversation_(b.conversationId,new Date(),saved.id);try{sendWhatsAppText_(b.studentPhone,msg)}catch(e){}try{sendWhatsAppText_(b.tutorPhone,msg)}catch(e){};try{CacheService.getScriptCache().remove('BA_CLIENT_TUTOR_SESSIONS_FAST_V4_'+normalizePhone_(b.studentPhone));CacheService.getScriptCache().remove('BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(b.studentPhone));CacheService.getScriptCache().remove('BA_TUTOR_DASH_'+normalizePhone_(b.tutorPhone));}catch(e){}
   return json_({ok:true,status:'CONFIRMED',bookingId:id,scheduleId:scheduleId});
 }
 function tutorSessionBookings_(d){
@@ -1889,7 +1897,7 @@ function clientSubmitFeedback_(d){
   if(!feedback)throw new Error("Please enter your feedback.");
   if(rating && (rating<1||rating>5||Math.floor(rating)!==rating))throw new Error("Rating must be between 1 and 5 stars.");
   if(feedback.length>2000)throw new Error("Feedback is too long.");
-  const sh=getConversationSheet_();setByHeader_(sh,c.row,"clientFeedback",feedback);setByHeader_(sh,c.row,"clientFeedbackAt",new Date());if(rating)setByHeader_(sh,c.row,"clientRating",rating);try{['BA_CLIENT_DASH_'+normalizePhone_(c.studentPhone),'BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(c.studentPhone),'BA_ADMIN_CONVERSATIONS','BA_ADMIN_WORK_HISTORY','BA_ADMIN_QUALITY'].forEach(k=>CacheService.getScriptCache().remove(k));}catch(e){}
+  const sh=getConversationSheet_();setByHeader_(sh,c.row,"clientFeedback",feedback);setByHeader_(sh,c.row,"clientFeedbackAt",new Date());if(rating)setByHeader_(sh,c.row,"clientRating",rating);try{['BA_CLIENT_DASH_'+normalizePhone_(c.studentPhone),'BA_CLIENT_TUTOR_SESSIONS_FAST_V4_'+normalizePhone_(c.studentPhone),'BA_CLIENT_TUTOR_SESSIONS_FAST_V3_'+normalizePhone_(c.studentPhone),'BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(c.studentPhone),'BA_ADMIN_CONVERSATIONS','BA_ADMIN_WORK_HISTORY','BA_ADMIN_QUALITY'].forEach(k=>CacheService.getScriptCache().remove(k));}catch(e){}
   saveMessage_(c.conversationId,"student","Client feedback: "+feedback,"dashboard",null,c.studentName,c.studentPhone);
   return json_({ok:true,message:"Thank you. Your feedback has been recorded."});
 }
@@ -2283,7 +2291,7 @@ function invalidateTutorProfileCaches_(phone){
     }
     const sh=getConversationSheet_(),rows=sh.getDataRange().getValues(),m=headerMap_(sh),phones={};
     for(let i=1;i<rows.length;i++)if(normalizePhone_(rows[i][m.assignedTutorPhone-1]||"")===target&&rows[i][m.studentPhone-1])phones[normalizePhone_(rows[i][m.studentPhone-1])]=true;
-    Object.keys(phones).forEach(ph=>{CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V2_"+ph);});
+    Object.keys(phones).forEach(ph=>{CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V4_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_"+ph);CacheService.getScriptCache().remove("BA_CLIENT_TUTOR_SESSIONS_FAST_V2_"+ph);});
   }catch(e){console.error("Tutor profile cache invalidation failed: "+e);}
 }
 function tutorUploadProfile_(d){
@@ -2527,7 +2535,7 @@ function adminCreateSchedule_(d){
   const saved=saveMessage_(c.conversationId,"admin",msg,"admin",null);updateConversation_(c.conversationId,new Date(),saved.id);
   try{sendWhatsAppText_(c.studentPhone,msg)}catch(e){}
   try{sendWhatsAppText_(tutorPhone,msg)}catch(e){}
-  try{['BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(c.studentPhone),'BA_TUTOR_DASH_'+tutorPhone,'BA_ADMIN_CONVERSATIONS','BA_ADMIN_WORK_HISTORY','BA_ADMIN_QUALITY'].forEach(k=>CacheService.getScriptCache().remove(k));}catch(e){}
+  try{['BA_CLIENT_TUTOR_SESSIONS_FAST_V4_'+normalizePhone_(c.studentPhone),'BA_CLIENT_TUTOR_SESSIONS_FAST_'+normalizePhone_(c.studentPhone),'BA_TUTOR_DASH_'+tutorPhone,'BA_ADMIN_CONVERSATIONS','BA_ADMIN_WORK_HISTORY','BA_ADMIN_QUALITY'].forEach(k=>CacheService.getScriptCache().remove(k));}catch(e){}
   return json_({ok:true,schedule:rowSchedule_(sh.getRange(sh.getLastRow(),1,1,sh.getLastColumn()).getValues()[0],sh.getLastRow())});
 }
 function adminListSchedules_(token){

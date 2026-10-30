@@ -365,11 +365,18 @@ body.client-portal-page #baMessageJobSelect:focus { border-color: #0878d8; box-s
 .ba-client-video-preview small{max-width:100%;overflow-wrap:anywhere;text-align:center}
 
 
-/* V108.1: accessible, touch-friendly request selection in My Tutors & Sessions */
-.ba-tutor-job-picker{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 14px;border:1px solid #dce7ef;border-radius:11px;background:#f7fbff}
-.ba-tutor-job-picker label{font-size:12px;font-weight:800;color:#29445f;white-space:nowrap}
-.ba-tutor-job-picker select{flex:1;min-width:0;max-width:100%;padding:11px 12px;border:1px solid #cbd9e5;border-radius:9px;background:#fff;color:#153b62;font:inherit}
-.ba-tutor-job-card{transition:border-color .16s ease,box-shadow .16s ease}
-.ba-tutor-job-card.selected{border-color:#1177ed;box-shadow:0 0 0 2px rgba(17,119,237,.12);background:#fbfdff}
-.ba-tutor-job-card [data-select-tutoring-job]{min-height:40px;white-space:normal}
-@media(max-width:700px){.ba-tutor-job-picker{align-items:stretch;flex-direction:column;gap:7px}.ba-tutor-job-picker select{width:100%;min-height:44px}.ba-tutor-job-card .ba-actions{display:grid;grid-template-columns:1fr}.ba-tutor-job-card .ba-actions .btn{justify-content:center}}
+/* V110: request cards themselves select the active tutoring job. */
+.ba-tutor-job-card{cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
+.ba-tutor-job-card:hover{border-color:#7fb5ed;box-shadow:0 5px 18px rgba(17,91,160,.09)}
+.ba-tutor-job-card:focus-visible{outline:3px solid #1674d1;outline-offset:3px}
+.ba-tutor-job-card.selected{border:2px solid #1177ed;background:#f4f9ff;box-shadow:0 0 0 3px rgba(17,119,237,.12)}
+.ba-job-card-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.ba-job-select-hint{font-size:10px;font-weight:800;color:#58738e}
+.ba-tutor-feedback{margin-bottom:16px;border-top:4px solid #147b89}
+.ba-tutor-feedback-note,.ba-tutor-update-item{padding:12px 14px;margin:10px 0;border:1px solid #dfe8ef;border-radius:10px;background:#f8fbfe}
+.ba-tutor-feedback-note p,.ba-tutor-update-item p{margin:6px 0;color:#314c66;white-space:pre-wrap;overflow-wrap:anywhere}
+.ba-tutor-feedback-note small,.ba-tutor-update-item small{display:block;color:#788b9d;font-size:10px;margin-top:4px}
+.ba-tutor-update-item>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+@media(max-width:700px){.ba-job-card-footer{align-items:stretch;flex-direction:column}.ba-job-card-footer .btn{width:100%;justify-content:center}.ba-tutor-update-item>div{align-items:flex-start;flex-direction:column;gap:3px}}
+
+.ba-job-tutor-preview{display:flex;align-items:center;gap:9px;margin:9px 0;color:#687c8f;font-size:11px;min-width:0}.ba-job-tutor-preview img,.ba-job-tutor-initials{width:34px;height:34px;flex:0 0 34px;border-radius:50%;object-fit:cover;background:#e9f3ff;border:1px solid #d8e6f3}.ba-job-tutor-initials{display:grid;place-items:center;color:#0874ea;font-size:11px;font-weight:900}.ba-job-tutor-preview span:last-child{min-width:0;overflow-wrap:anywhere}
