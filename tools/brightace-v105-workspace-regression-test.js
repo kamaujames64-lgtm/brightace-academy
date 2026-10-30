@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const read=p=>fs.readFileSync(p,'utf8');
 const sw=read('sw.js'),portal=read('js/client-portal-pages.js'),tutoring=read('pages/client-tutoring.html'),code=read('backend/Code.gs'),tutor=read('pages/tutor.html'),work=read('pages/tutor-work.html'),speed=read('js/brightace-speed-engine.js');
 const checks=[
- ['Service worker uses the v106 cache namespace',/brightace-perf-20261029-v107-client-history-performance/.test(sw)],
+ ['Service worker uses the current V108 cache namespace',/brightace-perf-20261030-v108-phone-resource-otp-performance/.test(sw)],
  ['HTML documents use network-first rather than stale-while-revalidate',/async function networkFirstPage\(/.test(sw)&&/networkFirstPage\(request\)/.test(sw)&&!/staleWhileRevalidatePage\(request\)/.test(sw)],
  ['Static assets are network-first with offline fallback',/async function networkFirstStatic\(/.test(sw)&&/networkFirstStatic\(request\)/.test(sw)],
  ['My Tutors & Sessions uses the shared client portal shell',/data-client-page="tutoring"/.test(tutoring)&&/client-portal-pages\.js\?v=20261029v107-client-history-performance/.test(tutoring)],

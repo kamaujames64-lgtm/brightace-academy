@@ -684,13 +684,14 @@ function sendVerificationCode_(conversationId,phone){
   assertClientMayVerify_(target);
   assertNewAdmissionsOpen_();
   const code=isVerificationTestCodeEnabledFor_(target)?getVerificationTestCode_():generateVerificationCode_(target);
-  const sh=getConversationSheet_();
-  const recentRaw=getByHeader_(sh,c.row,"verificationLastSentAt"),recent=recentRaw?new Date(recentRaw).getTime():0;
+  const sh=getConversationSheet_(),m=headerMap_(sh),verifyStart=m.verificationStatus;
+  const verifyState=sh.getRange(c.row,verifyStart,1,4).getValues()[0];
+  const recentRaw=m.verificationLastSentAt?sh.getRange(c.row,m.verificationLastSentAt).getValue():"",recent=recentRaw?new Date(recentRaw).getTime():0;
   if(recent && Date.now()-recent<30*1000) throw new Error("Please wait 30 seconds before requesting another verification code.");
-  setByHeader_(sh,c.row,"verificationCodeHash",sha256Hex_(code));
-  setByHeader_(sh,c.row,"verificationExpiresAt",new Date(Date.now()+10*60*1000));
-  setByHeader_(sh,c.row,"verificationAttempts",0);
-  setByHeader_(sh,c.row,"verificationLastSentAt",new Date());
+  // Update only the four adjacent OTP columns; leave all other conversation cells untouched.
+  verifyState[0]="PENDING";verifyState[1]=sha256Hex_(code);verifyState[2]=new Date(Date.now()+10*60*1000);verifyState[3]=0;
+  sh.getRange(c.row,verifyStart,1,4).setValues([verifyState]);
+  if(m.verificationLastSentAt)sh.getRange(c.row,m.verificationLastSentAt).setValue(new Date());
   const sent=isVerificationTestCodeEnabledFor_(target)
     ? {testMode:true,skipped:true,message:"Test verification code configured; WhatsApp delivery bypassed for the designated client number."}
     : sendWhatsAppVerificationTemplate_(target,code);
@@ -748,11 +749,11 @@ function returningClientSendVerification_(d){
   const conversationName=normalizeName(c.studentName||"");
   if(conversationName && conversationName!==normalizeName(name))
     throw new Error("The name and WhatsApp number do not match the existing BrightAce request. Please check your details and try again.");
-  const sh=getConversationSheet_(),code=isVerificationTestCodeEnabledFor_(phone)?getVerificationTestCode_():generateVerificationCode_(phone),now=new Date();
-  setByHeader_(sh,c.row,"verificationCodeHash",sha256Hex_(code));
-  setByHeader_(sh,c.row,"verificationExpiresAt",new Date(Date.now()+10*60*1000));
-  setByHeader_(sh,c.row,"verificationAttempts",0);
-  setByHeader_(sh,c.row,"verificationStatus","PENDING");
+  const sh=getConversationSheet_(),m=headerMap_(sh),code=isVerificationTestCodeEnabledFor_(phone)?getVerificationTestCode_():generateVerificationCode_(phone),now=new Date();
+  // One row read + one row write replaces four individual Spreadsheet calls.
+  const verifyState=sh.getRange(c.row,m.verificationStatus,1,4).getValues()[0];
+  verifyState[0]="PENDING";verifyState[1]=sha256Hex_(code);verifyState[2]=new Date(Date.now()+10*60*1000);verifyState[3]=0;
+  sh.getRange(c.row,m.verificationStatus,1,4).setValues([verifyState]);
   try{CacheService.getScriptCache().remove("BA_CONV_"+c.conversationId)}catch(e){}
   const sent=isVerificationTestCodeEnabledFor_(phone)?{testMode:true,skipped:true,message:"Test verification code configured; WhatsApp delivery bypassed for the designated client number."}:sendWhatsAppVerificationTemplate_(phone,code);
   return json_({ok:true,conversationId:c.conversationId,clientName:c.studentName||client.clientName,message:isVerificationTestCodeEnabledFor_(phone)?"Test verification code is ready for this designated client number.":"A 6-digit verification code has been sent to your WhatsApp number.",delivery:sent});
@@ -766,13 +767,19 @@ function returningClientVerify_(d){
   const client=getClientByPhone_(phone);
   if(!client)throw new Error("Client record not found. Please start a new verified request.");
   if(String(client.status||"").toUpperCase()==="SUSPENDED"||String(client.status||"").toUpperCase()==="INACTIVE")throw new Error("This client account is not active. Please contact BrightAce Admin.");
-  const sh=getConversationSheet_(),expiry=getByHeader_(sh,c.row,"verificationExpiresAt"),attempts=Number(getByHeader_(sh,c.row,"verificationAttempts")||0);
+  const sh=getConversationSheet_(),m=headerMap_(sh),verifyState=sh.getRange(c.row,m.verificationStatus,1,7).getValues()[0];
+  const expiry=verifyState[2],attempts=Number(verifyState[3]||0)||0;
   if(expiry&&new Date(expiry).getTime()<Date.now())throw new Error("That verification code has expired. Request a new code.");
   if(attempts>=3)throw new Error("Too many incorrect attempts. Request a new verification code.");
-  const stored=String(getByHeader_(sh,c.row,"verificationCodeHash")||"");
-  if(stored!==sha256Hex_(code)){setByHeader_(sh,c.row,"verificationAttempts",attempts+1);throw new Error("Incorrect verification code. Please check WhatsApp and try again.");}
-  const now=new Date(),existing=String(getByHeader_(sh,c.row,"clientAccessToken")||"")||Utilities.getUuid()+Utilities.getUuid(),clientSession=issueClientSession_(client,phone);
-  setByHeader_(sh,c.row,"verificationStatus","VERIFIED");setByHeader_(sh,c.row,"verifiedAt",now);setByHeader_(sh,c.row,"verificationCodeHash","");setByHeader_(sh,c.row,"verificationExpiresAt","");setByHeader_(sh,c.row,"verificationAttempts",0);setByHeader_(sh,c.row,"clientAccessToken",existing);setByHeader_(sh,c.row,"lastMessageAt",now);
+  const stored=String(verifyState[1]||"");
+  if(stored!==sha256Hex_(code)){verifyState[3]=attempts+1;sh.getRange(c.row,m.verificationStatus,1,7).setValues([verifyState]);throw new Error("Incorrect verification code. Please check WhatsApp and try again.");}
+  const now=new Date(),existing=String(m.clientAccessToken?sh.getRange(c.row,m.clientAccessToken).getValue():"")||Utilities.getUuid()+Utilities.getUuid(),clientSession=issueClientSession_(client,phone);
+  // Update only the verification columns plus the two separate session/activity fields.
+  verifyState[0]="VERIFIED";verifyState[1]="";verifyState[2]="";verifyState[3]=0;
+  if(m.verifiedAt)verifyState[m.verifiedAt-m.verificationStatus]=now;
+  sh.getRange(c.row,m.verificationStatus,1,7).setValues([verifyState]);
+  if(m.clientAccessToken)sh.getRange(c.row,m.clientAccessToken).setValue(existing);
+  if(m.lastMessageAt)sh.getRange(c.row,m.lastMessageAt).setValue(now);
   try{CacheService.getScriptCache().remove("BA_CONV_"+id);CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+phone);CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+phone)}catch(e){}
   return json_({ok:true,verified:true,conversationId:id,clientName:client.clientName,clientAccessToken:existing,clientSessionToken:clientSession.clientSessionToken,clientSessionExpiresAt:clientSession.expiresAt,message:"WhatsApp verified successfully. Your existing BrightAce request is now open."});
 }
@@ -788,12 +795,18 @@ function verifyChat_(d){
     // session endpoints; a fresh live-chat entry must request a new code.
     throw new Error("This WhatsApp request is already verified. Continue with your active BrightAce session or request a new verification code.");
   }
-  const expiry=c.row?getByHeader_(getConversationSheet_(),c.row,"verificationExpiresAt"):""; if(expiry && new Date(expiry).getTime()<Date.now()) throw new Error("That verification code has expired. Request a new code.");
-  const attempts=Number(c.row?getByHeader_(getConversationSheet_(),c.row,"verificationAttempts"):0)||0; if(attempts>=3) throw new Error("Too many incorrect attempts. Request a new verification code.");
-  const sh=getConversationSheet_(),stored=String(getByHeader_(sh,c.row,"verificationCodeHash")||"");
-  if(stored!==sha256Hex_(code)){setByHeader_(sh,c.row,"verificationAttempts",attempts+1);throw new Error("Incorrect verification code. Please check WhatsApp and try again.");}
-  const now=new Date(); const clientAccessToken=Utilities.getUuid()+Utilities.getUuid(); const client= getClientByPhone_(c.studentPhone); const clientSession=issueClientSession_(client,c.studentPhone); setByHeader_(sh,c.row,"verificationStatus","VERIFIED"); setByHeader_(sh,c.row,"verifiedAt",now); setByHeader_(sh,c.row,"assignmentStatus","NEW_REQUEST"); setByHeader_(sh,c.row,"verificationCodeHash",""); setByHeader_(sh,c.row,"verificationExpiresAt",""); setByHeader_(sh,c.row,"clientAccessToken",clientAccessToken);
-  const saved=saveMessage_(id,"student",c.workDescription,"website",null);setByHeader_(sh,c.row,"lastMessageId",saved.id);setByHeader_(sh,c.row,"lastMessageAt",now);try{
+  const sh=getConversationSheet_(),m=headerMap_(sh),verifyState=sh.getRange(c.row,m.verificationStatus,1,7).getValues()[0];
+  const expiry=verifyState[2],attempts=Number(verifyState[3]||0)||0;
+  if(expiry && new Date(expiry).getTime()<Date.now()) throw new Error("That verification code has expired. Request a new code.");
+  if(attempts>=3) throw new Error("Too many incorrect attempts. Request a new verification code.");
+  const stored=String(verifyState[1]||"");
+  if(stored!==sha256Hex_(code)){verifyState[3]=attempts+1;sh.getRange(c.row,m.verificationStatus,1,7).setValues([verifyState]);throw new Error("Incorrect verification code. Please check WhatsApp and try again.");}
+  const now=new Date(); const clientAccessToken=Utilities.getUuid()+Utilities.getUuid(); const client=getClientByPhone_(c.studentPhone); const clientSession=issueClientSession_(client,c.studentPhone);
+  verifyState[0]="VERIFIED";verifyState[1]="";verifyState[2]="";verifyState[3]=0;if(m.verifiedAt)verifyState[m.verifiedAt-m.verificationStatus]=now;
+  sh.getRange(c.row,m.verificationStatus,1,7).setValues([verifyState]);
+  if(m.assignmentStatus)sh.getRange(c.row,m.assignmentStatus).setValue("NEW_REQUEST");
+  if(m.clientAccessToken)sh.getRange(c.row,m.clientAccessToken).setValue(clientAccessToken);
+  const saved=saveMessage_(id,"student",c.workDescription,"website",null);if(m.lastMessageId)sh.getRange(c.row,m.lastMessageId).setValue(saved.id);if(m.lastMessageAt)sh.getRange(c.row,m.lastMessageAt).setValue(now);try{
     CacheService.getScriptCache().remove("BA_CONV_"+id);
     CacheService.getScriptCache().remove("BA_CLIENT_DASH_"+normalizePhone_(c.studentPhone));
     CacheService.getScriptCache().remove("BA_CLIENT_MSGS_"+normalizePhone_(c.studentPhone));
@@ -1436,10 +1449,14 @@ function issueClientSession_(client,phone){
   // the CLIENTS row on every request. This is important for hundreds of users.
   cache.put(CONFIG.clientSessionTokenPrefix+hash,JSON.stringify({phone:target,expiresAt:expiresAt,lastActivityAt:now,lastSheetSyncAt:now,client:snapshot}),1800);
   if(client&&client.row){
-    const sh=getClientSheet_();
-    setByHeader_(sh,client.row,'sessionTokenHash',hash);
-    setByHeader_(sh,client.row,'sessionExpiresAt',new Date(expiresAt));
-    setByHeader_(sh,client.row,'lastActivityAt',new Date(now));
+    const sh=getClientSheet_(),m=headerMap_(sh);
+    if(m.sessionTokenHash&&m.sessionExpiresAt===m.sessionTokenHash+1&&m.lastActivityAt===m.sessionTokenHash+2){
+      sh.getRange(client.row,m.sessionTokenHash,1,3).setValues([[hash,new Date(expiresAt),new Date(now)]]);
+    }else{
+      if(m.sessionTokenHash)sh.getRange(client.row,m.sessionTokenHash).setValue(hash);
+      if(m.sessionExpiresAt)sh.getRange(client.row,m.sessionExpiresAt).setValue(new Date(expiresAt));
+      if(m.lastActivityAt)sh.getRange(client.row,m.lastActivityAt).setValue(new Date(now));
+    }
   }
   return {clientSessionToken:token,expiresAt:new Date(expiresAt).toISOString()};
 }
