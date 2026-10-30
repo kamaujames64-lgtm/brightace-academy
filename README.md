@@ -38,3 +38,4 @@ This is the cleaned static website and Google Apps Script backend source for Bri
 Local JavaScript syntax and source-level regression tests were run. API load and cross-account privacy tests intentionally require a dedicated staging `/exec` URL and were not run because no staging URL was supplied. This package was not deployed to the live website, and real browser/device performance, live Apps Script behavior, payment integrations, and role-to-role end-to-end workflows still require staging verification.
 
 See `BRIGHTACE_WORKSPACE_REPAIR_REPORT_2026-10-28-V106.md` for the detailed change list and test results.
+\n\n## V108 repair update (30 October 2026)\n\nSee `BRIGHTACE_V108_REPAIR_REPORT.md` for the international phone-picker, OTP round-trip, public Resources performance and responsive updates, changed-file list, validation limits and deployment precautions.\n

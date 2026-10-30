@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="BrightAce Academy academic resources and digital study materials."><title>Resources | BrightAce Academy</title>
-<link rel="stylesheet" href="../css/style.css"><script src="../js/brightace-api-config.js"></script><script src="../js/brightace-phone.js?v=20261022v100" defer></script><style>
+<link rel="stylesheet" href="../css/style.css"><script src="../js/brightace-api-config.js"></script><script src="../js/brightace-phone.js?v=20261030v108-international-phone" defer></script><style>
 .resource-media-wrap{height:auto!important;min-height:140px;max-height:none!important;padding:10px;overflow:hidden}
 .resource-media-wrap img.resource-media-image{width:100%;height:auto;max-height:520px;object-fit:contain;object-position:center;cursor:zoom-in}
 .resource-media-trigger{display:flex;position:relative;align-items:center;justify-content:center;width:100%;min-height:180px;border:0;padding:0;background:transparent;cursor:pointer}
@@ -19,6 +19,16 @@
 .ba-resource-viewer-close{position:absolute;right:0;top:0;z-index:2;border:0;border-radius:999px;width:44px;height:44px;background:#fff;color:#111;font-size:28px;cursor:pointer}
 .ba-resource-viewer-title{position:absolute;left:0;right:60px;top:0;color:#fff;font-weight:700;padding:12px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:640px){.ba-resource-viewer{padding:10px}.ba-resource-viewer-dialog{height:90dvh}.ba-resource-viewer-content video,.ba-resource-viewer-content iframe{height:80dvh}.resource-media-wrap img.resource-media-image{max-height:420px}}
+/* V108 public resource performance and responsive refinements */
+#promoGrid[aria-busy="true"]{opacity:.72;transition:opacity .18s ease}
+#promoGrid .resource-card{min-width:0;contain:content}
+#promoGrid .resource-card img{max-width:100%;height:auto}
+#promoGrid .resource-card-content{min-width:0;overflow-wrap:anywhere}
+@media(min-width:1200px){#promoGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}}
+@media(max-width:950px){#promoGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}
+@media(max-width:640px){#promoGrid{grid-template-columns:minmax(0,1fr);gap:14px}.resource-card-content{padding:17px}.resource-media-wrap{max-height:380px}.ba-resource-viewer-dialog{width:100%;height:88dvh}}
+@media(prefers-reduced-motion:reduce){#promoGrid[aria-busy="true"]{transition:none}}
+
 </style><link rel="stylesheet" href="../css/brightace-speed-engine.css?v=1.0.1">
 <script defer src="../js/brightace-speed-engine.js?v=1.0.1"></script>
 </head><body>
@@ -77,8 +87,12 @@
  }
  async function load(){
    if(!API){notice.textContent='Resources are temporarily unavailable. Please try again later.';return}
+   notice.textContent='Loading activities and resource information…';
+   grid.setAttribute('aria-busy','true');
+   const controller=typeof AbortController!=='undefined'?new AbortController():null;
+   const timeout=controller?setTimeout(()=>controller.abort(),12000):null;
    try{
-     const r=await fetch(API+'?action=resourcePromotions',{cache:'no-store'}),d=await r.json();
+     const r=await fetch(API+'?action=resourcePromotions',{cache:'default',signal:controller?controller.signal:undefined}),d=await r.json();
      if(!r.ok||!d.ok)throw Error(d.error||'Could not load resource information.');
      const items=Array.isArray(d.items)?d.items:[];
      grid.innerHTML=items.map(card).join('');
@@ -86,7 +100,8 @@
      grid.querySelectorAll('img.resource-media-image').forEach(img=>img.addEventListener('error',function(){const src=this.getAttribute('src')||'',id=driveId(src);if(id&&!this.dataset.baFallback){this.dataset.baFallback='1';this.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w1600';return;}this.alt='Image unavailable — check public sharing permissions';this.style.minHeight='100px';this.style.objectFit='contain';this.closest('.resource-media-wrap')?.setAttribute('data-media-error','Image unavailable. Confirm this file is shared publicly.') }));
      notice.textContent=items.length?items.length+' activity and resource '+(items.length===1?'listing':'listings')+' available.':'Our activities and resource information are being prepared. Please check back soon.';
      if(!items.length)grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>More learning resources are coming</h3><p>Contact BrightAce Academy or sign in to ask about personalized support.</p><a class="btn btn-outline" href="chat.html">Contact BrightAce →</a></div></article>';
-   }catch(e){notice.textContent='Activities and resources could not be loaded right now. Please refresh or contact BrightAce for help.';grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>Temporarily unavailable</h3><p>Promotional information could not be retrieved. Please try again later.</p></div></article>'}
+   }catch(e){notice.textContent=(e&&e.name==='AbortError'?'The resource service is taking longer than expected.':'Activities and resources could not be loaded right now.')+' Please try again.';grid.innerHTML='<article class="resource-card"><div class="resource-card-content"><h3>Temporarily unavailable</h3><p>Promotional information could not be retrieved.</p><button type="button" class="btn btn-outline" id="retryPublicResources">Try again</button></div></article>';const retry=document.getElementById('retryPublicResources');if(retry)retry.addEventListener('click',load);}
+   finally{if(timeout)clearTimeout(timeout);grid.removeAttribute('aria-busy');}
  }
  load();
 })();

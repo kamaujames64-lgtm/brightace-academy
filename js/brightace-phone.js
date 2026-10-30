@@ -22,7 +22,7 @@
   const flag=iso=>String(iso||'').toUpperCase().replace(/[A-Z]/g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));
   const FLAG_FONT='BrightAceFlags';
   const digits=v=>String(v||'').replace(/\D/g,'');
-  function infer(v){let n=digits(v);if(n.startsWith('00'))n=n.slice(2);const ordered=unique.slice().sort((a,b)=>b[2].length-a[2].length);for(const c of ordered){if(n.startsWith(c[2])&&n.length>c[2].length+5)return c;}if(/^0[17]\d{8}$/.test(n))return unique.find(x=>x[0]==='KE');return null;}
+  function infer(v,preferredIso){let n=digits(v);if(n.startsWith('00'))n=n.slice(2);const ordered=unique.slice().sort((a,b)=>b[2].length-a[2].length);for(const c of ordered){if(n.startsWith(c[2])&&n.length>c[2].length+5){const same=ordered.filter(x=>x[2]===c[2]&&n.startsWith(x[2]));return same.find(x=>x[0]===preferredIso)||c;}}if(/^0[17]\d{8}$/.test(n))return unique.find(x=>x[0]==='KE');return null;}
   function localPart(input,code){
     let n=digits(input);
     if(n.startsWith('00'))n=n.slice(2);
@@ -43,11 +43,8 @@
     const code=String(opt?.dataset?.dial||'').replace(/\D/g,'');
     const explicitInternational=raw.startsWith('+')||raw.startsWith('00');
     if(explicitInternational){
-      const guessed=infer(raw);
-      if(guessed){
-        const internationalDigits=digits(raw).replace(/^00/,'');
-        return internationalDigits ? `+${internationalDigits}` : '';
-      }
+      const internationalDigits=digits(raw).replace(/^00/,'');
+      return internationalDigits ? `+${internationalDigits}` : '';
     }
     const local=localPart(raw,code);
     return local&&code?`+${code}${local}`:'';
@@ -153,14 +150,12 @@
     input.addEventListener('input',()=>{
       const typed=String(input.value||'').trim();
       const explicitInternational=typed.startsWith('+')||typed.startsWith('00');
-      const guessed=explicitInternational?infer(typed):null;
-      if(guessed){
-        // An explicitly international number overrides the currently selected country.
-        select.value=guessed[0];
-        countryManuallySelected=false;
-        const local=localPart(typed,guessed[2]).slice(0,maxLocalDigits(guessed[0]));
-        input.value=formatLocal(local,guessed[0]);
-        updateUI();
+      const guessed=explicitInternational?infer(typed,selected().iso):null;
+      if(explicitInternational){
+        // Keep the complete international value intact. Shared calling codes
+        // (notably +1 and +7) must not silently turn a Canadian/Kazakh number
+        // into the first country alphabetically.
+        if(guessed){select.value=guessed[0];updateUI();}
         sync();
         return;
       }
