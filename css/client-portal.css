@@ -363,3 +363,13 @@ body.client-portal-page #baMessageJobSelect:focus { border-color: #0878d8; box-s
 .ba-client-video-preview{min-height:120px;max-height:220px;flex-direction:column;gap:8px;padding:20px;text-decoration:none;color:#173f68;border:1px solid #dbe5ef}
 .ba-client-video-preview span{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:#173f68;color:#fff;font-size:1.4rem}
 .ba-client-video-preview small{max-width:100%;overflow-wrap:anywhere;text-align:center}
+
+
+/* V108.1: accessible, touch-friendly request selection in My Tutors & Sessions */
+.ba-tutor-job-picker{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 14px;border:1px solid #dce7ef;border-radius:11px;background:#f7fbff}
+.ba-tutor-job-picker label{font-size:12px;font-weight:800;color:#29445f;white-space:nowrap}
+.ba-tutor-job-picker select{flex:1;min-width:0;max-width:100%;padding:11px 12px;border:1px solid #cbd9e5;border-radius:9px;background:#fff;color:#153b62;font:inherit}
+.ba-tutor-job-card{transition:border-color .16s ease,box-shadow .16s ease}
+.ba-tutor-job-card.selected{border-color:#1177ed;box-shadow:0 0 0 2px rgba(17,119,237,.12);background:#fbfdff}
+.ba-tutor-job-card [data-select-tutoring-job]{min-height:40px;white-space:normal}
+@media(max-width:700px){.ba-tutor-job-picker{align-items:stretch;flex-direction:column;gap:7px}.ba-tutor-job-picker select{width:100%;min-height:44px}.ba-tutor-job-card .ba-actions{display:grid;grid-template-columns:1fr}.ba-tutor-job-card .ba-actions .btn{justify-content:center}}

@@ -39,3 +39,9 @@ Local JavaScript syntax and source-level regression tests were run. API load and
 
 See `BRIGHTACE_WORKSPACE_REPAIR_REPORT_2026-10-28-V106.md` for the detailed change list and test results.
 \n\n## V108 repair update (30 October 2026)\n\nSee `BRIGHTACE_V108_REPAIR_REPORT.md` for the international phone-picker, OTP round-trip, public Resources performance and responsive updates, changed-file list, validation limits and deployment precautions.\n
+## V108.1 — Client tutoring request selection
+- Added a responsive request selector and per-job `SELECT REQUEST` control to Client `My Tutors & Sessions`.
+- Switching requests updates the selected Work ID in the current URL and redraws the tutor/session/feedback panels in place without a full-page reload.
+- Kept message links, session joining/details, and client feedback submission behavior unchanged.
+- Updated the tutoring page's CSS/JavaScript cache-busting versions.
+- Added `tools/brightace-v1081-tutoring-job-selection-test.js`; updated the V105 workspace regression assertion for the new cache-busting version.
