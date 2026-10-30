@@ -380,3 +380,27 @@ body.client-portal-page #baMessageJobSelect:focus { border-color: #0878d8; box-s
 @media(max-width:700px){.ba-job-card-footer{align-items:stretch;flex-direction:column}.ba-job-card-footer .btn{width:100%;justify-content:center}.ba-tutor-update-item>div{align-items:flex-start;flex-direction:column;gap:3px}}
 
 .ba-job-tutor-preview{display:flex;align-items:center;gap:9px;margin:9px 0;color:#687c8f;font-size:11px;min-width:0}.ba-job-tutor-preview img,.ba-job-tutor-initials{width:34px;height:34px;flex:0 0 34px;border-radius:50%;object-fit:cover;background:#e9f3ff;border:1px solid #d8e6f3}.ba-job-tutor-initials{display:grid;place-items:center;color:#0874ea;font-size:11px;font-weight:900}.ba-job-tutor-preview span:last-child{min-width:0;overflow-wrap:anywhere}
+
+
+/* V110.1: keep the client dashboard top header aligned with the collapsed sidebar. */
+body.client-portal-page .client-app-topbar{
+  box-sizing:border-box;
+  width:calc(100% - 260px);
+  right:auto;
+  transition:left .18s ease,width .18s ease;
+}
+body.client-portal-page .client-sidebar.collapsed~.client-app-topbar{
+  left:76px;
+  width:calc(100% - 76px);
+}
+@media(max-width:760px){
+  body.client-portal-page .client-app-topbar{
+    left:0;
+    width:100%;
+    right:auto;
+  }
+  body.client-portal-page .client-sidebar.collapsed~.client-app-topbar{
+    left:0;
+    width:100%;
+  }
+}
