@@ -7,7 +7,7 @@ const checks=[
  ['Service worker uses the current V108 cache namespace',/brightace-perf-20261030-v108-phone-resource-otp-performance/.test(sw)],
  ['HTML documents use network-first rather than stale-while-revalidate',/async function networkFirstPage\(/.test(sw)&&/networkFirstPage\(request\)/.test(sw)&&!/staleWhileRevalidatePage\(request\)/.test(sw)],
  ['Static assets are network-first with offline fallback',/async function networkFirstStatic\(/.test(sw)&&/networkFirstStatic\(request\)/.test(sw)],
- ['My Tutors & Sessions uses the shared client portal shell',/data-client-page="tutoring"/.test(tutoring)&&/client-portal-pages\.js\?v=20261029v107-client-history-performance/.test(tutoring)],
+ ['My Tutors & Sessions uses the shared client portal shell',/data-client-page="tutoring"/.test(tutoring)&&/client-portal-pages\.js\?v=20261030v1081-tutoring-job-picker/.test(tutoring)],
  ['Tutor sessions are registered as an SPA route',/['\"]client-tutoring\.html['\"]\s*:\s*['\"]tutoring['\"]/.test(portal)],
  ['Tutor sessions route fetches live tutoring data and renders in-shell',/page===['\"]tutoring['\"]\?await loadTutorSessionsFresh\(s\)/.test(portal)&&/if\(page===['\"]tutoring['\"]\)await renderTutoring\(d,s\)/.test(portal)],
  ['Unified tutoring page retains session booking and deep-link details',/baBookSessionForm/.test(portal)&&/clientRequestSessionBooking/.test(portal)&&/id=\"baSessionDetail\"/.test(portal)],
