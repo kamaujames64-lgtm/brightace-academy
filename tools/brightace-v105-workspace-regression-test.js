@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const read=p=>fs.readFileSync(p,'utf8');
 const sw=read('sw.js'),portal=read('js/client-portal-pages.js'),tutoring=read('pages/client-tutoring.html'),code=read('backend/Code.gs'),tutor=read('pages/tutor.html'),work=read('pages/tutor-work.html'),speed=read('js/brightace-speed-engine.js');
 const checks=[
- ['Service worker uses the current V108 cache namespace',/brightace-perf-20261030-v108-phone-resource-otp-performance/.test(sw)],
+ ['Service worker uses the current V109 public-navigation cache namespace',/brightace-perf-20261030-v109-public-navigation-fix/.test(sw)],
  ['HTML documents use network-first rather than stale-while-revalidate',/async function networkFirstPage\(/.test(sw)&&/networkFirstPage\(request\)/.test(sw)&&!/staleWhileRevalidatePage\(request\)/.test(sw)],
  ['Static assets are network-first with offline fallback',/async function networkFirstStatic\(/.test(sw)&&/networkFirstStatic\(request\)/.test(sw)],
  ['My Tutors & Sessions uses the shared client portal shell',/data-client-page="tutoring"/.test(tutoring)&&/client-portal-pages\.js\?v=20261030v1081-tutoring-job-picker/.test(tutoring)],
@@ -20,7 +20,8 @@ const checks=[
  ['Accepting work publishes a shared timeline status and invalidates caches',/Work accepted by tutor[\s\S]{0,220}work-status/.test(code)&&/updateConversation_\(c\.conversationId,new Date\(\),saved\.id\)/.test(code)&&/invalidateWorkCaches_\(c\.conversationId,p\.tutorPhone,p\.tutorPhone,c\.studentPhone\)/.test(code)],
  ['Tutor cannot rewind accepted or QA-approved work to an earlier stage',/const allowed=\{[\s\S]{0,250}IN_PROGRESS:\[/.test(code)&&/no longer accepting tutor submissions/.test(code)],
  ['Tutor acceptance controls disable after QA approval or completion',/\"QA_APPROVED\",\"COMPLETED\"/.test(tutor)&&/\"QA_APPROVED\",\"COMPLETED\"/.test(work)],
- ['Public soft navigation waits for new styles and preserves shared CSS',/await Promise\.race\(\[Promise\.all\(added\)/.test(speed)&&/currentLinks\.forEach/.test(speed)]
+ ['Public soft navigation is disabled to preserve full page initialization',/softNavigation:\s*false/.test(speed)],
+ ['Soft-navigation CSS synchronization remains safe if explicitly re-enabled',/await Promise\.race\(\[Promise\.all\(added\)/.test(speed)&&/currentLinks\.forEach/.test(speed)]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}: ${name}`);if(!ok)failed++;}
 console.log(`BrightAce workspace regression checks: ${checks.length-failed}/${checks.length} passed.`);if(failed)process.exitCode=1;

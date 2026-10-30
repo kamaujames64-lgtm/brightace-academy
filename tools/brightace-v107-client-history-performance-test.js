@@ -21,7 +21,7 @@ const checks=[
  ['New messages invalidate the matching conversation index immediately',/remove\('BA_FAST_MSG_CONV_ID\|'\+String\(id\)\)/.test(code)],
  ['Client history response contains completion and rejection dates',/rejectedAt:c\.rejectedAt,rejectionReason:c\.rejectionReason,status:c\.status/.test(code)],
  ['Client status changes invalidate summary and tutor-session caches for prompt live updates',/BA_CLIENT_SUMMARY_/.test(speed)&&/BA_CLIENT_TUTOR_SESSIONS_FAST_V3_/.test(speed)],
- ['Service worker namespace is bumped for V108',/brightace-perf-20261030-v108-phone-resource-otp-performance/.test(sw)]
+ ['Service worker namespace is bumped for V109',/brightace-perf-20261030-v109-public-navigation-fix/.test(sw)]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}: ${name}`);if(!ok)failed++;}
 console.log(`BrightAce V107 client history/performance checks: ${checks.length-failed}/${checks.length} passed.`);if(failed)process.exitCode=1;

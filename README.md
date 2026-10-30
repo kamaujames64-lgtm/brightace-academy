@@ -45,3 +45,13 @@ See `BRIGHTACE_WORKSPACE_REPAIR_REPORT_2026-10-28-V106.md` for the detailed chan
 - Kept message links, session joining/details, and client feedback submission behavior unchanged.
 - Updated the tutoring page's CSS/JavaScript cache-busting versions.
 - Added `tools/brightace-v1081-tutoring-job-selection-test.js`; updated the V105 workspace regression assertion for the new cache-busting version.
+
+## V109 public navigation reliability patch
+
+- Disabled the custom public-page soft-navigation click interception. Public links now use normal browser document navigation so destination-specific HTML, styles, and scripts initialize together.
+- Kept public-page prefetching and the existing private portal/service-worker protections.
+- Bumped the service-worker cache namespace and public speed-engine asset query versions to prevent reuse of the earlier navigation implementation.
+- Added `.nojekyll` for GitHub Pages static-file publishing and a branded root `404.html` recovery page.
+- Added `tools/brightace-v109-public-navigation-test.js` to check the navigation mode, cache version, GitHub Pages support files, and local links on public pages.
+
+Deployment: replace the repository contents with this package and publish the GitHub Pages site. After deployment, open the site once with a hard refresh (Ctrl+F5) to load the new service worker and assets. A code-only ZIP cannot change the already-published GitHub Pages site until these files are deployed.
