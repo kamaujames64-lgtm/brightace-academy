@@ -9,7 +9,9 @@
 
   var cfg = Object.assign({
     prefetch: true,
-    softNavigation: true,
+    // Keep normal browser navigation: replacing only <main> skips page scripts and can
+    // leave public pages visually incomplete until a full refresh.
+    softNavigation: false,
     diagnostics: false,
     maxPrefetches: 24,
     prefetchDelayMs: 75,
@@ -196,6 +198,9 @@
     }
   }
   document.addEventListener('click', function (event) {
+    // Do not intercept public links when soft navigation is disabled. Let the
+    // browser load the complete destination document and execute its scripts.
+    if (!cfg.softNavigation) return;
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     var a = event.target && event.target.closest ? event.target.closest('a[href]') : null;
     if (!a || !isHtmlLink(a) || a.hasAttribute('data-no-soft-nav')) return;
