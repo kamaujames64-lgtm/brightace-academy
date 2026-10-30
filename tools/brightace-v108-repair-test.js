@@ -15,7 +15,7 @@ const checks=[
  ['Admin promotion save/delete invalidate the public catalog cache',/baCacheRemove_\("BA_PUBLIC_RESOURCE_PROMOTIONS_V2"\)/.test(resources)],
  ['Public resources request times out and exposes retry',/setTimeout\(\(\)=>controller\.abort\(\),12000\)/.test(page)&&/retryPublicResources/.test(page)],
  ['Public resources layout includes tablet and phone breakpoints',/@media\(max-width:950px\)[\s\S]*#promoGrid[\s\S]*@media\(max-width:640px\)/.test(page)],
- ['Service worker cache namespace is V109',/brightace-perf-20261030-v109-public-navigation-fix/.test(sw)]
+ ['Service worker cache namespace is V110',/brightace-perf-20261030-v110-native-document-navigation/.test(sw)]
 ];
 let failed=0;for(const [name,ok] of checks){console.log((ok?'PASS ':'FAIL ')+name);if(!ok)failed++;}
 console.log(`BrightAce V108 checks: ${checks.length-failed}/${checks.length} passed.`);if(failed)process.exitCode=1;

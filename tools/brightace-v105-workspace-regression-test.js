@@ -4,10 +4,10 @@ const fs=require('node:fs');
 const read=p=>fs.readFileSync(p,'utf8');
 const sw=read('sw.js'),portal=read('js/client-portal-pages.js'),tutoring=read('pages/client-tutoring.html'),code=read('backend/Code.gs'),tutor=read('pages/tutor.html'),work=read('pages/tutor-work.html'),speed=read('js/brightace-speed-engine.js');
 const checks=[
- ['Service worker uses the current V109 public-navigation cache namespace',/brightace-perf-20261030-v109-public-navigation-fix/.test(sw)],
- ['HTML documents use network-first rather than stale-while-revalidate',/async function networkFirstPage\(/.test(sw)&&/networkFirstPage\(request\)/.test(sw)&&!/staleWhileRevalidatePage\(request\)/.test(sw)],
+ ['Service worker uses the current V110 native-navigation cache namespace',/brightace-perf-20261030-v110-native-document-navigation/.test(sw)],
+ ['HTML documents bypass service-worker interception and use native navigation',/if \(isPage\(request\)\) return;/.test(sw)&&!/event\.respondWith\(networkFirstPage\(request\)\)/.test(sw)],
  ['Static assets are network-first with offline fallback',/async function networkFirstStatic\(/.test(sw)&&/networkFirstStatic\(request\)/.test(sw)],
- ['My Tutors & Sessions uses the shared client portal shell',/data-client-page="tutoring"/.test(tutoring)&&/client-portal-pages\.js\?v=20261030v1081-tutoring-job-picker/.test(tutoring)],
+ ['My Tutors & Sessions uses the shared client portal shell',/data-client-page="tutoring"/.test(tutoring)&&/client-portal-pages\.js\?v=20261030v110-card-selection-preloaded/.test(tutoring)],
  ['Tutor sessions are registered as an SPA route',/['\"]client-tutoring\.html['\"]\s*:\s*['\"]tutoring['\"]/.test(portal)],
  ['Tutor sessions route fetches live tutoring data and renders in-shell',/page===['\"]tutoring['\"]\?await loadTutorSessionsFresh\(s\)/.test(portal)&&/if\(page===['\"]tutoring['\"]\)await renderTutoring\(d,s\)/.test(portal)],
  ['Unified tutoring page retains session booking and deep-link details',/baBookSessionForm/.test(portal)&&/clientRequestSessionBooking/.test(portal)&&/id=\"baSessionDetail\"/.test(portal)],

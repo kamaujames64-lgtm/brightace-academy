@@ -2,9 +2,8 @@
  * GitHub Pages is the static site host. Google Apps Script /exec and Render
  * are cross-origin APIs and are deliberately never cached by this worker.
  */
-const BA_SW_VERSION = 'brightace-perf-20261030-v109-public-navigation-fix';
+const BA_SW_VERSION = 'brightace-perf-20261030-v110-native-document-navigation';
 const BA_STATIC_CACHE = BA_SW_VERSION + '-static';
-const BA_PAGE_CACHE = BA_SW_VERSION + '-pages';
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -63,23 +62,6 @@ function isStatic(request) {
   return isSameOrigin(request) && ['script', 'style', 'image', 'font'].includes(request.destination);
 }
 
-async function networkFirstPage(request) {
-  const cache = await caches.open(BA_PAGE_CACHE);
-  try {
-    const response = await fetch(request, { cache: 'no-store', credentials: 'same-origin' });
-    if (response && response.ok && response.type === 'basic') {
-      cache.put(request, response.clone()).catch(() => {});
-    }
-    return response;
-  } catch (_) {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    const homeUrl = new URL('index.html', self.registration.scope).href;
-    const offlineHtml = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Temporarily offline | BrightAce Academy</title><body style="font-family:system-ui,sans-serif;max-width:42rem;margin:12vh auto;padding:1.25rem;line-height:1.6"><h1>BrightAce Academy is temporarily offline</h1><p>This page could not be reached right now. Check your internet connection and try again.</p><p><a href="' + homeUrl + '">Return to the homepage</a></p></body></html>';
-    return new Response(offlineHtml, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
-  }
-}
-
 async function networkFirstStatic(request) {
   const cache = await caches.open(BA_STATIC_CACHE);
   try {
@@ -101,10 +83,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(networkOnly(request));
     return;
   }
-  if (isPage(request)) {
-    event.respondWith(networkFirstPage(request));
-    return;
-  }
+  // Never intercept HTML navigations. GitHub Pages must return the complete
+  // destination document directly; stale page-cache responses caused first-click
+  // rendering mismatches and made missing paths harder to diagnose.
+  if (isPage(request)) return;
   if (isStatic(request)) {
     event.respondWith(networkFirstStatic(request));
   }

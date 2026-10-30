@@ -55,3 +55,17 @@ See `BRIGHTACE_WORKSPACE_REPAIR_REPORT_2026-10-28-V106.md` for the detailed chan
 - Added `tools/brightace-v109-public-navigation-test.js` to check the navigation mode, cache version, GitHub Pages support files, and local links on public pages.
 
 Deployment: replace the repository contents with this package and publish the GitHub Pages site. After deployment, open the site once with a hard refresh (Ctrl+F5) to load the new service worker and assets. A code-only ZIP cannot change the already-published GitHub Pages site until these files are deployed.
+
+
+## V110 public navigation and preloaded tutoring-job selection
+
+- Public-page navigation now uses ordinary full-document browser navigation. The public soft-navigation enhancer was removed from public pages, HTML page prefetch was disabled, and the service worker no longer intercepts HTML document requests. This avoids partial-page rendering and stale page-shell responses.
+- The GitHub Pages `404.html` now has self-contained styling and attempts to correct common route-depth and filename-case variations before offering a homepage link.
+- The V110 ZIP is packaged with `index.html`, `pages/`, `css/`, `js/`, `backend/`, `sw.js`, and `.nojekyll` directly at the ZIP root (no extra enclosing project folder).
+- Client `My Tutors & Sessions` no longer has a dropdown or separate select button. Each request card is itself clickable and keyboard accessible; the selected card is highlighted and its details update in place.
+- The tutoring API preloads every request's tutor profile, sessions, client feedback/rating, tutor submission note, QA notes, messages, and tutor-submitted files before the user selects a request. Card switching uses that in-memory data and does not call the backend again.
+- Backend cache namespace and invalidation were updated for the expanded response payload.
+- Apps Script files changed: `backend/Code.gs` and `backend/BA_Speed.gs`. These backend changes require updating the Apps Script deployment used by `BRIGHTACE_API_URL`; the static website ZIP alone cannot publish backend code.
+- Tests: `tools/brightace-v1081-tutoring-job-selection-test.js` now verifies card-only selection and data preloading; `tools/brightace-v109-public-navigation-test.js` verifies native navigation, worker bypass for HTML and public local links.
+
+Release report: `BRIGHTACE_V110_NAVIGATION_AND_TUTORING_REPORT.md` (full changed-file list, validation results, and deployment steps).
